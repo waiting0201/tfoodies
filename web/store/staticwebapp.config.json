@@ -1,7 +1,6 @@
 {
-  "platform": { "apiRuntime": "node:20" },
   "navigationFallback": {
-    "rewrite": "/api/server",
+    "rewrite": "/index.html",
     "exclude": [
       "/content/*",
       "/scripts/*",

@@ -9,10 +9,10 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write   # SWA preview comment
+  pull-requests: write
 
 jobs:
-  build-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,12 +21,28 @@ jobs:
           node-version: '24'
       - run: npm ci
         working-directory: web
-      - name: Build store (Nuxt SSR for Azure SWA)
+      - name: Build store (Nuxt SPA)
         env:
           NUXT_PUBLIC_API_BASE: https://${{ vars.FUNCTION_APP_NAME }}.azurewebsites.net/api
-          NITRO_PRESET: azure_static_web_apps
         run: npm --workspace store run build
         working-directory: web
+      - name: Verify build output
+        run: test -f web/store/.output/public/index.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: store-dist
+          path: web/store/.output/public
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: store-dist
+          path: web/store/.output/public
       - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:
@@ -34,5 +50,4 @@ jobs:
           action: 'upload'
           app_location: 'web/store'
           output_location: '.output/public'
-          api_location: 'web/store/.output/server'
           skip_app_build: true
