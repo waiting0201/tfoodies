@@ -25,12 +25,6 @@ function fmtDate(d: string) {
   return d ? d.slice(0, 10) : '—'
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  normal: '正常',
-  '2': '已作廢',
-  '3': '已折讓',
-}
-
 function statusLabel(s: number | null): string {
   if (s === 2) return '已作廢'
   if (s === 3) return '已折讓'
@@ -46,13 +40,6 @@ function statusClass(s: number | null): string {
 // ─── filter state ─────────────────────────────────────────────────────────────
 type FilterStatus = '' | '2' | '3'
 const filterStatus = ref<FilterStatus>('')
-
-const FILTER_OPTIONS: { label: string; value: FilterStatus }[] = [
-  { label: '全部', value: '' },
-  { label: '正常', value: '' },   // placeholder rebuilt below
-  { label: '已作廢', value: '2' },
-  { label: '已折讓', value: '3' },
-]
 
 // ─── list state ───────────────────────────────────────────────────────────────
 const loading = ref(false)
