@@ -12,7 +12,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  build-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +26,23 @@ jobs:
           VITE_API_BASE: https://${{ vars.FUNCTION_APP_NAME }}.azurewebsites.net/api
         run: npm --workspace admin run build
         working-directory: web
+      - name: Verify build output
+        run: test -f web/admin/dist/index.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: admin-dist
+          path: web/admin/dist
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: admin-dist
+          path: web/admin/dist
       - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:

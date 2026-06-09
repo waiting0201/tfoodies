@@ -1,6 +1,16 @@
 {
   "platform": { "apiRuntime": "node:20" },
+  "navigationFallback": {
+    "rewrite": "/api/server",
+    "exclude": [
+      "/content/*",
+      "/scripts/*",
+      "/_nuxt/*",
+      "/*.{ico,png,svg,jpg,jpeg,webp,woff,woff2,css,js,json,txt,xml}"
+    ]
+  },
   "routes": [
+    { "route": "/_nuxt/*", "headers": { "cache-control": "public, max-age=31536000, immutable" } },
     { "route": "/content/*", "headers": { "cache-control": "public, max-age=31536000, immutable" } },
     { "route": "/scripts/*", "headers": { "cache-control": "public, max-age=31536000, immutable" } }
   ],

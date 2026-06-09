@@ -21,14 +21,18 @@ jobs:
           node-version: '24'
       - run: npm ci
         working-directory: web
-      - name: Build store (Nuxt SSR)
+      - name: Build store (Nuxt SSR for Azure SWA)
+        env:
+          NUXT_PUBLIC_API_BASE: https://${{ vars.FUNCTION_APP_NAME }}.azurewebsites.net/api
+          NITRO_PRESET: azure_static_web_apps
         run: npm --workspace store run build
         working-directory: web
       - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_SWA_TOKEN_STORE }}
-          action: ${{ github.event_name == 'pull_request' && 'upload' || 'upload' }}
+          action: 'upload'
           app_location: 'web/store'
           output_location: '.output/public'
-          skip_app_build: true   # already built above (Nuxt SSR output)
+          api_location: 'web/store/.output/server'
+          skip_app_build: true
