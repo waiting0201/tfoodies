@@ -21,10 +21,10 @@ jobs:
           node-version: '24'
       - run: npm ci
         working-directory: web
-      - name: Build store (Nuxt SPA)
+      - name: Generate store (Nuxt static SPA)
         env:
           NUXT_PUBLIC_API_BASE: https://${{ vars.FUNCTION_APP_NAME }}.azurewebsites.net/api
-        run: npm --workspace store run build
+        run: npm --workspace store run generate
         working-directory: web
       - name: Verify build output
         run: test -f web/store/.output/public/index.html
