@@ -2,10 +2,16 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { apiFetch } from '../../../lib/apiClient'
+import { toBlobUrl } from '../../../lib/blobUrl'
 
 interface ChildRow {
   title: string
   value: string
+}
+
+interface ProductItem {
+  productId: string
+  title: string
 }
 
 interface RecipeDetail {
@@ -24,6 +30,7 @@ interface RecipeDetail {
   ingredients?: ChildRow[]
   seasonings?: ChildRow[]
   steps?: ChildRow[]
+  productIds?: string[]
 }
 
 const route = useRoute()
@@ -36,6 +43,11 @@ const loading = ref(false)
 const loadError = ref('')
 const saving = ref(false)
 const saveError = ref('')
+
+const uploadingPhoto = ref(false)
+const uploadPhotoError = ref('')
+const uploadingRphoto = ref(false)
+const uploadRphotoError = ref('')
 
 const form = reactive<Omit<RecipeDetail, 'ingredients' | 'seasonings' | 'steps'>>({
   title: '',
@@ -55,6 +67,31 @@ const ingredients = ref<ChildRow[]>([])
 const seasonings = ref<ChildRow[]>([])
 const steps = ref<ChildRow[]>([])
 
+const allProducts = ref<ProductItem[]>([])
+const productIds = ref<string[]>([])
+const productSearch = ref('')
+
+async function onPhotoChange(e: Event, field: 'photo' | 'rphoto') {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const isMain = field === 'photo'
+  if (isMain) { uploadingPhoto.value = true; uploadPhotoError.value = '' }
+  else         { uploadingRphoto.value = true; uploadRphotoError.value = '' }
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await apiFetch<{ fileName: string }>('/admin/upload', { method: 'POST', body: fd })
+    form[field] = res.fileName
+  } catch (err: any) {
+    if (isMain) uploadPhotoError.value = err.message ?? '上傳失敗'
+    else        uploadRphotoError.value = err.message ?? '上傳失敗'
+  } finally {
+    if (isMain) uploadingPhoto.value = false
+    else        uploadingRphoto.value = false
+    ;(e.target as HTMLInputElement).value = ''
+  }
+}
+
 function addIngredient() { ingredients.value.push({ title: '', value: '' }) }
 function removeIngredient(i: number) { ingredients.value.splice(i, 1) }
 
@@ -64,16 +101,45 @@ function removeSeasoning(i: number) { seasonings.value.splice(i, 1) }
 function addStep() { steps.value.push({ title: '', value: '' }) }
 function removeStep(i: number) { steps.value.splice(i, 1) }
 
+const filteredProducts = computed(() => {
+  const q = productSearch.value.trim().toLowerCase()
+  const list = q
+    ? allProducts.value.filter(p => p.title.toLowerCase().includes(q))
+    : allProducts.value
+  // 已選的排到最前面
+  return [...list].sort((a, b) => {
+    const aS = productIds.value.includes(a.productId)
+    const bS = productIds.value.includes(b.productId)
+    if (aS === bS) return 0
+    return aS ? -1 : 1
+  })
+})
+
+function toggleProduct(pid: string) {
+  const idx = productIds.value.indexOf(pid)
+  if (idx >= 0) productIds.value.splice(idx, 1)
+  else productIds.value.push(pid)
+}
+
+function productTitle(pid: string) {
+  return allProducts.value.find(p => p.productId === pid)?.title ?? pid
+}
+
 onMounted(async () => {
+  apiFetch<ProductItem[]>('/admin/cms/products/all')
+    .then(data => { allProducts.value = data })
+    .catch(() => {})
+
   if (!isEdit.value) return
   loading.value = true
   try {
     const data = await apiFetch<RecipeDetail>(`/admin/cms/recipes/${id}`)
-    const { ingredients: ing, seasonings: sea, steps: stp, ...rest } = data
+    const { ingredients: ing, seasonings: sea, steps: stp, productIds: pids, ...rest } = data
     Object.assign(form, rest)
     ingredients.value = (ing ?? []).map(r => ({ title: r.title, value: r.value }))
     seasonings.value = (sea ?? []).map(r => ({ title: r.title, value: r.value }))
     steps.value = (stp ?? []).map(r => ({ title: r.title, value: r.value }))
+    productIds.value = (pids ?? []).map(id => String(id))
   } catch (e: any) {
     loadError.value = e.message ?? '載入失敗'
   } finally {
@@ -103,6 +169,7 @@ async function save() {
     ingredients: ingredients.value.map(r => ({ title: r.title, value: r.value })),
     seasonings: seasonings.value.map(r => ({ title: r.title, value: r.value })),
     steps: steps.value.map(r => ({ title: r.title, value: r.value })),
+    productIds: productIds.value,
   }
   try {
     if (isEdit.value) {
@@ -174,12 +241,26 @@ async function save() {
         <h2 class="form-section__title">圖片</h2>
         <div class="form-row">
           <div class="form-field form-field--grow">
-            <label class="label">代表圖 URL</label>
-            <input v-model="form.rphoto" class="input" type="url" placeholder="https://…" />
+            <label class="label">代表圖</label>
+            <div class="upload-area">
+              <label class="btn btn--ghost btn--sm upload-btn" :class="{ 'btn--loading': uploadingRphoto }">
+                {{ uploadingRphoto ? '上傳中…' : '選擇圖片' }}
+                <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="file-input" :disabled="uploadingRphoto" @change="onPhotoChange($event, 'rphoto')" />
+              </label>
+              <span v-if="uploadRphotoError" class="upload-error">{{ uploadRphotoError }}</span>
+            </div>
+            <img v-if="form.rphoto" :src="toBlobUrl(form.rphoto)" class="photo-preview" alt="代表圖預覽" />
           </div>
           <div class="form-field form-field--grow">
-            <label class="label">主圖 URL</label>
-            <input v-model="form.photo" class="input" type="url" placeholder="https://…" />
+            <label class="label">主圖</label>
+            <div class="upload-area">
+              <label class="btn btn--ghost btn--sm upload-btn" :class="{ 'btn--loading': uploadingPhoto }">
+                {{ uploadingPhoto ? '上傳中…' : '選擇圖片' }}
+                <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="file-input" :disabled="uploadingPhoto" @change="onPhotoChange($event, 'photo')" />
+              </label>
+              <span v-if="uploadPhotoError" class="upload-error">{{ uploadPhotoError }}</span>
+            </div>
+            <img v-if="form.photo" :src="toBlobUrl(form.photo)" class="photo-preview" alt="主圖預覽" />
           </div>
         </div>
       </div>
@@ -284,6 +365,51 @@ async function save() {
         </button>
       </div>
 
+      <!-- 相關商品 -->
+      <div class="form-section">
+        <h2 class="form-section__title">
+          相關商品
+          <span v-if="productIds.length > 0" class="product-badge">已選 {{ productIds.length }}</span>
+        </h2>
+
+        <!-- 已選 chips -->
+        <div v-if="productIds.length > 0" class="product-chips">
+          <span v-for="pid in productIds" :key="pid" class="product-chip">
+            {{ productTitle(pid) }}
+            <button type="button" class="product-chip__remove" @click="toggleProduct(pid)" title="移除">×</button>
+          </span>
+        </div>
+        <p v-else class="product-none">尚未選擇相關商品</p>
+
+        <!-- 搜尋 + 清單 -->
+        <div class="product-picker">
+          <input
+            v-model="productSearch"
+            class="input product-picker__search"
+            type="text"
+            placeholder="搜尋商品名稱…"
+          />
+          <div class="product-picker__list">
+            <div v-if="allProducts.length === 0" class="product-picker__empty">載入中…</div>
+            <div v-else-if="filteredProducts.length === 0" class="product-picker__empty">無符合商品</div>
+            <label
+              v-for="p in filteredProducts"
+              :key="p.productId"
+              class="product-picker__item"
+              :class="{ 'product-picker__item--selected': productIds.includes(p.productId) }"
+            >
+              <input
+                type="checkbox"
+                :value="p.productId"
+                :checked="productIds.includes(p.productId)"
+                @change="toggleProduct(p.productId)"
+              />
+              <span class="product-picker__title">{{ p.title }}</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
       <div class="form-actions">
         <button type="button" class="btn btn--ghost" @click="router.push('/admin/web/recipes')">取消</button>
         <button type="submit" class="btn btn--primary" :disabled="saving">
@@ -333,4 +459,29 @@ async function save() {
 .btn--ghost:hover:not(:disabled) { background:#f0f5f1; }
 .btn--danger-ghost { background:transparent; color:#ef4444; border-color:#fecaca; }
 .btn--danger-ghost:hover:not(:disabled) { background:#fef2f2; }
+
+.upload-area { display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem; }
+.upload-btn { position:relative; overflow:hidden; cursor:pointer; }
+.upload-btn.btn--loading { opacity:0.6; pointer-events:none; }
+.file-input { position:absolute; inset:0; opacity:0; cursor:pointer; font-size:0; }
+.upload-error { color:#c0392b; font-size:0.8rem; }
+.photo-preview { max-width:240px; max-height:120px; object-fit:cover; border-radius:4px; border:1px solid var(--tf-color-border); display:block; margin-top:0.5rem; }
+
+.product-badge { display:inline-flex; align-items:center; justify-content:center; background:var(--tf-color-primary); color:#fff; font-size:0.7rem; font-weight:700; border-radius:10px; padding:0.1rem 0.5rem; margin-left:0.4rem; vertical-align:middle; }
+.product-chips { display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.75rem; }
+.product-chip { display:inline-flex; align-items:center; gap:0.3rem; background:#e6f7f6; border:1px solid #9de0dc; border-radius:20px; padding:0.25rem 0.6rem 0.25rem 0.75rem; font-size:0.8rem; color:#1a6b68; }
+.product-chip__remove { background:none; border:none; cursor:pointer; color:#1a6b68; font-size:1rem; line-height:1; padding:0; opacity:0.6; }
+.product-chip__remove:hover { opacity:1; }
+.product-none { font-size:0.8rem; color:var(--tf-color-muted); margin:0 0 0.75rem; }
+.product-picker { border:1px solid var(--tf-color-border); border-radius:6px; overflow:hidden; }
+.product-picker__search { border:none; border-bottom:1px solid var(--tf-color-border); border-radius:0; }
+.product-picker__search:focus { border-color:var(--tf-color-primary); box-shadow:none; }
+.product-picker__list { max-height:280px; overflow-y:auto; }
+.product-picker__empty { padding:1.5rem; text-align:center; color:var(--tf-color-muted); font-size:0.875rem; }
+.product-picker__item { display:flex; align-items:center; gap:0.6rem; padding:0.5rem 0.75rem; cursor:pointer; border-bottom:1px solid #f3f4f6; transition:background 0.1s; }
+.product-picker__item:last-child { border-bottom:none; }
+.product-picker__item:hover { background:#f0faf8; }
+.product-picker__item--selected { background:#e6f7f6; }
+.product-picker__item input[type="checkbox"] { accent-color:var(--tf-color-primary); width:15px; height:15px; flex-shrink:0; cursor:pointer; }
+.product-picker__title { font-size:0.875rem; color:#334155; flex:1; }
 </style>

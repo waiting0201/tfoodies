@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiFetch } from '../../../lib/apiClient'
+import { toBlobUrl } from '../../../lib/blobUrl'
 
 interface Banner {
   bannerId: string
@@ -69,7 +70,7 @@ onMounted(load)
           <tr v-for="b in banners" :key="b.bannerId" class="data-table__row">
             <td>{{ b.sort }}</td>
             <td>
-              <img v-if="b.photoUrl" :src="b.photoUrl" :alt="b.title" class="thumb" />
+              <img v-if="b.photoUrl" :src="toBlobUrl(b.photoUrl)" :alt="b.title" class="thumb" />
               <span v-else class="text-muted">—</span>
             </td>
             <td>{{ b.title }}</td>

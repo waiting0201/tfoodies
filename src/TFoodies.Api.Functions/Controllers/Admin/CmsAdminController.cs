@@ -221,7 +221,7 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY",
 
         using var conn = await _db.CreateOpenConnectionAsync(ctx.Request.HttpContext.RequestAborted);
         var row = await conn.QuerySingleOrDefaultAsync(
-            "SELECT newid AS newsId, title, summary, intro, photo, publishdate AS publishDate, shortener, activitydate AS activityDate, activityschedule AS activitySchedule FROM News WHERE newid=@newId",
+            "SELECT newid AS newsId, title, summary, CAST(intro AS nvarchar(max)) AS intro, photo, publishdate AS publishDate, shortener, activitydate AS activityDate, activityschedule AS activitySchedule FROM News WHERE newid=@newId",
             new { newId });
 
         if (row is null) return ctx.NotFound("找不到新聞。");
@@ -318,8 +318,24 @@ WHERE newid=@newid",
 
     // ══════════════════════════════════════════════════════════════════
     // RECIPES（分頁，硬刪；實際欄位: recipeid/title/photo/rphoto/intro/duration/portion/youtube/v/keyword/description/sort/shortener）
-    // 子表：Recipeingredients / Recipeseasonings / Recipesteps（delete-insert on save）
+    // 子表：Recipeingredients / Recipeseasonings / Recipesteps / Recipeproducts（delete-insert on save）
     // ══════════════════════════════════════════════════════════════════
+
+    // GET /admin/cms/products/all — 商品選單（食譜相關商品選擇器用）
+    public async Task<IActionResult> RecipeProductsAll(RouteContext ctx)
+    {
+        var guard = await AdminGuard.AuthorizeAsync(ctx, _perms, "HomeMs", AdminOperation.Read);
+        if (guard.Result is not null) return guard.Result;
+
+        using var conn = await _db.CreateOpenConnectionAsync(ctx.Request.HttpContext.RequestAborted);
+        var items = await conn.QueryAsync<ProductPickerItem>(@"
+SELECT productid AS productId, title
+FROM Products
+WHERE isdisabled = 0
+ORDER BY sort ASC, title ASC");
+
+        return ctx.Ok(items);
+    }
 
     // GET /admin/cms/recipes?page=&pageSize=20
     public async Task<IActionResult> RecipeList(RouteContext ctx)
@@ -385,6 +401,10 @@ ORDER BY sort",
             new { recipeId });
 
         // Dapper 回傳 dynamic ExpandoObject；使用匿名型別組合後回傳
+        var productIds = await conn.QueryAsync<Guid>(@"
+SELECT productid FROM Recipeproducts WHERE recipeid=@recipeId",
+            new { recipeId });
+
         var r = (IDictionary<string, object?>)recipe!;
         return ctx.Ok(new
         {
@@ -404,6 +424,7 @@ ORDER BY sort",
             ingredients = ingredients,
             seasonings  = seasonings,
             steps       = steps,
+            productIds  = productIds,
         });
     }
 
@@ -600,6 +621,22 @@ VALUES (@id, @recipeid, @title, @value, @sort)",
                     transaction: tx);
             }
         }
+
+        // Recipeproducts
+        await conn.ExecuteAsync(
+            "DELETE FROM Recipeproducts WHERE recipeid=@recipeId",
+            new { recipeId }, transaction: tx);
+
+        if (body.ProductIds is { Count: > 0 })
+        {
+            foreach (var pid in body.ProductIds)
+            {
+                await conn.ExecuteAsync(
+                    "INSERT INTO Recipeproducts (recipeid, productid) VALUES (@recipeid, @productid)",
+                    new { recipeid = recipeId, productid = pid },
+                    transaction: tx);
+            }
+        }
     }
 
     /// <summary>
@@ -657,7 +694,7 @@ VALUES (@id, @recipeid, @title, @value, @sort)",
             "SELECT COUNT(1) FROM Issues WHERE ispublish=1");
 
         var items = await conn.QueryAsync(@"
-SELECT issueid AS issueId, title, photo, intro, keyword, description, sort, shortener, ispublish
+SELECT issueid AS issueId, title, photo, keyword, description, sort, shortener, ispublish
 FROM Issues
 WHERE ispublish=1
 ORDER BY createdate DESC
@@ -679,7 +716,7 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY",
         using var conn = await _db.CreateOpenConnectionAsync(ctx.Request.HttpContext.RequestAborted);
         // 後台編輯不過濾 ispublish，允許編輯已下架的期刊
         var row = await conn.QuerySingleOrDefaultAsync(
-            "SELECT issueid AS issueId, title, photo, intro, keyword, description, sort, shortener, ispublish FROM Issues WHERE issueid=@issueId",
+            "SELECT issueid AS issueId, title, photo, CAST(intro AS nvarchar(max)) AS intro, keyword, description, sort, shortener, ispublish FROM Issues WHERE issueid=@issueId",
             new { issueId });
 
         if (row is null) return ctx.NotFound("找不到期刊。");
@@ -792,7 +829,7 @@ WHERE issueid=@issueid",
         var total = await conn.ExecuteScalarAsync<int>("SELECT COUNT(1) FROM Events");
 
         var items = await conn.QueryAsync(@"
-SELECT eventid AS eventId, title, summary, photo, intro, eventdate AS eventDate, keyword, description, sort, shortener
+SELECT eventid AS eventId, title, summary, photo, eventdate AS eventDate, keyword, description, sort, shortener
 FROM Events
 ORDER BY eventdate DESC
 OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY",
@@ -812,7 +849,7 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY",
 
         using var conn = await _db.CreateOpenConnectionAsync(ctx.Request.HttpContext.RequestAborted);
         var row = await conn.QuerySingleOrDefaultAsync(
-            "SELECT eventid AS eventId, title, summary, photo, intro, eventdate AS eventDate, keyword, description, sort, shortener FROM Events WHERE eventid=@eventId",
+            "SELECT eventid AS eventId, title, summary, photo, CAST(intro AS nvarchar(max)) AS intro, eventdate AS eventDate, keyword, description, sort, shortener FROM Events WHERE eventid=@eventId",
             new { eventId });
 
         if (row is null) return ctx.NotFound("找不到活動。");
@@ -1035,7 +1072,7 @@ WHERE eventphotoid=@eventphotoid AND eventid=@eventid",
             "SELECT COUNT(1) FROM Knowledges WHERE ispublish=1");
 
         var items = await conn.QueryAsync(@"
-SELECT knowledgeid AS knowledgeId, question, photo, answer, keyword, description, sort, shortener, ispublish
+SELECT knowledgeid AS knowledgeId, question, photo, keyword, description, sort, shortener, ispublish
 FROM Knowledges
 WHERE ispublish=1
 ORDER BY sort ASC, knowledgeid ASC
@@ -1057,7 +1094,7 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY",
         using var conn = await _db.CreateOpenConnectionAsync(ctx.Request.HttpContext.RequestAborted);
         // 後台編輯不過濾 ispublish，允許編輯已下架的 FAQ
         var row = await conn.QuerySingleOrDefaultAsync(
-            "SELECT knowledgeid AS knowledgeId, question, photo, answer, keyword, description, sort, shortener, ispublish FROM Knowledges WHERE knowledgeid=@knowledgeId",
+            "SELECT knowledgeid AS knowledgeId, question, photo, CAST(answer AS nvarchar(max)) AS answer, keyword, description, sort, shortener, ispublish FROM Knowledges WHERE knowledgeid=@knowledgeId",
             new { knowledgeId });
 
         if (row is null) return ctx.NotFound("找不到 FAQ。");
@@ -1345,10 +1382,12 @@ WHERE blogid=@blogid",
         string? Youtube, string? Keyword, string? Description,
         List<RecipeChildItem>? Ingredients,
         List<RecipeChildItem>? Seasonings,
-        List<RecipeStepItem>?  Steps);
+        List<RecipeStepItem>?  Steps,
+        List<Guid>?            ProductIds);
 
     private sealed record RecipeChildItem(string Title, string Value);
     private sealed record RecipeStepItem(string Title, string Value);
+    private sealed record ProductPickerItem(Guid ProductId, string Title);
 
     private sealed record UpsertIssueRequest(
         string Title, string? Photo, string? Intro,

@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { apiFetch } from '../../../lib/apiClient'
+import { toBlobUrl } from '../../../lib/blobUrl'
 
 interface BlogDetail {
   blogId?: string
@@ -21,6 +22,8 @@ const loading = ref(false)
 const loadError = ref('')
 const saving = ref(false)
 const saveError = ref('')
+const uploading = ref(false)
+const uploadError = ref('')
 
 const form = reactive<BlogDetail>({
   title: '',
@@ -41,6 +44,24 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+async function onFileChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  uploading.value = true
+  uploadError.value = ''
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await apiFetch<{ fileName: string }>('/admin/upload', { method: 'POST', body: fd })
+    form.photo = res.fileName
+  } catch (err: any) {
+    uploadError.value = err.message ?? '上傳失敗'
+  } finally {
+    uploading.value = false
+    ;(e.target as HTMLInputElement).value = ''
+  }
+}
 
 async function save() {
   if (!form.title.trim()) {
@@ -109,8 +130,15 @@ async function save() {
         </div>
         <div class="form-row">
           <div class="form-field form-field--grow">
-            <label class="label">圖片 URL</label>
-            <input v-model="form.photo" class="input" type="url" placeholder="https://…" />
+            <label class="label">圖片</label>
+            <div class="upload-area">
+              <label class="btn btn--ghost btn--sm upload-btn" :class="{ 'btn--loading': uploading }">
+                {{ uploading ? '上傳中…' : '選擇圖片' }}
+                <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="file-input" :disabled="uploading" @change="onFileChange" />
+              </label>
+              <span v-if="uploadError" class="upload-error">{{ uploadError }}</span>
+            </div>
+            <img v-if="form.photo" :src="toBlobUrl(form.photo)" class="photo-preview" alt="預覽" />
           </div>
         </div>
       </div>
@@ -155,4 +183,11 @@ async function save() {
 .btn--primary:hover:not(:disabled) { background:var(--tf-color-primary-dark); border-color:var(--tf-color-primary-dark); }
 .btn--ghost { background:transparent; color:var(--tf-color-primary); border-color:var(--tf-color-primary); }
 .btn--ghost:hover:not(:disabled) { background:#f0f5f1; }
+
+.upload-area { display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem; }
+.upload-btn { position:relative; overflow:hidden; cursor:pointer; }
+.upload-btn.btn--loading { opacity:0.6; pointer-events:none; }
+.file-input { position:absolute; inset:0; opacity:0; cursor:pointer; font-size:0; }
+.upload-error { color:#c0392b; font-size:0.8rem; }
+.photo-preview { max-width:240px; max-height:120px; object-fit:cover; border-radius:4px; border:1px solid var(--tf-color-border); display:block; margin-top:0.5rem; }
 </style>

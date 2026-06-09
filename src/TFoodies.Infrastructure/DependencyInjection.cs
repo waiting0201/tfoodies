@@ -11,6 +11,7 @@ using TFoodies.Infrastructure.Permissions;
 using TFoodies.Infrastructure.Inventory;
 using TFoodies.Infrastructure.Orders;
 using TFoodies.Infrastructure.Sms;
+using TFoodies.Infrastructure.Blob;
 using TFoodies.Infrastructure.Store;
 
 namespace TFoodies.Infrastructure;
@@ -84,6 +85,10 @@ public static class DependencyInjection
         // ── SMS service（HttpClient pool） ────────────────────────────────────────
         services.Configure<MitakeSmsOptions>(configuration.GetSection(MitakeSmsOptions.SectionName));
         services.AddHttpClient<ISmsService, MitakeSmsService>();
+
+        // ── Blob Storage（Singleton — BlobContainerClient 是 thread-safe）────────
+        services.Configure<AzureBlobOptions>(configuration.GetSection(AzureBlobOptions.SectionName));
+        services.AddSingleton<IBlobService, AzureBlobService>();
 
         return services;
     }

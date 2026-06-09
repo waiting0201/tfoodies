@@ -2,7 +2,7 @@
 
 > 本文描述**新系統**（.NET 9 重構）的多專案分層設計。
 > 舊系統架構見 [docs/01-architecture.md](01-architecture.md)。
-> 上次更新：2026-06-09（新增訂單編輯 PUT /admin/orders/{code}、OrderEditView、商品搜尋顯示縮圖+編號）
+> 上次更新：2026-06-09（新增訂單編輯、圖片上傳機制）
 
 ---
 
@@ -313,3 +313,81 @@ TFoodies.Infrastructure            │
 | 業務規則（計算、驗證） | `Domain/` |
 | 修改 DI 註冊 | `Infrastructure/DependencyInjection.cs` 或 `Application/DependencyInjection.cs` |
 | 修改 EF 實體 | ⚠️ 不要手改 `Scaffolded/`；改 DB 後重跑 `scaffold-db.sh` |
+
+---
+
+## 7. 圖片上傳與呈現機制（Blob Storage）
+
+> **規則：所有欄位的圖片上傳與顯示，必須使用本節描述的統一機制。**
+> 與舊系統一致：DB 只存純檔名，URL 由 `BaseUrl + ContainerName + fileName` 組合而成。
+
+### 7.1 環境變數
+
+| 位置 | 變數 | 說明 | 範例（本地） |
+|---|---|---|---|
+| 後端（`local.settings.json` / Azure App Settings） | `AzureBlob__ConnectionString` | Storage 連線字串 | `UseDevelopmentStorage=true` |
+| 後端 | `AzureBlob__ContainerName` | Container 名稱（對應舊系統 `azure.blob.container`） | `tfoodies` |
+| 後端 | `AzureBlob__BaseUrl` | Storage account URL，**不含 container**（對應舊系統 `azure.blob.url`） | `http://127.0.0.1:10000/devstoreaccount1` |
+| 前端（`.env` / `.env.production`） | `VITE_BLOB_URL` | 同後端 `AzureBlob__BaseUrl` | `http://127.0.0.1:10000/devstoreaccount1` |
+| 前端 | `VITE_BLOB_CONTAINER` | 同後端 `AzureBlob__ContainerName` | `tfoodies` |
+
+完整圖片 URL = `BaseUrl` + `/` + `ContainerName` + `/` + `fileName`  
+等同舊系統：`azure.blob.url` + `"/"` + `azure.blob.container` + `"/"` + `entity.photo`
+
+### 7.2 後端：上傳 API
+
+**端點：** `POST /api/admin/upload`  
+**權限：** 需有效後台 JWT（任何模組）  
+**Content-Type：** `multipart/form-data`，field 名稱 `file`
+
+```
+Request:  multipart/form-data { file: <image> }
+Response: { "fileName": "20260609193238xx.jpg" }
+```
+
+- 允許格式：`.jpg` `.jpeg` `.png` `.gif` `.webp`
+- 檔名格式：`DateTime.Now.ToString("yyyyMMddHHmmssff") + 副檔名`（與舊系統一致）
+- **回傳純檔名，不含 URL**
+- 實作位置：`Api.Functions/Controllers/Admin/UploadAdminController.cs`
+- Blob service 介面：`Application/Abstractions/IBlobService.cs`
+- Blob service 實作：`Infrastructure/Blob/AzureBlobService.cs`（Singleton）
+- 合併 URL 屬性：`AzureBlobOptions.BlobUrl`（`BaseUrl + "/" + ContainerName`）
+
+### 7.3 後台表單：上傳流程
+
+1. 使用者選擇圖片 → `<input type="file">`
+2. 以 `FormData` 打 `POST /api/admin/upload`（透過 `apiFetch`）
+3. 取得 `{ fileName }` → 存入表單欄位（純檔名）
+4. 儲存表單時，`fileName` 隨其他欄位寫入 DB
+
+```ts
+const fd = new FormData()
+fd.append('file', file)
+const { fileName } = await apiFetch<{ fileName: string }>('/admin/upload', { method: 'POST', body: fd })
+form.photo = fileName  // 存純檔名
+```
+
+> ⚠️ `apiFetch` 對 `FormData` body **不可設** `Content-Type`，否則會破壞 multipart boundary。
+> 目前 `apiClient.ts` 已處理：`!(init.body instanceof FormData)` 才補 `application/json`。
+
+### 7.4 前台/後台列表：顯示圖片
+
+使用 `src/lib/blobUrl.ts` 提供的 `toBlobUrl(photo)` 轉換：
+
+```ts
+import { toBlobUrl } from '@/lib/blobUrl'
+// <img :src="toBlobUrl(item.photo)" />
+```
+
+`toBlobUrl` 邏輯：
+- `photo` 為空 → 回傳 `''`
+- `photo` 已是完整 URL（`http://` 或 `https://`）→ 直接回傳（向後相容）
+- `photo` 為純檔名 → 回傳 `VITE_BLOB_URL + "/" + VITE_BLOB_CONTAINER + "/" + photo`
+
+### 7.5 已套用的欄位
+
+| 模組 | 欄位 | 表單元件 | 列表元件 |
+|---|---|---|---|
+| 首頁輪播 Banners | `photo` | `BannerFormView.vue` | `BannersView.vue` |
+
+> 新增有圖片的功能時，照上述 7.2–7.4 的步驟套用，並在此表補列。

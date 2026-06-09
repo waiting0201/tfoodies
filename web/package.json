@@ -13,5 +13,12 @@
     "dev:admin": "npm --workspace admin run dev",
     "build:store": "npm --workspace store run build",
     "build:admin": "npm --workspace admin run build"
+  },
+  "dependencies": {
+    "@tiptap/extension-image": "^3.26.0",
+    "@tiptap/extension-link": "^3.26.0",
+    "@tiptap/extension-youtube": "^3.26.0",
+    "@tiptap/starter-kit": "^3.26.0",
+    "@tiptap/vue-3": "^3.26.0"
   }
 }

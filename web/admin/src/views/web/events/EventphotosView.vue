@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { apiFetch } from '../../../lib/apiClient'
+import { toBlobUrl } from '../../../lib/blobUrl'
 
 interface EventPhoto {
   eventphotoId: string
@@ -28,6 +29,8 @@ const error = ref('')
 const newPhoto = reactive({ photo: '', sort: 0 })
 const adding = ref(false)
 const addError = ref('')
+const uploading = ref(false)
+const uploadError = ref('')
 
 async function loadEvent() {
   try {
@@ -50,9 +53,27 @@ async function loadPhotos() {
   }
 }
 
+async function onFileChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  uploading.value = true
+  uploadError.value = ''
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await apiFetch<{ fileName: string }>('/admin/upload', { method: 'POST', body: fd })
+    newPhoto.photo = res.fileName
+  } catch (err: any) {
+    uploadError.value = err.message ?? '上傳失敗'
+  } finally {
+    uploading.value = false
+    ;(e.target as HTMLInputElement).value = ''
+  }
+}
+
 async function addPhoto() {
   if (!newPhoto.photo.trim()) {
-    addError.value = '請輸入圖片 URL'
+    addError.value = '請先上傳圖片'
     return
   }
   adding.value = true
@@ -117,14 +138,15 @@ onMounted(async () => {
       <p v-if="addError" class="form-msg form-msg--error">{{ addError }}</p>
       <div class="add-form__row">
         <div class="form-field form-field--grow">
-          <label class="label label--required">圖片 URL</label>
-          <input
-            v-model="newPhoto.photo"
-            class="input"
-            type="url"
-            placeholder="https://…"
-            @keyup.enter="addPhoto"
-          />
+          <label class="label label--required">圖片</label>
+          <div class="upload-area">
+            <label class="btn btn--ghost btn--sm upload-btn" :class="{ 'btn--loading': uploading }">
+              {{ uploading ? '上傳中…' : '選擇圖片' }}
+              <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="file-input" :disabled="uploading" @change="onFileChange" />
+            </label>
+            <span v-if="uploadError" class="upload-error">{{ uploadError }}</span>
+          </div>
+          <img v-if="newPhoto.photo" :src="toBlobUrl(newPhoto.photo)" class="photo-preview" alt="預覽" />
         </div>
         <div class="form-field form-field--fixed">
           <label class="label">排序</label>
@@ -132,7 +154,7 @@ onMounted(async () => {
         </div>
         <div class="form-field add-form__btn-field">
           <label class="label">&nbsp;</label>
-          <button class="btn btn--primary" :disabled="adding" @click="addPhoto">
+          <button class="btn btn--primary" :disabled="adding || !newPhoto.photo" @click="addPhoto">
             {{ adding ? '新增中…' : '新增' }}
           </button>
         </div>
@@ -168,7 +190,7 @@ onMounted(async () => {
               />
             </td>
             <td>
-              <img v-if="p.photo" :src="p.photo" alt="活動圖片" class="thumb-lg" />
+              <img v-if="p.photo" :src="toBlobUrl(p.photo)" alt="活動圖片" class="thumb-lg" />
             </td>
             <td class="url-cell">{{ p.photo }}</td>
             <td>
@@ -233,4 +255,11 @@ onMounted(async () => {
 .btn--ghost:hover:not(:disabled) { background:rgba(38,183,188,0.06); }
 .btn--danger-ghost { background:transparent; color:#ef4444; border-color:#fecaca; }
 .btn--danger-ghost:hover:not(:disabled) { background:#fef2f2; }
+
+.upload-area { display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem; }
+.upload-btn { position:relative; overflow:hidden; cursor:pointer; }
+.upload-btn.btn--loading { opacity:0.6; pointer-events:none; }
+.file-input { position:absolute; inset:0; opacity:0; cursor:pointer; font-size:0; }
+.upload-error { color:#c0392b; font-size:0.8rem; }
+.photo-preview { max-width:180px; max-height:100px; object-fit:cover; border-radius:4px; border:1px solid var(--tf-color-border); display:block; margin-top:0.5rem; }
 </style>

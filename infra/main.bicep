@@ -72,6 +72,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
       appSettings: [
         { name: 'AzureWebJobsStorage', value: storageConnectionString }
         { name: 'DEPLOYMENT_STORAGE_CONNECTION_STRING', value: storageConnectionString }
+        // AzureBlob:ConnectionString / ContainerName / BaseUrl 於 Portal 手動設定
       ]
     }
   }

@@ -191,6 +191,7 @@ public class RouteTable
         Register<CmsAdminController>("DELETE", @"admin/cms/news/(?<id>[^/]+)$",                           (c, ctx) => c.NewsDelete(ctx));
 
         // ── Admin CMS── Recipes ──────────────────────────────────────────────
+        Register<CmsAdminController>("GET",    "admin/cms/products/all",                                  (c, ctx) => c.RecipeProductsAll(ctx));
         Register<CmsAdminController>("GET",    "admin/cms/recipes",                                       (c, ctx) => c.RecipeList(ctx));
         Register<CmsAdminController>("GET",    @"admin/cms/recipes/(?<id>[^/]+)$",                        (c, ctx) => c.RecipeDetail(ctx));
         Register<CmsAdminController>("POST",   "admin/cms/recipes",                                       (c, ctx) => c.RecipeCreate(ctx));
@@ -245,6 +246,9 @@ public class RouteTable
         // ── Admin Reports（ReportMs） ─────────────────────────────────────────
         Register<ReportAdminController>("GET", "admin/reports/sales",                                     (c, ctx) => c.Sales(ctx));
         Register<ReportAdminController>("GET", "admin/reports/amounts",                                   (c, ctx) => c.Amounts(ctx));
+
+        // ── Admin Upload（共用圖片上傳，需登入，container = tfoodies）────────────
+        Register<UploadAdminController>("POST", "admin/upload",                                           (c, ctx) => c.Upload(ctx));
     }
 
     /// <summary>

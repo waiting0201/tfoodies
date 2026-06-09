@@ -33,15 +33,16 @@ builder.Services.AddSingleton<RouteTable>();
 builder.Services.AddSingleton<RouteHandler>();
 
 builder.Services.AddSingleton<JwtHelper>();
+builder.Services.AddSingleton<CorsMiddleware>();
 builder.Services.AddSingleton<CorrelationMiddleware>();
 builder.Services.AddSingleton<ExceptionHandlingMiddleware>();
 builder.Services.AddSingleton<JwtAuthMiddleware>();
 
-// Pipeline 順序：Correlation → ExceptionHandling → JwtAuth → Router
-// CORS 由 Azure Functions 平台層（Portal → API → CORS）統一處理
+// Pipeline 順序：Cors → Correlation → ExceptionHandling → JwtAuth → Router
 builder.Services.AddSingleton(sp =>
 {
     var pipeline = new MiddlewarePipeline();
+    pipeline.Use(sp.GetRequiredService<CorsMiddleware>());
     pipeline.Use(sp.GetRequiredService<CorrelationMiddleware>());
     pipeline.Use(sp.GetRequiredService<ExceptionHandlingMiddleware>());
     pipeline.Use(sp.GetRequiredService<JwtAuthMiddleware>());
@@ -75,6 +76,7 @@ builder.Services.AddScoped<ReturnController>();
 builder.Services.AddScoped<ReturnAdminController>();
 builder.Services.AddScoped<AdminAccountController>();
 builder.Services.AddScoped<CmsAdminController>();
+builder.Services.AddScoped<UploadAdminController>();
 builder.Services.AddScoped<InvoiceAdminController>();
 builder.Services.AddScoped<DiscountAdminController>();
 builder.Services.AddScoped<ReportAdminController>();
