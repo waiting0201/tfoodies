@@ -49,3 +49,5 @@ jobs:
         with:
           app-name: ${{ vars.FUNCTION_APP_NAME }}
           package: ./publish
+          scm-do-build-during-deployment: false
+          enable-oryx-build: false

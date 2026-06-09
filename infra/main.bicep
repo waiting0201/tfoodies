@@ -14,7 +14,6 @@ var tags = {
 }
 var suffix = uniqueString(resourceGroup().id, env)
 var saName = toLower('tfoodiesfn${env}${take(suffix, 8)}')
-var planName = 'tfoodies-plan-${env}'
 
 // ---------- Storage (Functions runtime 必需) ----------
 resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
@@ -30,36 +29,20 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   }
 }
 
-// ---------- Functions host (Elastic Premium EP1) ----------
-resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
-  name: planName
-  location: location
-  tags: tags
-  sku: { name: 'EP1', tier: 'ElasticPremium' }
-  kind: 'elastic'
-  properties: {
-    reserved: true // Linux
-    maximumElasticWorkerCount: 5
-  }
-}
-
+// ---------- Functions host (Flex Consumption) ----------
 resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   name: 'tfoodies-api'
   location: location
   tags: tags
   kind: 'functionapp,linux'
   properties: {
-    serverFarmId: plan.id
     httpsOnly: true
     siteConfig: {
-      linuxFxVersion: 'DOTNET-ISOLATED|10.0'
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
-      use32BitWorkerProcess: false
       appSettings: [
-        { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
-        { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'dotnet-isolated' }
         { name: 'AzureWebJobsStorage', value: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storage.listKeys().keys[0].value}' }
+        { name: 'WEBSITE_RUN_FROM_PACKAGE', value: '1' }
       ]
     }
   }
