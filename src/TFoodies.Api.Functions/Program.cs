@@ -6,8 +6,8 @@ using Microsoft.Extensions.Hosting;
 using TFoodies.Api.Functions.Controllers;
 using TFoodies.Api.Functions.Controllers.Admin;
 using TFoodies.Api.Functions.Helpers;
-using TFoodies.Api.Functions.Router;
 using TFoodies.Api.Functions.Middleware;
+using TFoodies.Api.Functions.Router;
 using TFoodies.Application;
 using TFoodies.Infrastructure;
 
@@ -33,16 +33,15 @@ builder.Services.AddSingleton<RouteTable>();
 builder.Services.AddSingleton<RouteHandler>();
 
 builder.Services.AddSingleton<JwtHelper>();
-builder.Services.AddSingleton<CorsMiddleware>();
 builder.Services.AddSingleton<CorrelationMiddleware>();
 builder.Services.AddSingleton<ExceptionHandlingMiddleware>();
 builder.Services.AddSingleton<JwtAuthMiddleware>();
 
-// Pipeline 順序：Cors → Correlation → ExceptionHandling → JwtAuth → Router
+// Pipeline 順序：Correlation → ExceptionHandling → JwtAuth → Router
+// CORS 由 Azure Functions 平台層（Portal → API → CORS）統一處理
 builder.Services.AddSingleton(sp =>
 {
     var pipeline = new MiddlewarePipeline();
-    pipeline.Use(sp.GetRequiredService<CorsMiddleware>());
     pipeline.Use(sp.GetRequiredService<CorrelationMiddleware>());
     pipeline.Use(sp.GetRequiredService<ExceptionHandlingMiddleware>());
     pipeline.Use(sp.GetRequiredService<JwtAuthMiddleware>());
