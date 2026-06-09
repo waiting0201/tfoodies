@@ -1,0 +1,187 @@
+﻿@model Products
+@{
+    var productdatas = (IEnumerable<Products>)ViewBag.Products;
+    DateTime t1 = DateTime.Now.ToUniversalTime().AddHours(8);
+    DateTime t2 = Convert.ToDateTime("2019-02-01");
+}
+
+<main id="main">
+    <section class="restrict-wide allpadding">
+        <div class="locate">
+            <p>
+                <a href="@Url.Action("Products", "MainMs")" class="descript">所有產品/</a><a href="@Url.Action("Products", "MainMs", new { producttypetitle = Model.Producttypes.title })" class="descript">@Model.Producttypes.title/</a><a href="javascript:;" class="descript main">@Model.title</a>
+            </p>
+        </div>
+    </section>
+    <section class="allpadding clr section">
+        <div class="restrict-wide">
+            <div class="recipe-wrap">
+                <div class="food productpart">
+                    <div class="slider-for">
+                        @foreach(Productphotos productphoto in Model.Productphotos.OrderBy(a => a.sort))
+                        { 
+                        <div class="product-display"><img src="@(ViewBag.BlobUrl + productphoto.photo)" alt="@Model.title"></div>
+                        }
+                    </div>
+                    <div class="slider-nav">
+                        @foreach (Productphotos productphoto in Model.Productphotos.OrderBy(a => a.sort))
+                        {
+                        <div class="product-thumb"><img src="@(ViewBag.BlobUrl + productphoto.photo)" alt="@Model.title"></div>
+                        }                    
+                    </div>
+                </div>
+                <div class="food-desc">
+                    <h1>@Model.title</h1>
+                    @if (Model.isset && DateTime.Compare(t1, t2) < 0)
+                    {
+                        foreach (Products pd in productdatas)
+                        {
+                            <h2>@pd.title @pd.capacity</h2>
+                        } 
+                    }
+                    else
+                    {
+                        <h2>@Model.entitle</h2>
+                    }
+                    <p>@Model.capacity</p>
+                    <div class="sale">
+                        @if (Model.isset && DateTime.Compare(t1, t2) < 0)
+                        {
+                            <div class="line-through">原價 NT. @Convert.ToInt32(Model.fixprice).ToString("#,0")</div>
+                            <div class="centered">
+                                <div class="sale-tag">特價</div>
+                                <div class="inline descript">(限時優惠價至@(t2.AddDays(-1).ToString("yyyy-MM-dd"))日止)  </div>
+                            </div>
+                            <div class="product-price">NT. @Model.price.ToString("#,0")</div>
+                        }
+                        else
+                        {
+                            if (Model.fixprice > Model.price)
+                            {
+                                <div class="line-through">原價 NT. @Convert.ToInt32(Model.fixprice).ToString("#,0")</div>
+                                <div class="centered">
+                                    <div class="sale-tag">特價</div>
+                                </div>
+                                <div class="product-price">NT. @Model.price.ToString("#,0")</div>
+                            }
+                            else
+                            {
+                                <div class="product-price">NT. @Model.price.ToString("#,0")</div>
+                            }
+                        }
+                    </div>
+                    <div class="product-number">
+                        <div class="numb">
+                            <p>數量</p>
+                        </div>
+                        <div class="quantity-wrap">
+                            <div class="quantity">
+                                <div class="qty-minus"><a href="javascript:;" class="minus">-</a></div>
+                                <div class="qtyinput"><input type="text" name="qty" id="qty" value="1" class="input form-input qty"></div>
+                                <div class="qty-plus"><a href="javascript:;" class="plus">+</a></div>
+                            </div>
+                        </div>
+                    </div>
+                    @if (Model.added > 0)
+                    {
+                    @*<div class="buybtn-wrap"><a href="javascript:;" class="btn basic buybtn" data-productid="@Model.productid" data-title="@Model.title">立即購買</a></div>*@
+                    }
+                    <div class="buybtn-wrap">
+                        @if (Model.added > 0)
+                        {
+                        <a href="javascript:;" class="btn outline-btn solidhover js-add-cart" data-productid="@Model.productid" data-title="@Model.title">加入購物車</a>
+                        }else { 
+                        <a href="javascript:;" class="btn outline-btn solidhover popup-contact" data-productid="@Model.productid">到貨通知我 </a>
+                        }
+                        <a href="javascript:;" class="btn outline-btn solidhover mylistbtn" data-productid="@Model.productid">
+                            <div class="love"></div>
+                        </a>
+                    </div>
+                    <div class="share centered">
+                        @Html.Partial("_Addthis", new ViewDataDictionary { { "url", Model.shortener }, { "title", Model.title } })
+                    </div>
+                    <div class="horizon-line"></div>
+                    <div class="product-desc">
+                        <h2 class="main left">商品介紹</h2>
+                        <ul>
+                            <li>@(Model.intro != null ? Html.Raw(Model.intro.Replace("\n", "<br />")) : Html.Raw(Model.intro))</li>
+                        </ul>
+                    </div>
+                    <div class="horizon-line"></div>
+                    <div class="product-desc">
+                        <h2 class="main left">付款方式</h2>
+                        <ul>
+                            <li>ATM轉帳付款 @*- 宅配到貨運費NT$ 150，滿1000免運*@</li>
+                            <li>宅配貨到付款 @*- 宅配貨到付款NT$ 150，滿1000免運*@</li>
+                            <li>信用卡線上付款 @*- 宅配到貨運費NT$ 150，滿1000免運*@</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="rwd-product-desc">
+                <div class="product-desc">
+                    <h2 class="main left">商品介紹</h2>
+                    <p>@(Model.intro != null ? Html.Raw(Model.intro.Replace("\n", "<br />")) : Html.Raw(Model.intro))</p>
+                </div>
+                <div class="horizon-line"></div>
+                <div class="product-desc">
+                    <h2 class="main left">付款方式</h2>
+                    <ul>
+                        <li>ATM轉帳付款 @*- 宅配到貨運費NT$ 150，滿1000免運*@</li>
+                        <li>宅配貨到付款 @*- 宅配貨到付款NT$ 150，滿1000免運*@</li>
+                        <li>信用卡線上付款 @*- 宅配到貨運費NT$ 150，滿1000免運*@</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="horizon-line"></div>
+            <section class="allsection">
+                @Html.Raw(Model.memo)
+            </section>
+            <div class="centered more"><a href="#wrapper" class="outline-btn">TOP</a></div>
+            @if (Model.Recipes.Count() > 0)
+            {
+            <div class="horizon-line"></div>
+            <section class="allsection">
+                <div class="restrict-wide">
+                    <h3 class="main left">適合料理</h3>
+                    <div class="responsive promoteSlider clr">
+                        @foreach (Recipes recipe in Model.Recipes.OrderBy(a => a.sort))
+                        {
+                            <div class="promote-sliding product-single centered">
+                                <div class="zoom-wrap">
+                                    <a href="@Url.Action("RecipeDetail", "MainMs", new { recipeid = recipe.recipeid })" class="blog-wrap">
+                                        <div class="article-single centered">
+                                            <div class="article-pic"><img src="@(ViewBag.BlobUrl + recipe.rphoto)" alt="@recipe.title"></div>
+                                            <div class="article-title">@recipe.title</div>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </section>
+            <div class="centered more"><a href="@Url.Action("Recipes", "MainMs")" class="outline-btn">更多</a></div>
+            }
+        </div>
+    </section>
+    @if(Model.Brands.isdisplay == 1) { 
+    <div style="background-image:url(@(ViewBag.BlobUrl + Model.Brands.storybgclass))" class="allpadding clr allsection storybg productbrand">
+        <div class="restrict">
+            <div class="centered">
+                <h3>品牌介紹</h3>
+                <div class="banner-title ci-title">@Model.Brands.title</div>
+                <div class="content">
+                    <p>@(Model.Brands.intro != null ? Html.Raw(Model.Brands.intro.Replace("\n", "<br />")) : Html.Raw(Model.Brands.intro))</p>
+                    <a href="@Url.Action("Brand", "MainMs", new { brandtitle = Model.Brands.title })" class="btn yellow zindex-up">品牌介紹</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    }
+</main>
+@section scripts {
+<script>
+    gtag.view_item('@Model.productid', '@Model.title', { category: '@Model.Producttypes.title', brand: '@Model.Brands.title', variant: '@Model.capacity', price: @Model.price });
+</script>
+}

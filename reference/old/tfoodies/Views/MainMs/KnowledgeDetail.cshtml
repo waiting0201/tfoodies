@@ -1,0 +1,42 @@
+﻿@model Knowledges
+@{
+    var issueotherdatas = (IEnumerable<Issues>)ViewBag.Issueothers;
+}
+
+<main id="main">
+    <section class="restrict-wide allpadding">
+        <div class="locate">
+            <p><a href="@Url.Action("Knowledges", new { p = ViewBag.pageNumber })" class="descript">小知識/</a><a href="javascript:;" class="descript main">@Model.question</a></p>
+        </div>
+    </section>
+    <section class="allpadding clr section">
+        <div class="restrict-wide">
+            <div class="article-left none-copy" oncopy="return false;">
+                <div class="timeline">
+                    <h1>@Model.question</h1>
+                    <div class="share inline">
+                        @Html.Partial("_Addthis", new ViewDataDictionary { { "url", Model.shortener }, { "title", Model.question } })
+                    </div>
+                    <p class="inline">@Model.createdate.ToString("yyyy-MM-dd")</p>
+                </div>
+                <section class="allsection">
+                    @Html.Raw(Model.answer)
+                </section>
+                <div class="centered more"><a href="@Url.Action("Knowledges", "MainMs", new { p = ViewBag.pageNumber })" class="outline-btn">返回</a></div>
+            </div>
+            <div class="article-right">
+                <div class="other">
+                    <h2>其他文章</h2>
+                </div>
+                @foreach (Issues entity in issueotherdatas)
+                {
+                    <a href="@Url.Action("IssueDetail", "MainMs", new { issuetitle = entity.title })" class="other-article">
+                        <img src="@(ViewBag.BlobUrl + entity.photo)">
+                        <p class="centered">@entity.title</p>
+                    </a>
+                }
+            </div>
+        </div>
+    </section>
+    <div class="centered more btn-show"><a href="@Url.Action("Knowledges", "MainMs", new { p = ViewBag.pageNumber })" class="outline-btn">返回</a></div>
+</main>

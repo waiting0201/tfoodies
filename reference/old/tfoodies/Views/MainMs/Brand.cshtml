@@ -1,0 +1,128 @@
+﻿@model Brands
+
+@{
+    IEnumerable<Products> productdatas = (IEnumerable<Products>)ViewBag.Products;
+}
+
+<main id="main">
+    <section style="background-image:url(@(ViewBag.BlobUrl + Model.banner))" class="brandbanner allpadding">
+        <div class="restrict-wide">
+            <div class="brand-logo"><img src="@(ViewBag.BlobUrl + Model.logo)"></div>
+            <h1 class="ci-title white max-title">@Model.title</h1>
+            <h1 class="white">@Model.subtitle</h1>
+        </div>
+    </section>
+    <section class="allsection">
+        <div class="restrict-wide allpadding">
+            <div class="centered">
+                <div class="banner-title ci-title">@Model.patternentitle</div>
+                <h2>@Model.patternchtitle</h2>
+                @if (Model.parttnervideo != null)
+                {
+                    <div class="brand-video">
+                        <iframe src="@Model.parttnervideo" frameborder="0" allowfullscreen="" class="youtubeVideo"></iframe>
+                    </div>
+                }
+                <div class="orangeblock"></div>
+                <div class="content-wide">
+                    @(Model.patternmemo != null ? Html.Raw(Model.patternmemo.Replace("\n", "<br />")) : Html.Raw(Model.patternmemo))
+                </div>
+            </div>
+        </div>
+        <div class="pattern-block">
+            <div style="background-image:url(@(ViewBag.BlobUrl + Model.patternclass))" class="labarre-pattern"></div>
+            <div class="main-block"></div>
+            <div class="pattern-slider">
+                <ul class="allslider">
+                    @foreach(Brandphotos brandphoto in Model.Brandphotos.OrderBy(a => a.sort))
+                    { 
+                    <li><img src="@(ViewBag.BlobUrl + brandphoto.photo)"></li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </section>
+    <section style="background-image:url(@(ViewBag.BlobUrl + Model.storybgclass))" class="allpadding clr allsection storybg">
+        <div class="restrict">
+            <div class="slogan">
+                @if(Model.ilogo != "" && Model.ilogo != null)
+                { 
+                <img src="@(ViewBag.BlobUrl + Model.ilogo)">
+                }
+                <div class="italic">“ @Model.slogan ”</div>
+            </div>
+            <div class="brandcontent">
+                <div class="content">
+                    <p>@Model.intro</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="allpadding clr">
+        <div class="restrict">
+            <div class="banner-title ci-title centered">@Model.storyentitle</div>
+            <h2>@Model.storychtitle</h2>
+            <div class="orangeblock"></div>
+            <div class="content-wide">
+                @(Model.storymemo != null ? Html.Raw(Model.storymemo.Replace("\n", "<br>")) : Html.Raw(Model.storymemo))
+            </div>
+        </div>
+    </section>
+    <section>
+        <div class="people-wrap">
+            <div style="background-image:url(@(ViewBag.BlobUrl + Model.peoplephoto))" class="people"><img src="~/content/images/section/people.png"></div>
+            <div class="people-content">
+                <h3 class="ci-title centered">@Model.peopletitle</h3>
+                <h2 class="centered">@Model.peopleslogan</h2>
+                <div class="orangeblock"></div>
+                <div class="content">
+                    <p>@Model.peoplememo</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="allsection">
+        <div class="restrict-wide allpadding">
+            <div class="centered">
+                <div class="banner-title ci-title">The Collection</div>
+                <h2>系列商品</h2>
+                <div class="orangeblock"></div>
+            </div>
+            <div class="four-column clr product_list">
+                @foreach (Products product in productdatas)
+                {
+                    @Html.Partial("_PartialProduct", product, new ViewDataDictionary { { "promote-sliding", true }, { "bloburl", ViewBag.BlobUrl } })
+                }                
+            </div>
+            @if (productdatas.Count() >= 4)
+            {
+                <div class="centered more"><a href="javascript:;" class="outline-btn moreA" data-brandid="@Model.brandid" data-skip="4" rel="nofollow">More</a></div>
+            }
+        </div>
+    </section>
+</main>
+@section scripts {
+    <script>
+        $(function () {
+            $(".moreA").click(function () {
+                var obj = $(this);
+                var brandid = obj.data("brandid");
+                var skip = obj.data("skip");
+                var take = 4;
+
+                $.post('@Url.Action("GetBrandMoreProducts", "Ajax")', {
+                    brandid: brandid,
+                    skip: skip,
+                    take: take
+                }, function (data) {
+                    $(".product_list").append(data.partial);
+                    if (data.isclose) {
+                        obj.parent().hide();
+                    } else {
+                        obj.data("skip", skip + take);
+                    }
+                });
+            });
+        });
+    </script>
+}

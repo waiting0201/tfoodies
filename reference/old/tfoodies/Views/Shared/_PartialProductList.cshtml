@@ -1,0 +1,47 @@
+﻿@model IEnumerable<Products>
+@{
+    DateTime t1 = DateTime.Now.ToUniversalTime().AddHours(8);
+    DateTime t2 = Convert.ToDateTime("2019-02-01");
+}
+
+@foreach (Products product in Model)
+{
+    <div class="promote-sliding product-single centered">
+        <div class="zoom-wrap">
+            <div class="product-pic">
+                <a href="@Url.Action("ProductDetail", "MainMs", new { producttitle = product.title })" title="@product.title"><img src="@(ViewBag.BlobUrl + product.photo)" alt="@product.title"></a>
+            </div>
+            <a href="@Url.Action("ProductDetail", "MainMs", new { producttitle = product.title })" class="product-title" title="@product.title">
+                <div class="title-inner">
+                    <div class="title-ch">@product.title</div>
+                    <div class="title-en">@product.entitle</div>
+                    <p>@product.capacity</p>
+                </div>
+            </a>
+            @if (product.isset && DateTime.Compare(t1, t2) < 0)
+            {
+                <div class="sale">
+                    <div class="inline line-through">原價 NT. @Convert.ToInt32(product.fixprice).ToString("#,0")</div>
+                    <div class="inline sale-tag">特價</div><a href="@Url.Action("ProductDetail", "MainMs", new { producttitle = product.title })" class="inline price" title="@product.title">NT. @product.price.ToString("#,0")</a>
+                    <div class="descript">(限時優惠價至@(t2.AddDays(-1).ToString("yyyy-MM-dd"))止)</div>
+                </div>
+            }
+            else
+            {
+                if (product.fixprice > product.price)
+                {
+                    <div class="sale">
+                        <div class="inline line-through">原價 NT. @Convert.ToInt32(product.fixprice).ToString("#,0")</div>
+                        <div class="inline sale-tag">特價</div><a href="@Url.Action("ProductDetail", "MainMs", new { producttitle = product.title })" class="inline price" title="@product.title">NT. @product.price.ToString("#,0")</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="sale">
+                        <a href="@Url.Action("ProductDetail", "MainMs", new { producttitle = product.title })" class="inline price" title="@product.title">NT. @product.price.ToString("#,0")</a>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+}

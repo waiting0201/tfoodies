@@ -1,0 +1,482 @@
+﻿@model Orders
+@{
+    int p = 0;
+}
+
+<div id="content">
+
+    <!-- widget grid -->
+    <section id="widget-grid" class="">
+
+        <!-- row -->
+        <div class="row">
+
+            <!-- NEW WIDGET START -->
+            <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                <!-- Widget ID (each widget will need unique ID)-->
+                <div class="jarviswidget" id="wid-id-4" data-widget-editbutton="false" data-widget-colorbutton="false" data-widget-togglebutton="false" data-widget-deletebutton="false" data-widget-fullscreenbutton="false" data-widget-custombutton="false" data-widget-collapsed="false" data-widget-sortable="false">
+                    <header>
+                        <span class="widget-icon"> <i class="fa fa-pencil-square-o"></i> </span>
+                        <h2>編輯出貨</h2>
+
+                    </header>
+
+                    <!-- widget div-->
+                    <div>
+
+                        <!-- widget content -->
+                        <div class="widget-body">
+
+                            <form id="form" method="post" class="form-horizontal" action="@Url.Action("EditShipped", "OrderMs", new { p = ViewBag.pageNumber })"
+                                  data-bv-message="This value is not valid"
+                                  data-bv-feedbackicons-valid="glyphicon glyphicon-ok"
+                                  data-bv-feedbackicons-invalid="glyphicon glyphicon-remove"
+                                  data-bv-feedbackicons-validating="glyphicon glyphicon-refresh">
+
+                                @if (Html.ValidationSummary(true) != null)
+                                {
+                                    <div class="alert alert-danger alert-block">
+                                        <h4 class="alert-heading">Error!</h4>
+                                        @Html.ValidationSummary(true)
+                                    </div>
+                                }
+
+                                @Html.HiddenFor(model => model.orderid)
+
+                                    <fieldset>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-1 control-label" for="ordertype">訂單類型</label>
+                                            <div class="col-lg-3">
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.ordertype, 1, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                    線上單
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.ordertype, 2, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                    線下單
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.ordertype, 3, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                    自用單
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.ordertype, 4, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                    預購
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.ordertype, 5, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                    公關
+                                                </label>
+                                            </div>
+
+                                            <label class="col-lg-1 control-label" for="warehouseid">出貨倉</label>
+                                            <div class="col-lg-2">
+                                                <input type="text" class="form-control" value="@Model.Warehouses.title" disabled />
+                                            </div>
+
+                                            <label class="col-lg-1 control-label" for="logisticid">物流</label>
+                                            <div class="col-lg-2">
+                                                <input type="text" class="form-control" value="@Model.Logistics.title" disabled />
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-1 control-label" for="paystatus">付款狀態</label>
+                                            <div class="col-lg-3">
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.paystatus, 0, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                    未付款
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.paystatus, 1, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                    已付款
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.paystatus, 2, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                    退款
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.paystatus, 3)
+                                                    免付款
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.paystatus, 4)
+                                                    取消
+                                                </label>
+                                            </div>
+
+                                            <label class="col-lg-1 control-label" for="paydate">付款日期</label>
+                                            <div class="col-lg-1">
+                                                @Html.TextBoxFor(model => model.paydate, "{0:yyyy-MM-dd}", new Dictionary<string, object>() { { "class", "form-control datepicker" }, { "data-dateformat", "yy-mm-dd" } })
+                                            </div>
+
+                                            <label class="col-lg-1 control-label" for="deliverstatus">出貨狀態</label>
+                                            <div class="col-lg-3">
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.deliverstatus, 1, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                    已出貨
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.deliverstatus, 2)
+                                                    退貨
+                                                </label>
+                                            </div>
+
+                                            <label class="col-lg-1 control-label" for="deliverdate">出貨日期</label>
+                                            <div class="col-lg-1">
+                                                @Html.TextBoxFor(model => model.deliverdate, "{0:yyyy-MM-dd}", new Dictionary<string, object>() { { "class", "form-control" }, { "disabled", "disabled" } })
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-1 control-label">訂單編號</label>
+                                            <div class="col-lg-2">
+                                                @Html.TextBoxFor(model => model.ordercode, new Dictionary<string, object>() { { "class", "form-control" }, { "disabled", "disabled" } })
+                                            </div>
+
+                                            <label class="col-lg-1 control-label">訂單日期</label>
+                                            <div class="col-lg-2">
+                                                @Html.TextBoxFor(model => model.orderdate, "{0:yyyy-MM-dd}", new Dictionary<string, object>() { { "class", "form-control" }, { "disabled", "disabled" } })
+                                            </div>
+
+                                            <label class="col-lg-1 control-label">配送時段</label>
+                                            <div class="col-lg-5">
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.recivertime, 1, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                    上午9-12時
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.recivertime, 2, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                    下午12-17時
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.recivertime, 3, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                    晚上17-20時
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.recivertime, 4, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                    不指定
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-1 control-label">購買人姓名</label>
+                                            <div class="col-lg-2">
+                                                @Html.TextBoxFor(model => model.Members.name, new Dictionary<string, object>() { { "class", "form-control" }, { "disabled", "disabled" } })
+                                            </div>
+
+                                            <label class="col-lg-1 control-label">購買人電話</label>
+                                            <div class="col-lg-2">
+                                                @Html.TextBoxFor(model => model.Members.mobile, new Dictionary<string, object>() { { "class", "form-control" }, { "disabled", "disabled" } })
+                                            </div>
+
+                                            <label class="col-lg-1 control-label">購買人Email</label>
+                                            <div class="col-lg-3">
+                                                @Html.TextBoxFor(model => model.Members.email, new Dictionary<string, object>() { { "class", "form-control" }, { "disabled", "disabled" } })
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-1 control-label">收件人姓名</label>
+                                            <div class="col-lg-2">
+                                                @Html.TextBoxFor(model => model.recivername, new Dictionary<string, object>() { { "class", "form-control" }, { "disabled", "disabled" } })
+                                            </div>
+
+                                            <label class="col-lg-1 control-label">收件人電話</label>
+                                            <div class="col-lg-2">
+                                                @Html.TextBoxFor(model => model.recivermobile, new Dictionary<string, object>() { { "class", "form-control" }, { "disabled", "disabled" } })
+                                            </div>
+
+                                            <label class="col-lg-1 control-label">收件人地址</label>
+                                            <div class="col-lg-5">
+                                                <input type="text" class="form-control" value="@Model.Zipcodes.zipcode @Model.Zipcodes.city @Model.Zipcodes.area @Model.reciveraddress" disabled />
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-1 control-label">發票類型</label>
+                                            <div class="col-lg-4">
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.invoicetype, 1, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                    二聯式
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.invoicetype, 2, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                    捐贈
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.invoicetype, 3, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                    三聯式
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.invoicetype, 4, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                    免開
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.invoicetype, 5, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                    POS機
+                                                </label>
+                                            </div>
+
+                                            <label class="col-lg-1 control-label">發票號碼</label>
+                                            <div class="col-lg-1">
+                                                @Html.TextBoxFor(model => model.invoicecode, new Dictionary<string, object>() { { "class", "form-control" } })
+                                            </div>
+
+                                            <label class="col-lg-1 control-label">公司統編</label>
+                                            <div class="col-lg-1">
+                                                @Html.TextBoxFor(model => model.companynumber, new Dictionary<string, object>() { { "class", "form-control" } })
+                                            </div>
+
+                                            <label class="col-lg-1 control-label">公司抬頭</label>
+                                            <div class="col-lg-2">
+                                                @Html.TextBoxFor(model => model.companytitle, new Dictionary<string, object>() { { "class", "form-control" } })
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-1 control-label">付款方式</label>
+                                            <div class="col-lg-3">
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.paytype, 1)
+                                                    線上刷卡
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.paytype, 2)
+                                                    貨到付款
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.paytype, 3)
+                                                    ATM
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.paytype, 4)
+                                                    免付款
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.paytype, 5)
+                                                    現金
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.paytype, 6)
+                                                    電匯
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.paytype, 7)
+                                                    支票
+                                                </label>
+                                            </div>
+
+                                            <label class="col-lg-1 control-label">運費</label>
+                                            <div class="col-lg-1">
+                                                @Html.TextBoxFor(model => model.freight, new Dictionary<string, object>() { { "class", "form-control" }, { "readonly", "readonly" } })
+                                            </div>
+
+                                            <label class="col-lg-1 control-label">折扣</label>
+                                            <div class="col-lg-1">
+                                                @Html.TextBoxFor(model => model.discount, new Dictionary<string, object>() { { "class", "form-control" }, { "readonly", "readonly" } })
+                                            </div>
+
+                                            <label class="col-lg-1 control-label">購買金額</label>
+                                            <div class="col-lg-1">
+                                                @Html.TextBoxFor(model => model.total, new Dictionary<string, object>() { { "class", "form-control" }, { "readonly", "readonly" } })
+                                            </div>
+
+                                            <label class="col-lg-1 control-label">總金額</label>
+                                            <div class="col-lg-1">
+                                                <input type="text" class="form-control" id="totalprice" value="@(Model.freight + Model.total - Model.discount)" disabled />
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-1 control-label">虛擬帳號</label>
+                                            <div class="col-lg-2">
+                                                @Html.TextBoxFor(model => model.codeatm, new Dictionary<string, object>() { { "class", "form-control" }, { "disabled", "disabled" } })
+                                            </div>
+
+                                            <label class="col-lg-1 control-label">折扣碼</label>
+                                            <div class="col-lg-1">
+                                                @Html.TextBoxFor(model => model.Discounts.discountcode, new Dictionary<string, object>() { { "class", "form-control" }, { "disabled", "disabled" } })
+                                            </div>
+
+                                            <label class="col-lg-1 control-label">備註</label>
+                                            <div class="col-lg-2">
+                                                @Html.TextAreaFor(model => model.note, 3, 40, new Dictionary<string, object>() { { "class", "form-control" } })
+                                            </div>
+
+                                            <label class="col-lg-1 control-label">提單號碼</label>
+                                            <div class="col-lg-1">
+                                                @Html.TextBoxFor(model => model.trackingnumber, new Dictionary<string, object>() { { "class", "form-control" }, { "disabled", "disabled" } })
+                                            </div>
+
+                                            <label class="col-lg-1 control-label">信用卡末四碼</label>
+                                            <div class="col-lg-1">
+                                                @Html.TextBoxFor(model => model.lastpan4, new Dictionary<string, object>() { { "class", "form-control" } })
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-1 control-label">客戶備註</label>
+                                            <div class="col-lg-2">
+                                                @Html.TextAreaFor(model => model.remark, 3, 40, new Dictionary<string, object>() { { "class", "form-control" }, { "disabled", "disabled" } })
+                                            </div>
+                                        </div>
+
+                                    </fieldset>
+
+                                <fieldset>
+
+                                    <div class="table-responsive">
+                                        <table id="dt_basic" class="table table-bordered producttable">
+                                            <thead>
+                                                <tr>
+                                                    <th width="10%">產品編號</th>
+                                                    <th>產品名稱</th>
+                                                    <th class="text-center" width="6%">數量</th>
+                                                    <th class="text-right" width="7%">定價</th>
+                                                    <th class="text-center" width="6%">折扣</th>
+                                                    <th class="text-right" width="7%">單價</th>
+                                                    <th class="text-right" width="7%">小計</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (Orderdetails orderdetail in Model.Orderdetails)
+                                                {
+                                                    <tr>
+                                                        <td>@orderdetail.Products.productnum</td>
+                                                        <td>
+                                                            @orderdetail.Products.title @orderdetail.Products.capacity @(orderdetail.isgift == 1 ? "(贈品)" : "")
+                                                            @if (orderdetail.Products.isset)
+                                                            {
+                                                                foreach (Setproducts setproduct in orderdetail.Products.Setproducts)
+                                                                {
+                                                                    <br><small class="text-muted">@setproduct.Products1.title @setproduct.Products1.capacity @setproduct.qty</small>
+                                                                }
+                                                            }
+                                                        </td>
+                                                        <td class="text-center">@orderdetail.qty</td>
+                                                        <td class="text-right">@orderdetail.Products.fixprice</td>
+                                                        <td class="text-center">@(orderdetail.discount != null ? orderdetail.discount + "折" : "無")</td>
+                                                        <td class="text-right">@orderdetail.price</td>
+                                                        <td class="text-right">@orderdetail.subtotal</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                </fieldset>
+
+                                <div class="form-actions">
+                                    <div class="row">
+                                        <div class="col-md-6 text-left">
+                                            @if ((Model.invoicetype == (int)EnumInvoiceType.二聯式 || Model.invoicetype == (int)EnumInvoiceType.三聯式) && Model.invoicestatus == (int)EnumInvoiceStatus.未開)
+                                            {
+                                                <a class="btn btn-success" href="javascript:;" id="btnInv" data-orderid="@Model.orderid">
+                                                    開立發票
+                                                </a>
+                                            }
+                                            @if (Model.invoicetype != (int)EnumInvoiceType.POS機 && Model.invoicestatus == (int)EnumInvoiceStatus.已開)
+                                            {
+                                                <a class="btn btn-default" href="javascript:;" id="btnCancelInv" data-orderid="@Model.orderid">
+                                                    發票作廢
+                                                </a>
+                                            }
+                                            <a class="btn btn-success" href="@Url.Action("ExportDeliver", "OrderMs", new { orderid = Model.orderid })">
+                                                列印出貨明細
+                                            </a>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <a class="btn btn-default" href="@Url.Action("Shipped", "OrderMs", new { p = ViewBag.pageNumber})">
+                                                返回
+                                            </a>
+                                            <button class="btn btn-primary" type="submit">
+                                                <i class="fa fa-save"></i>
+                                                更新
+                                            </button>
+                                            <a class="btn btn-success" href="javascript:;" id="btnSubmitDeliver" data-orderid="@Model.orderid" data-warehouseid="@Model.warehouseid">
+                                                <i class="fa fa-check"></i>
+                                                提交退貨
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </form>
+                        </div>
+                        <!-- end widget content -->
+
+                    </div>
+                    <!-- end widget div -->
+
+                </div>
+                <!-- end widget -->
+
+            </article>
+            <!-- WIDGET END -->
+
+        </div>
+        <!-- end row -->
+
+    </section>
+    <!-- end widget grid -->
+
+</div>
+@section scripts {
+    <script>
+        $(function () {
+            $("#btnSubmitDeliver").on("click", function () {
+                @*$.post("@Url.Action("ChangeToShipped", "Ajax")", {
+                    'orderid': $(this).data('orderid'),
+                    'warehouseid': $(this).data('warehouseid')
+                }, function (res) {
+                    if (res.code == "200") {
+                        alert(res.message);
+                        location.reload();
+                        return;
+                    } else {
+                        alert(res.message);
+                        //location.reload();
+                        return;
+                    }
+                });*@
+            });
+
+            $("#btnInv").one("click", function () {
+                $.post("@Url.Action("CreateInv", "Ajax")", {
+                    'orderid': $(this).data('orderid')
+                },
+                    function (res) {
+                        if (res.code == "200") {
+                            alert(res.message);
+                            location.reload();
+                            return;
+                        } else {
+                            alert(res.message);
+                            return;
+                        }
+                    });
+            });
+
+            $("#btnCancelInv").one("click", function () {
+                $.post("@Url.Action("CancelInv", "Ajax")", {
+                    'orderid': $(this).data('orderid')
+                },
+                function (res) {
+                    if (res.code == "200") {
+                        alert(res.message);
+                        location.reload();
+                        return;
+                    } else {
+                        alert(res.message);
+                        location.reload();
+                        return;
+                    }
+                });
+            });
+        });
+    </script>
+}

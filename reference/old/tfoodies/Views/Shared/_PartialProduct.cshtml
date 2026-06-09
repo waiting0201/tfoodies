@@ -1,0 +1,46 @@
+﻿@model Products
+@{
+    bool promotesliding = (bool)ViewData["promote-sliding"];
+    string bloburl = (string)ViewData["bloburl"];
+    DateTime t1 = DateTime.Now.ToUniversalTime().AddHours(8);
+    DateTime t2 = Convert.ToDateTime("2019-02-01");
+}
+
+<div class="@(promotesliding ? "promote-sliding" : "") product-single centered">
+    <div class="zoom-wrap">
+        <div class="product-pic">
+            <a href="@Url.Action("ProductDetail", "MainMs", new { producttitle = Model.title })" title="@Model.title"><img src="@(bloburl + Model.photo)" alt="@Model.title"></a>
+        </div>
+        <a href="@Url.Action("ProductDetail", "MainMs", new { producttitle = Model.title })" class="product-title" title="@Model.title">
+            <div class="title-inner">
+                <div class="title-ch">@Model.title</div>
+                <div class="title-en">@Model.entitle</div>
+                <p>@Model.capacity</p>
+            </div>
+        </a>
+        @if (Model.isset && DateTime.Compare(t1, t2) < 0)
+        {
+            <div class="sale">
+                <div class="inline line-through">原價 NT. @Convert.ToInt32(Model.fixprice).ToString("#,0")</div>
+                <div class="inline sale-tag">特價</div><a href="@Url.Action("ProductDetail", "MainMs", new { producttitle = Model.title })" class="inline price" title="@Model.title">NT. @Model.price.ToString("#,0")</a>
+                <div class="descript">(限時優惠價至@(t2.AddDays(-1).ToString("yyyy-MM-dd"))止)</div>
+            </div>
+        }
+        else
+        {
+            if (Model.fixprice > Model.price)
+            {
+                <div class="sale">
+                    <div class="inline line-through">原價 NT. @Convert.ToInt32(Model.fixprice).ToString("#,0")</div>
+                    <div class="inline sale-tag">特價</div><a href="@Url.Action("ProductDetail", "MainMs", new { producttitle = Model.title })" class="inline price" title="@Model.title">NT. @Model.price.ToString("#,0")</a>
+                </div>
+            }
+            else
+            {
+                <div class="sale">
+                    <a href="@Url.Action("ProductDetail", "MainMs", new { producttitle = Model.title })" class="inline price" title="@Model.title">NT. @Model.price.ToString("#,0")</a>
+                </div>
+            }
+        }
+    </div>      
+</div>

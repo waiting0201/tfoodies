@@ -1,0 +1,225 @@
+﻿@{
+    var bannerdatas = (IEnumerable<Banners>)ViewBag.Banners;
+    var hotproductdatas = (IEnumerable<Products>)ViewBag.HotProducts;
+    var sortrecipedatas = (IEnumerable<Recipes>)ViewBag.SortRecipes;
+    var latestproductdatas = (IEnumerable<Products>)ViewBag.LatestProducts;
+    var latestissuedatas = (IEnumerable<Issues>)ViewBag.LatestIssues;
+    var latestnewsdatas = (IEnumerable<News>)ViewBag.LatestNews;
+    var latesteventsdatas = (IEnumerable<Events>)ViewBag.LatestEvents;
+}
+
+<main id="main">
+    <h1 class="heading">澳洲橄欖油與巴薩米克醋</h1>
+    <div class="owl-carousel owl-theme">
+        @foreach (Banners banner in bannerdatas)
+        {
+            if (banner.style == 1)
+            {
+                <div style="background-image:url(@(ViewBag.BlobUrl + banner.photo))" class="item-video"><a href="@banner.url" target="_blank"></a></div>
+            }
+            else if (banner.style == 2)
+            {
+                <div style="background-image:url(@(ViewBag.BlobUrl + banner.photo))" class="item-video">
+                    <img src="~/Content/images/banner/blank.png">
+                    <div class="banner centered">
+                        <div class="banner-inner">
+                            <div class="index-title white">@banner.title</div>
+                            <div class="line"></div><a href="@banner.url" class="btn yellow" target="_blank">進入購買</a>
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (banner.style == 3)
+            {
+                <div style="background-image:url(@(ViewBag.BlobUrl + banner.photo))" class="item-video">
+                    <img src="~/Content/images/banner/blank.png">
+                    <div class="banner-text-wrapper">
+                        <div class="banner-text">@banner.title</div>
+                        <div class="article-block"></div>
+                        <h3>@banner.subtitle</h3>
+                    </div><a href="@banner.url" target="_blank"></a>
+                </div>
+            }
+            else if (banner.style == 4)
+            {
+                <div data-merge="1" class="item-video"><a href="@banner.url" class="owl-video"></a></div>
+            }
+        }
+    </div>
+    @if (latestnewsdatas.Any())
+    {
+        <section class="allpadding clr section">
+            <div class="restrict-wide">
+                <div class="index-news-wrap">
+                    <div class="index-news">
+                        <a href="@Url.Action("News", "MainMs")" title="最新消息" class="title">最新消息</a>
+                        <div class="direct-line"></div>
+                        <div class="news-wrapper">
+                            <div class="clr">
+                                @foreach (News entity in latestnewsdatas)
+                                {
+                                    <a href="@Url.Action("NewsDetail", "MainMs", new { newid = entity.newid })" class="blog-wrap news-blog-wrap">
+                                        <div class="article-single centered">
+                                            <div class="descript left">@entity.publishdate.ToString("yyyy-MM-dd")</div>
+                                            <div class="article-pic"><img src="@(ViewBag.BlobUrl + entity.photo)" alt="@entity.title"></div>
+                                            <div class="article-title">@entity.title</div>
+                                        </div>
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="index-activity">
+                        <a href="@Url.Action("Events", "MainMs")" title="活動花絮" class="title">活動花絮</a>
+                        <div class="direct-line"></div>
+                        @foreach (Events entity in latesteventsdatas)
+                        {
+                            <a href="@Url.Action("EventsDetail", "MainMs", new { eventid = entity.eventid })" class="blog-wrap news-blog-wrap">
+                                <div class="article-single centered">
+                                    <div class="descript left">@entity.eventdate.ToString("yyyy-MM-dd")</div>
+                                    <div class="article-pic"><img src="@(ViewBag.BlobUrl + entity.photo)" alt="@entity.title"></div>
+                                    <div class="article-title">@entity.title</div>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                </div>
+                <div class="index-fb-wrap">
+                    <div data-href="https://www.facebook.com/trulyfoodies/" data-tabs="timeline" data-small-header="true" data-adapt-container-width="true" data-hide-cover="false" data-show-facepile="false" data-width="500" data-height="380" class="fb-page"></div>
+                </div>
+            </div>
+        </section>
+    }
+    @if (hotproductdatas.Count() > 0)
+    {
+        <section class="allpadding clr section">
+            <div class="restrict-wide">
+                <div class="centered">
+                    <div class="title">熱銷商品</div>
+                    <div class="direct-line"></div>
+                </div>
+                <div class="responsive promoteSlider clr">
+                    @foreach (Products product in hotproductdatas)
+                    {
+                        @Html.Partial("_PartialProduct", product, new ViewDataDictionary { { "promote-sliding", true }, { "bloburl", ViewBag.BlobUrl } })
+                    }
+                </div>
+            </div>
+        </section>
+    }
+    <section class="video-section gray-bg">
+        <div class="restrict-wide allpadding">
+            <div class="centered">
+                <a href="@Url.Action("Recipes", "MainMs")">
+                    <h2>食在呼料理</h2>
+                </a>
+                <h3>隔週一持續更新最新菜單，一起和我們煮出健康料理吧!</h3>
+            </div>
+            <div class="video-wrap">
+                <div class="main-player">
+                    <div class="video-slider-for">
+                        @foreach (Recipes recipe in sortrecipedatas)
+                        {
+                            if (recipe.v == null)
+                            {
+                                <div><a href="@Url.Action("RecipeDetail", "MainMs", new { recipeid = recipe.recipeid })"><img src="@(ViewBag.BlobUrl + recipe.photo)" alt="@recipe.title"></a></div>
+                            }
+                            else
+                            {
+                                <div>
+                                    <iframe src="https://www.youtube.com/embed/@recipe.v" frameborder="0" allowfullscreen="" class="youtubeVideo"></iframe>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+                <div class="video-select-wrapper">
+                    <a href="@Url.Action("Recipes", "MainMs")">
+                        <h2>食在呼料理</h2>
+                    </a>
+                    <h3>隔週一持續更新最新菜單，一起和我們煮出健康料理吧!</h3>
+                    <div class="video-slider-nav">
+                        @foreach (Recipes recipe in sortrecipedatas)
+                        {
+                            <div>
+                                <div class="video-pic"><img src="@(ViewBag.BlobUrl + recipe.rphoto)" alt="@recipe.title"></div>
+                                <div class="video-title"><a href="javascript:;" class="small descript">@recipe.title</a></div>
+                            </div>
+                        }
+                    </div>
+                    <a href="@Url.Action("Recipes", "MainMs")" class="descript space">more...   </a>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="allpadding clr section">
+        <div class="restrict-wide">
+            <div class="centered">
+                <h2>最新商品</h2>
+                <div>
+                    @*<div class="tabber-selectors">
+                            <ul>
+                                <li><a href="javascript:;" class="tabber-anchor active">All</a></li>
+                                <li><a href="javascript:;" class="tabber-anchor">橄欖油</a></li>
+                                <li><a href="javascript:;" class="tabber-anchor">風味醋</a></li>
+                                <li><a href="javascript:;" class="tabber-anchor">調味料</a></li>
+                                <li><a href="javascript:;" class="tabber-anchor">五穀雜糧</a></li>
+                            </ul>
+                        </div>
+                        <div class="sepline"></div>
+                        <div class="classify">
+                            <div class="descript inline">適用料理分類：</div>
+                            <div class="inline">
+                                <ul>
+                                    <li><a href="javascript:;" class="descript">海鮮</a></li>
+                                    <li><a href="javascript:;" class="descript">肉類</a></li>
+                                    <li><a href="javascript:;" class="descript">蔬果</a></li>
+                                    <li><a href="javascript:;" class="descript">糕點</a></li>
+                                </ul>
+                            </div>
+                        </div>*@
+                    <div class="direct-line"></div>
+                    <div class="tabber-contents">
+                        <div class="tabber-content active">
+                            <div class="responsive promoteSlider clr">
+                                @foreach (Products product in latestproductdatas)
+                                {
+                                    @Html.Partial("_PartialProduct", product, new ViewDataDictionary { { "promote-sliding", true }, { "bloburl", ViewBag.BlobUrl } })
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="centered more"><a href="@Url.Action("Products")" class="outline-btn">More</a></div>
+        </div>
+    </section>
+    <section class="main-bg subscribe-section">
+        <div class="subscribe centered">
+            <p class="white">GET FOOD INSPIRATION, NEWS AND GOOD OFFERS</p>
+            <div class="title ci-title white">TFOODIES<br>PUT PASSION INTO FOOD</div><a href="@Url.Action("About", "MainMs")" class="outline-btn white-btn-line">關於我們</a>
+        </div>
+        <div class="member-pic"><img src="~/content/images/section/memer.png"></div>
+    </section>
+    <section class="section allpadding clr section">
+        <div class="restrict-wide centered">
+            <h2>綠誌</h2>
+            <p class="content">食在呼每週更新一篇綠誌，與大家分享各種健康知識，大公開橄欖油相關的飲食保健、美容健身、居家生活、身心靈等文章，讓我們一起為踏上健康人生！</p>
+            <div class="three-column clr">
+                @foreach (Issues issue in latestissuedatas)
+                {
+                    <a href="@Url.Action("IssueDetail", "MainMs", new { issuetitle = issue.title })" class="blog-wrap">
+                        <div class="article-single centered">
+                            <div class="article-pic"><img src="@(ViewBag.BlobUrl + issue.photo)" alt="@issue.title"></div>
+                            <div class="article-title">@issue.title</div>
+                        </div>
+                    </a>
+                }
+            </div>
+            <div class="centered more"><a href="@Url.Action("Issues", "MainMs")" class="outline-btn">More</a></div>
+        </div>
+    </section>
+</main>
+@section scripts {
+
+}

@@ -1,0 +1,42 @@
+﻿@{
+    var newsdatas = (IPagedList<News>)ViewBag.News;
+    int c = 0;
+}
+
+<main id="main">
+    <section class="allpadding clr tallsection">
+        <div class="restrict-wide">
+            <div class="centered">
+                <h1>最新消息</h1>
+            </div>
+            <div class="direct-line"> </div>
+        </div>
+    </section>
+    <section class="allpadding">
+        <div class="restrict-wide">
+            <div class="three-column clr page">
+                @foreach (News entity in newsdatas)
+                {
+                    if (c != 0 && c % 3 == 0) { @Html.Raw("</div><div class=\"three-column clr page\">") }
+                <a href="@Url.Action("NewsDetail", "MainMs", new { newid = entity.newid })" class="blog-wrap news-blog-wrap">
+                    <div class="article-single centered">
+                        <div class="descript left">
+                            @entity.publishdate.ToString("yyyy-MM-dd")
+                            <div class="article-pic"><img src="@(ViewBag.BlobUrl + entity.photo)" alt="@entity.title"></div>
+                        </div>
+                        <div class="article-title">@entity.title</div>
+                        <div class="article-desc">@entity.summary</div>
+                        <div class="left more">
+                            <div href="@Url.Action("NewsDetail", "MainMs", new { newid = entity.newid })" class="outline-btn">More</div>
+                        </div>
+                    </div>
+                </a>
+                    c++;
+                }
+            </div>  
+        </div>
+    </section>
+    <div class="centered more">
+        @Html.PagedListPager(list: newsdatas, generatePageUrl: page => Url.Action("News", new { p = page }))
+    </div>
+</main>

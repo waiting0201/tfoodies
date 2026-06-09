@@ -1,0 +1,70 @@
+﻿@model Producttypes
+@{
+    var branddatas = (IEnumerable<Brands>)ViewBag.Brands;
+    var producttypedatas = (IEnumerable<Producttypes>)ViewBag.Producttypes;
+    var tagdatas = (IEnumerable<Tags>)ViewBag.Tags;
+    IEnumerable<Products> productdatas;
+    if (ViewBag.Brandid != null)
+    {
+        productdatas = Model.Products.Where(a => a.isdisabled == false && a.brandid == ViewBag.Brandid).OrderByDescending(a => a.sort);
+    }
+    else
+    {
+        productdatas = Model.Products.Where(a => a.isdisabled == false).OrderByDescending(a => a.sort);
+    }
+}
+
+<main id="main">
+    <section class="tallsection clr">
+        <div class="restrict-wide">
+            <div class="centered">
+                <h1>所有商品</h1>
+                @*<div class="brand-classify-wrap">
+                    <div class="brand-select-wrap">
+                        <div class="brand-select">品牌篩選</div>
+                        <ul class="brand-select-option">
+                            <li> <a href="@Url.Action("Products", "MainMs")">All</a></li>
+                            @foreach (Brands brand in branddatas)
+                            {
+                            <li> <a href="@Url.Action("Products", "MainMs", new { brandid = brand.brandid })">@brand.title</a></li>
+                            }
+                        </ul>
+                    </div>
+                </div>*@
+                <div id="tabber">
+                    <div class="tabber-selectors">
+                        <ul>
+                            @foreach (Producttypes producttype in producttypedatas)
+                            {
+                                <li><a href="@Url.Action("Products", "MainMs", new { producttypetitle = producttype.title, brandid = ViewBag.Brandid })" class="tabber-anchor @(Model.producttypeid == producttype.producttypeid ? "active" : "")" title="@producttype.title">@producttype.title</a></li>
+                            }
+                        </ul>
+                    </div>
+                    @*<div class="sepline"></div>
+                    <div class="classify">
+                        <div class="descript inline">適用料理分類：</div>
+                        <div class="inline">
+                            <ul>
+                                @foreach(Tags tag in tagdatas)
+                                {
+                                <li><a href="javascript:;" class="descript">@tag.title</a></li>
+                                }
+                            </ul>
+                        </div>
+                    </div>*@
+
+                    <p class="restrict-small">@Model.memo</p>
+
+                    <div class="direct-line"></div>
+
+                    <div class="four-column clr">
+                        @foreach (Products product in productdatas)
+                        {
+                            @Html.Partial("_PartialProduct", product, new ViewDataDictionary { { "promote-sliding", false }, { "bloburl", ViewBag.BlobUrl } })
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>

@@ -1,0 +1,78 @@
+﻿@model Members
+
+<main id="main">
+    <section>
+        <div class="member-banner"><img src="~/content/images/section/order.jpg"></div>
+    </section>
+    <section class="allpadding clr section">
+        <div class="restrict-wide">
+            <div class="centered">
+                <h1>會員中心</h1>
+                <div id="tabber">
+                    <div class="tabber-selectors">
+                        <ul>
+                            <li><a href="@Url.Action("Orders", "MemberMs")" class="tabber-anchor">訂單查詢</a></li>
+                            <li><a href="@Url.Action("Mylists", "MemberMs")" class="tabber-anchor active">追蹤清單</a></li>
+                            <li><a href="@Url.Action("EditProfile", "MemberMs")" class="tabber-anchor">會員資料</a></li>
+                            <li><a href="@Url.Action("EditPassword", "MemberMs")" class="tabber-anchor">修改密碼</a></li>
+                        </ul>
+                    </div>
+                    <div class="direct-line"></div>
+                    <div class="restrict-small">
+                        <div class="tablescroll">
+                            <table>
+                                <tr>
+                                    <th></th>
+                                    <th>商品名稱</th>
+                                    <th>單價</th>
+                                    <th>加入購物車</th>
+                                    <th>刪除</th>
+                                </tr>
+                                @foreach(Products product in Model.Products)
+                                { 
+                                <tr>
+                                    <td><img src="@(ViewBag.BlobUrl + product.photo)"></td>
+                                    <td class="td-product"><a href="@Url.Action("ProductDetail", "MainMs", new { productid = product.productid})" class="darkgray">@product.title @product.capacity</a></td>
+                                    <td>NT. @product.price.ToString("#,0")</td>
+                                    <td>
+                                        <a href="javascript:;" class="cartgray js-add-cart" data-productid="@product.productid"></a>
+                                    </td>
+                                    <td>
+                                        <a href="javascript:;" class="delete" data-productid="@product.productid"></a>
+                                    </td>
+                                </tr>
+                                }
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+@section scripts {
+    <script>
+        $(function () {
+            $(".delete").click(function () {
+                var obj = $(this);
+                $.post("@Url.Action("RemoveToMylist", "Ajax")", {
+                    productid: obj.data("productid")
+                }, function (res) {
+                    if (res.code == "200") {
+                        $.alert({
+                            title: '提示訊息',
+                            content: '刪除成功！',
+                            boxWidth: '25%',
+                            useBootstrap: false,
+                            type: 'green',
+                        });
+                        
+                        obj.parents("tr").remove();
+
+                        return false;
+                    }
+                });
+            });
+        });
+    </script>
+}

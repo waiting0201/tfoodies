@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.40629.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tfoodies", "tfoodies\tfoodies.csproj", "{70E72FF4-C55F-4BF4-9CBB-DD7FE3CF42F4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tfoodiesBackend", "tfoodiesBackend\tfoodiesBackend.csproj", "{8E7B917B-4612-46AE-AFB1-1322CB7F2BDD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tfoodies.Models", "tfoodies.Models\tfoodies.Models.csproj", "{3DD1E787-D2EC-43A1-867E-F8EBE76D7AB2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tfoodies.Service", "tfoodies.Service\tfoodies.Service.csproj", "{1AE44478-5372-4063-94E5-CE1EA1D248BD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tfoodies.Libs", "tfoodies.Libs\tfoodies.Libs.csproj", "{80BC0815-EA17-4B39-98D0-705EF9DC6F3E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tfoodiesApi", "tfoodiesApi\tfoodiesApi.csproj", "{8474066F-F52A-49B1-ABBB-4469E0035D8E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{70E72FF4-C55F-4BF4-9CBB-DD7FE3CF42F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{70E72FF4-C55F-4BF4-9CBB-DD7FE3CF42F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{70E72FF4-C55F-4BF4-9CBB-DD7FE3CF42F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{70E72FF4-C55F-4BF4-9CBB-DD7FE3CF42F4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E7B917B-4612-46AE-AFB1-1322CB7F2BDD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E7B917B-4612-46AE-AFB1-1322CB7F2BDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E7B917B-4612-46AE-AFB1-1322CB7F2BDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E7B917B-4612-46AE-AFB1-1322CB7F2BDD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3DD1E787-D2EC-43A1-867E-F8EBE76D7AB2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3DD1E787-D2EC-43A1-867E-F8EBE76D7AB2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3DD1E787-D2EC-43A1-867E-F8EBE76D7AB2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3DD1E787-D2EC-43A1-867E-F8EBE76D7AB2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1AE44478-5372-4063-94E5-CE1EA1D248BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1AE44478-5372-4063-94E5-CE1EA1D248BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1AE44478-5372-4063-94E5-CE1EA1D248BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1AE44478-5372-4063-94E5-CE1EA1D248BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{80BC0815-EA17-4B39-98D0-705EF9DC6F3E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{80BC0815-EA17-4B39-98D0-705EF9DC6F3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{80BC0815-EA17-4B39-98D0-705EF9DC6F3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{80BC0815-EA17-4B39-98D0-705EF9DC6F3E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8474066F-F52A-49B1-ABBB-4469E0035D8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8474066F-F52A-49B1-ABBB-4469E0035D8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8474066F-F52A-49B1-ABBB-4469E0035D8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8474066F-F52A-49B1-ABBB-4469E0035D8E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

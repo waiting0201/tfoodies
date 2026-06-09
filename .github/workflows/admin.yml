@@ -1,0 +1,36 @@
+name: admin
+
+on:
+  push:
+    branches: [main]
+    paths: ['web/admin/**', 'web/packages/**', '.github/workflows/admin.yml']
+  pull_request:
+    paths: ['web/admin/**', 'web/packages/**']
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci
+        working-directory: web
+      - name: Build admin (Vue SPA)
+        env:
+          VITE_API_BASE: /api
+        run: npm --workspace admin run build
+        working-directory: web
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_SWA_TOKEN_ADMIN }}
+          action: 'upload'
+          app_location: 'web/admin'
+          output_location: 'dist'
+          skip_app_build: true

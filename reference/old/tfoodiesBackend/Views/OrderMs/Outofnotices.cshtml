@@ -1,0 +1,107 @@
+﻿@{
+    var data = ViewBag.Outofnotices as IPagedList<Outofnotices>;
+}
+
+<!-- MAIN CONTENT -->
+<div id="content">
+
+    <!-- widget grid -->
+    <section id="widget-grid" class="">
+        <!-- row -->
+        <div class="row">
+            <!-- NEW WIDGET START -->
+            <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                <div class="well padding-10">
+
+                    <!-- widget content -->
+                    <div class="widget-body">
+
+                        @using (Html.BeginForm("OrdersExport", "OrderMs", new { ViewBag.orderdate, ViewBag.ordermonth }, FormMethod.Post, new { @id = "exportform" }))
+                        {
+
+
+                            if (Html.ValidationSummary(true) != null)
+                            {
+                                <div class="alert alert-danger alert-block fade in">
+                                    <button class="close" data-dismiss="alert">
+                                        ×
+                                    </button>
+                                    <i class="fa-fw fa fa-info"></i>
+                                    @Html.ValidationSummary(true)
+                                </div>
+                            }
+
+                            <div class="table-responsive">
+
+                                <table class="table table-hover table-bordered table-striped has-tickbox">
+                                    <thead>
+                                        <tr>
+                                            <th>
+                                                <label>
+                                                    <input type="checkbox" id="checkall" />
+                                                </label>
+                                            </th>
+                                            <th width="8%" class="text-center">姓名</th>
+                                            <th width="9%" class="text-center">Email</th>
+                                            <th width="9%" class="text-center">日期</th>
+                                            <th>產品</th>
+                                            <th width="9%" class="text-center">電話</th>
+                                            <th width="8%" class="text-center">會員</th>
+                                            <th width="5%" class="text-center">編輯</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (Outofnotices entity in data)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <label>
+                                                        <input type="checkbox" name="orderids" value="@entity.outofnoticeid" />
+                                                    </label>
+                                                </td>
+                                                <td class="text-center">@entity.name</td>
+                                                <td class="text-center">@entity.email</td>
+                                                <td class="text-center">@entity.createdate.ToString("yyyy-MM-dd")</td>
+                                                <td>@entity.Products.productnum @entity.Products.title</td>
+                                                <td class="text-center">@entity.mobile</td>
+                                                <td class="text-center">@(entity.Members == null ? "" : entity.Members.name)</td>
+                                                <td class="text-center"><a href="@Url.Action("EditOutofnotices", "OrderMs", new { entityid = entity.outofnoticeid, p = ViewBag.pageNumber })" class="btn btn-info btn-xs"><i class="fa fa-edit"></i></a></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+
+                            </div>
+                        }
+                    </div>
+                    <!-- end widget content -->
+
+                    <div class="text-center">
+                        @Html.PagedListPager(list: data, generatePageUrl: page => Url.Action("Outofnotices", new { p = page }))
+                    </div>
+
+                </div>
+
+            </article>
+            <!-- WIDGET END -->
+
+        </div>
+        <!-- end row -->
+
+    </section>
+    <!-- end widget grid -->
+
+</div>
+<!-- END MAIN CONTENT -->
+
+@section scripts {
+    <script>
+        $(function () {
+            $('.datetimepicker').datetimepicker({
+                viewMode: 'years',
+                format: 'YYYY-MM'
+            });
+        });
+    </script>
+}

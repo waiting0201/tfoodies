@@ -1,0 +1,574 @@
+﻿@{
+    var cartcontentdatas = (IEnumerable<CartItem>)ViewBag.CartContents;
+    var citydatas = (IEnumerable<string>)ViewBag.Citys;
+}
+
+<main id="main">
+    <section class="clr allsection step-section">
+        <h1 class="heading">填寫訂購資訊</h1>
+        <div class="restrict centered">
+            <div class="step-wrap">
+                <div class="shopstep">
+                    <div class="step-circle">
+                        <div class="step-inner">
+                            <div class="step-number">1</div>
+                            <p class="white">商品資訊</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="shopstep">
+                    <div class="step-line stp2"></div>
+                </div>
+                <div class="shopstep">
+                    <div class="step-circle stp2">
+                        <div class="step-inner">
+                            <div class="step-number">2</div>
+                            <p class="white">訂購資訊</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="shopstep">
+                    <div class="step-line stp0"></div>
+                </div>
+                <div class="shopstep">
+                    <div class="step-circle stp0">
+                        <div class="step-inner">
+                            <div class="step-number">3</div>
+                            <p class="white">完成訂購</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="clr allsection">
+        <div class="restrict-tiny allpadding centered shopflow">
+            <p class="darkgray">本站有 SSL認證加密，請安心填寫。</p>
+            <form id="orderform">
+                <div class="formstyle">
+                    <h2 class="left">訂購人資訊</h2>
+                    <div class="information">
+                        <div class="controlgroup">
+                            <div class="controls">
+                                <div class="status"><label for="name"><span class="must">*</span>姓名</label></div>
+                                <div class="vertify"><input type="text" id="name" name="name" class="input" value="@ViewBag.Membername" data-rule-required="true" data-msg-required="此為必填欄位" data-rule-maxlength="20" data-msg-maxlength="請勿超過20個字元"></div>
+                            </div>
+                        </div>
+                        @if (Session["IsLogin"] == null || !(bool)Session["IsLogin"])
+                        {
+                            <div class="controlgroup">
+                                <div class="controls">
+                                    <div class="status"><label for="mobile"><span class="must">*</span>手機號碼</label></div>
+                                    <div class="vertify">
+                                        <input type="text" id="mobile" name="mobile" class="input" data-rule-required="true" data-msg-required="此為必填欄位" data-rule-minlength="10" data-msg-minlength="請輸入正確手機格式，如：0987654321" data-rule-maxlength="10" data-msg-maxlength="請輸入正確手機格式，如：0987654321" data-rule-number="true" data-msg-number="格式錯誤" data-rule-remote="@Url.Action("Checkmobile", "Ajax")" data-msg-remote="此手機號碼已經存在，請先登入後再訂購！">
+                                        <div class="descript">手機號碼將成為您的會員帳號與收件聯絡電話，請確實填寫。請輸入純數字，不需加入符號。如：0987654321</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="controlgroup">
+                                <div class="controls">
+                                    <div class="status"><label for="password"><span class="must">*</span>設定密碼</label></div>
+                                    <div class="vertify">
+                                        <input type="password" id="password" name="password" class="input" data-rule-required="true" data-msg-required="此為必填欄位" data-rule-maxlength="20" data-msg-maxlength="請勿超過20個字元">
+                                        <div class="descript">請設定6～20字元以內的密碼。</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="controlgroup">
+                                <div class="controls">
+                                    <div class="status"><label for="cpassword"><span class="must">*</span>密碼確認</label></div>
+                                    <div class="vertify">
+                                        <input type="password" id="cpassword" name="cpassword" class="input" data-rule-equalto="#password" data-msg-equalto="密碼錯誤" data-rule-required="true" data-msg-required="此為必填欄位" data-rule-maxlength="20" data-msg-maxlength="請勿超過20個字元">
+                                        <div class="descript">請再次確認您所設定之密碼，兩次輸入需相同。</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="controlgroup">
+                                <div class="controls">
+                                    <div class="status"><label for="email"><span class="must">*</span>電子郵件</label></div>
+                                    <div class="vertify">
+                                        <input type="text" id="email" name="email" class="input" data-rule-email="true" data-msg-email="Email格式錯誤" data-rule-required="true" data-msg-required="此為必填欄位" data-rule-maxlength="150" data-msg-maxlength="請勿超過150個字元">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="controlgroup">
+                                <div class="controls">
+                                    <div class="status">
+                                        <label for="gender"><span class="must"> </span>性別</label>
+                                    </div>
+                                    <div class="vertify">
+                                        <div style="margin-right:2em;" class="address city">
+                                            <input type="radio" name="gender" value="1" checked> 男生
+                                        </div>
+                                        <div class="address">
+                                            <input type="radio" name="gender" value="0"> 女生
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="controlgroup">
+                                <div class="controls">
+                                    <div class="status">
+                                        <label><span class="must"> </span>生日</label>
+                                    </div>
+                                    <div class="vertify">
+                                        <div class="select-style birth">
+                                            <select id="year" name="year">
+                                                <option value="">請選擇年</option>
+                                                @for (int y = DateTime.Now.Year; y >= DateTime.Now.Year - 80; y--)
+                                                {
+                                                    <option value="@y">@y</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="select-style birth">
+                                            <select id="month" name="month">
+                                                <option value="">請選擇月</option>
+                                                @for (int m = 1; m <= 12; m++)
+                                                {
+                                                    <option value="@m">@m</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="select-style birth">
+                                            <select id="day" name="day">
+                                                <option value="">請選擇日</option>
+                                                @for (int d = 1; d <= 31; d++)
+                                                {
+                                                    <option value="@d">@d</option>
+                                                }
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="hidden" id="mobile" value="@ViewBag.Membermobile" />
+                        }
+                        <div class="controlgroup">
+                            <div class="controls">
+                                <div class="status"><label for="address"><span class="must">*</span>聯絡地址</label></div>
+                                <div class="vertify">
+                                    <div class="select-style address city">
+                                        <select id="city" name="city" class="selectcity" data-rule-required="true" data-msg-required="此為必填欄位">
+                                            <option value="">請選擇縣市</option>
+                                            @foreach (string city in citydatas)
+                                            {
+                                                <option>@city</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="select-style address">
+                                        <select id="area" name="area" class="selectarea" data-rule-required="true" data-msg-required="此為必填欄位">
+                                            <option value="">鄉鎮市區</option>
+                                        </select>
+                                        <input type="hidden" id="zipcodeid" name="zipcodeid" value="" />
+                                    </div>
+                                    <input type="text" id="address" name="address" value="@ViewBag.Memberaddress" class="input" data-rule-required="true" data-msg-required="此為必填欄位" data-rule-maxlength="150" data-msg-maxlength="請勿超過150個字元">
+                                    <input type="hidden" id="zipcodefullid" value="@ViewBag.Zipcodefullid" />
+                                    <div class="descript">請填寫正確收件地址，勿填寫郵政信箱。</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="formstyle">
+                    <h2 class="left">收件人資訊</h2>
+                    <div class="pull-left descript sameinfo"><input type="checkbox" id="issame">同訂購人資訊請在此打勾</div>
+                    <div class="information">
+                        <div class="controlgroup">
+                            <div class="controls">
+                                <div class="status"><label for="recivername"><span class="must">*</span>姓名</label></div>
+                                <div class="vertify"><input type="text" id="recivername" name="recivername" class="input" data-rule-required="true" data-msg-required="此為必填欄位" data-rule-maxlength="20" data-msg-maxlength="請勿超過20個字元"></div>
+                            </div>
+                        </div>
+                        <div class="controlgroup">
+                            <div class="controls">
+                                <div class="status"><label for="recivermobile"><span class="must">*</span>手機號碼</label></div>
+                                <div class="vertify">
+                                    <input type="text" id="recivermobile" name="recivermobile" class="input" data-rule-required="true" data-msg-required="此為必填欄位" data-rule-minlength="10" data-msg-minlength="請輸入正確手機格式，如：0987654321" data-rule-maxlength="10" data-msg-maxlength="請輸入正確手機格式，如：0987654321" data-rule-number="true" data-msg-number="格式錯誤">
+                                    <div class="descript">手機號碼將成為您的收件聯絡電話，請確實填寫。輸入純數字，不需加入符號。如：0987654321</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="controlgroup">
+                            <div class="controls">
+                                <div class="status"><label for="reciveraddress"><span class="must">*</span>聯絡地址</label></div>
+                                <div class="vertify">
+                                    <div class="select-style address city">
+                                        <select id="recivercity" name="recivercity" class="selectcity" data-rule-required="true" data-msg-required="此為必填欄位">
+                                            <option>請選擇縣市</option>
+                                            @foreach (string city in citydatas)
+                                            {
+                                                <option>@city</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="select-style address">
+                                        <select id="reciverarea" name="reciverarea" class="selectarea" data-rule-required="true" data-msg-required="此為必填欄位">
+                                            <option value="">鄉鎮市區</option>
+                                        </select>
+                                        <input type="hidden" id="reciverzipcodeid" name="reciverzipcodeid" value="" />
+                                    </div>
+                                    <input type="text" id="reciveraddress" name="reciveraddress" class="input" data-rule-required="true" data-msg-required="此為必填欄位" data-rule-maxlength="150" data-msg-maxlength="請勿超過150個字元">
+                                    <div class="descript">請填寫正確收件地址，勿填寫郵政信箱。</div>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="recivertime" value="1" />
+                    </div>
+                </div>
+                <div class="formstyle">
+                    <h2 class="left"><span class="must">*</span>發票資訊</h2>
+                    <div class="information">
+                        <div class="tablescroll">
+                            <table>
+                                <tr class="accordion-item">
+                                    <td class="checked">
+                                        <input type="radio" name="invoicetype" value="1" checked="checked" class="input">
+                                    </td>
+                                    <td class="left">
+                                        <label>電子發票</label>
+                                    </td>
+                                </tr>
+                                <tr class="accordion-item">
+                                    <td>
+                                        <input id="check-donate" type="radio" name="invoicetype" value="2" class="input">
+                                    </td>
+                                    <td class="left">
+                                        <label>捐贈發票</label>
+                                        <div class="content">
+                                            <div class="descript inline">捐贈單位：</div>
+                                            <div class="inline"> <a href="https://lovestar01170.org/index.php/zh-TW" target="_blank">信星集團愛星慈善基金會</a></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="accordion-item">
+                                    <td class="border-none">
+                                        <input id="check-receipt" type="radio" name="invoicetype" value="3" class="input">
+                                    </td>
+                                    <td class="left border-none">
+                                        <label>三聯式發票（公司行號報帳用）</label>
+                                        <div class="descript">依統一發票使用辦法之規定：個人戶（二聯式）發票一經開立，不得任意更改為公司戶（三聯式）發票。</div>
+                                        <div class="content descript">
+                                            <div class="controls">
+                                                <div class="status">
+                                                    <label for="companynumber">統一編號：</label>
+                                                </div>
+                                                <div class="vertify">
+                                                    <input type="text" name="companynumber" id="companynumber" class="input" data-rule-minlength="8" data-msg-minlength="至少8個字元" data-rule-maxlength="8" data-msg-maxlength="請勿超過8個字元">
+                                                </div>
+                                            </div>
+                                            <div class="controls">
+                                                <div class="status">
+                                                    <label for="companytitle">公司抬頭：</label>
+                                                </div>
+                                                <div class="vertify">
+                                                    <input type="text" name="companytitle" id="companytitle" class="input" data-rule-maxlength="50" data-msg-maxlength="請勿超過50個字元">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="space">
+                    <h2 class="left"><span class="must">*</span>請選擇付款方式</h2>
+                    <div class="information">
+                        <div class="tablescroll">
+                            <table>
+                                <tr>
+                                    <td>
+                                        <input type="radio" name="paytype" value="1" checked="checked" class="input">
+                                    </td>
+                                    <td class="left">信用卡線上刷卡</td>
+                                    <td class="small left">使用線上刷卡，結帳時將自動跳轉至銀行線上刷卡頁面！</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <input type="radio" name="paytype" value="2" class="input">
+                                    </td>
+                                    <td class="left">宅配貨到付款</td>
+                                    <td class="small left">貨品寄達時，貨運司機會向您收取購買之金額款項。</td>
+                                </tr>
+                                @*<tr>
+                                        <td>
+                                            <input type="radio" name="paytype" value="3" class="input">
+                                        </td>
+                                        <td class="left">ATM轉帳付款</td>
+                                        <td class="small left">
+                                            1. 送出訂單後，請記下匯款資訊及金額。<br>
+                                            2. 請於繳款截止日前完成匯款。<br>
+                                            3. 銀行核對款項約需3個工作天，確定入帳後，將以『新竹貨運』配送包裹。
+                                        </td>
+                                    </tr>*@
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="space">
+                    <h2 class="left">備註欄</h2>
+                    <p class="left darkestgray">若您有需特別註明的地方，歡迎留言於下方備註欄。</p>
+                    <textarea id="remark" name="remark"></textarea>
+                </div>
+                <div class="checkpolicy">
+                    <div class="descript">食在呼TFoodies/ 本公司 與新竹貨運配合配送。</div>
+                    <div class="descript">
+                        <input type="checkbox" id="isagree"><label for="statement-confirm">我同意接受食在呼</label>
+                        <div class="inline"><a href="@Url.Action("Terms", "PageMs")" target="_blank" class="inline policy-doc">服務條款</a></div>
+                        <div class="inline">和 <a href="@Url.Action("Policy", "PageMs")" target="_blank" class="inline policy-doc">隱私權政策</a></div>
+                        <div class="inline">。</div>
+                    </div>
+                    @*<div class="controlgroup">
+                            <div class="credit-captcha">
+                                <div class="g-recaptcha" data-sitekey="6LcLZz8UAAAAAFZZJnkJD_XKqA7CrcC524W9-94R"></div>
+                            </div>
+                        </div>*@
+                    <input type="hidden" id="GoogleCaptchaToken" name="GoogleCaptchaToken" />
+                </div>
+                <div class="choose-wrap mb_fixed">
+                    <div class="choose-left"><a href="@Url.Action("ShoppingCart", "MainMs")" class="btn outline-btn" rel="nofollow">回上一步</a></div>
+                    <div class="choose-right"><a href="javascript:;" id="btnSubmit" class="btn basic" rel="nofollow">下一步</a></div>
+                </div>
+            </form>
+        </div>
+    </section>
+    <section id="checkInline" class="confirm-wrapper center mfp-hide">
+        <div class="confirm-contain">
+            <img src="~/content/images/section/confirm.png">
+            <p>點擊「確認」按鈕，系統將導入信用卡刷卡頁面！</p>
+            <form id="cardForm" method="post" action="https://www.focas.fisc.com.tw/FOCAS_WEBPOS/online/">
+                <input type="hidden" name="merID" value="45889852" />
+                <input type="hidden" name="MerchantID" value="007458898529001" />
+                <input type="hidden" name="TerminalID" value="90010001" />
+                <input type="hidden" name="lidm" id="lidm" />
+                <input type="hidden" name="purchAmt" value="@ViewBag.PurchAmt" />
+                <input type="hidden" name="AuthResURL" value="https://www.tfoodies.com/MainMs/ShoppingSuccess" />
+                <input type="hidden" name="enCodeType" value="UTF-8" />
+                <input type="hidden" name="PayType" value="0" />
+                <input type="hidden" name="AutoCap" value="1" />
+                <div class="choose-wrap">
+                    <div class="choose-left"><a href="javascript:;" class="btn outline-btn close_popup">取消</a></div>
+                    <div class="choose-right"><a href="javascript:;" class="btn basic" id="btnCardSubmit">確認</a></div>
+                </div>
+            </form>
+        </div>
+    </section>
+</main>
+@section scripts {
+    <script>
+        grecaptcha.ready(function () {
+            grecaptcha.execute('@Librarys.GetRecaptchaV3ClientKey()', { action: 'contact_us' }).then(function (token) {
+                $("#GoogleCaptchaToken").val(token);
+            });
+        });
+
+        var itemlist = [];
+        @foreach (CartItem item in cartcontentdatas)
+        {
+            <text>
+                itemlist.push({
+                    'id': '@item.ProductId',
+                    'name': '@item.Name'
+                });
+            </text>
+        }
+        gtag.checkout_progress(itemlist, '', 2);
+
+        $(function () {
+            $("#issame").click(function (e) {
+                if ($("#name").val() == "" || $("#mobile").val() == "" || $("#city").val() == "" || $("#area").val() == "" || $("#zipcodeid").val() == "" || $("#address").val() == "") {
+                    $.alert({
+                        title: '提示訊息',
+                        content: '請先確實填寫訂購人資訊，謝謝！',
+                        boxWidth: '25%',
+                        useBootstrap: false,
+                        type: 'red',
+                    });
+
+                    e.preventDefault();
+                    return false;
+                }
+
+                if ($(this).is(':checked')) {
+                    $("#recivername").val($("#name").val());
+                    $("#recivermobile").val($("#mobile").val());
+                    $("#reciverzipcodeid").val($("#zipcodeid").val());
+                    $("#reciveraddress").val($("#address").val());
+
+                    defaultValue = true;
+                    fullIdPath[0] = $("#city").val();
+                    fullIdPath[1] = $("#area").val();
+                    $('#recivercity').val(fullIdPath[0]).trigger('change');
+                } else {
+                    $("#recivername").val('');
+                    $("#recivermobile").val('');
+                    $("#reciverzipcodeid").val('');
+                    $("#reciveraddress").val('');
+
+                    defaultValue = false;
+                    $('#recivercity').val('').trigger('change');
+                }
+            });
+
+            $(".selectcity").change(function () {
+                var obj = $(this);
+                var parentobj = obj.parent().parent();
+                var targetobj = parentobj.find(".selectarea");
+                $.post("@Url.Action("GetZipcodeByCity", "Ajax")", {
+                    'city': $(this).val()
+                }, function (res) {
+                    if (defaultValue) {
+                        targetobj.find('option').remove().end().append(res).val(fullIdPath[1]).trigger('change');
+                    } else {
+                        targetobj.find('option').remove().end().append(res).trigger('change');
+                    }
+                });
+            });
+
+            $('.selectarea').change(function () {
+                var obj = $(this);
+                obj.next("input[type='hidden']").val(obj.val());
+            });
+
+            var defaultValue = false;
+            var fullIdPath = [];
+
+            if (0 < $.trim($('#zipcodefullid').val()).length) {
+                fullIdPath = $('#zipcodefullid').val().split(',');
+                defaultValue = true;
+            }
+
+            if (defaultValue) {
+                $('#city').val(fullIdPath[0]).trigger('change');
+            }
+
+            var validator = $('#orderform').validate();
+
+            $("input[name='invoicetype']").on('click', function () {
+                if ($(this).val() == 3) {
+                    $("#companynumber").rules("add", {
+                        required: true,
+                        messages: {
+                            required: "此為必填欄位"
+                        }
+                    });
+                    $("#companytitle").rules("add", {
+                        required: true,
+                        messages: {
+                            required: "此為必填欄位"
+                        }
+                    });
+                } else {
+                    $("#companynumber").rules("remove", "required");
+                    $("#companytitle").rules("remove", "required");
+                    $("#companytitle").val("");
+                    $("#companynumber").val("");
+                }
+            });
+
+            $("#companynumber").on("keyup", function () {
+                var obj = $(this);
+                if (obj.val().length == 8) {
+                    $.post("@Url.Action("GetCompanyTitle", "Ajax")", {
+                        companynumber: obj.val()
+                    }, function (res) {
+                        if (!res) {
+                            @*$.post("@Url.Action("GetSubCompanyTitle", "Ajax")", {
+                                companynumber: obj.val()
+                            }, function (subres) {
+                                if (!subres) {
+                                    $("#companytitle").val("");
+                                    $.alert({
+                                        title: '提示訊息',
+                                        content: '查無此統一編號！',
+                                        boxWidth: '25%',
+                                        useBootstrap: false,
+                                        type: 'red',
+                                    });
+                                    return false;
+                                } else {
+                                    $("#companytitle").val(res.Company_Name);
+                                }
+                            });*@
+                        } else {
+                            $("#companytitle").val(res.Company_Name);
+                        }
+                    });
+                } else {
+                    $("#companytitle").val("");
+                }
+            });
+
+            $("#btnSubmit").on('click', function () {
+                var curr = $(this);
+                curr.prop("disabled", true);
+
+                if (!$('#isagree').is(':checked')) {
+                    $.alert({
+                        title: '提示訊息',
+                        content: '您尚未同意 TFoodies 食在呼 服務條款與隱私權政策！',
+                        boxWidth: '25%',
+                        useBootstrap: false,
+                        type: 'red',
+                    });
+                    curr.prop("disabled", false);
+                    return false;
+                }
+
+                var obj = $('#orderform');
+
+                if (obj.valid()) {
+                    $.post("@Url.Action("PostOrder", "Ajax")", obj.serialize(), function (res) {
+                        if (res.code == "200") {
+                            if (res.paytype == "credit") {
+                                $("#lidm").val(res.ordercode.trim());
+                                $.magnificPopup.open({
+                                    items: {
+                                        src: '#checkInline',
+                                        type: 'inline'
+                                    },
+                                    midClick: true,
+                                    showCloseBtn: false
+                                });
+                                return false;
+                            } else {
+
+                                location.href = "@Url.Action("ShoppingSuccess", "MainMs")" + "?lidm=" + res.ordercode.trim();
+                                return false;
+                            }
+                        } else {
+                            $.alert({
+                                title: '提示訊息',
+                                content: res.message,
+                                boxWidth: '25%',
+                                useBootstrap: false,
+                                type: 'red',
+                            });
+
+                            grecaptcha.ready(function () {
+                                grecaptcha.execute('@Librarys.GetRecaptchaV3ClientKey()', { action: 'contact_us' }).then(function (token) {
+                                    $("#GoogleCaptchaToken").val(token);
+                                });
+                            });
+
+                            curr.prop("disabled", false);
+                            return false;
+                        }
+                    });
+                }
+            });
+
+            $("#btnCardSubmit").on('click', function () {
+                var curr = $(this);
+                curr.prop("disabled", true);
+
+                $('#cardForm').submit();
+            });
+        });
+    </script>
+}

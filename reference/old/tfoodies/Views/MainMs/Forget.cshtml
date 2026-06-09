@@ -1,0 +1,87 @@
+﻿<main id="main">
+    <section class="clr brandbanner">
+        <div class="restrict-small centered allpadding">
+            <h1>忘記密碼</h1>
+            <div class="content">
+                <p class="darkgray">請輸入您註冊的手機號碼及Email，系統將會寄送新密碼Email給您，請登入會員後更改您的密碼，謝謝！</p>
+            </div>
+            <div class="recipe-wrap space">
+                <form id="forgetform">
+                    <div class="food">
+                        <div class="controlgroup"><label for="mobile"></label><input type="text" name="mobile" placeholder="手機號碼" class="input" data-rule-required="true" data-msg-required="此為必填欄位"></div>
+                        <div class="controlgroup"><label for="email"></label><input type="text" name="email" placeholder="Email" class="input" data-rule-email="true" data-msg-email="Email格式錯誤" data-rule-required="true" data-msg-required="此為必填欄位"></div>
+                        <div class="controlgroup">
+                            @*<label for="captcha"></label><input type="text" name="inputcode" placeholder="驗證碼" class="input captcha" data-rule-required="true" data-msg-required="此為必填欄位">
+                            <div class="captcha"><img id="captcha" src="@Url.Action("VerificationCode", "Captcha")"></div>*@
+
+                            @*<div class="g-recaptcha" data-sitekey="6LcLZz8UAAAAAFZZJnkJD_XKqA7CrcC524W9-94R"></div>*@
+                            <input type="hidden" id="GoogleCaptchaToken" name="GoogleCaptchaToken" />
+                        </div>
+                        @*<div class="inline">
+                            <div class="refresh"></div><a href="javascript:;" class="descript inline" id="refreshcaptcha">換一組驗證碼</a>
+                        </div>*@
+                    </div>
+                    <div class="food-desc"><button type="button" class="btn outline-btn" id="btnSubmit">確定送出</button></div>
+                </form>
+            </div>
+        </div>
+    </section>
+</main>
+@section scripts {
+    <script>
+        grecaptcha.ready(function () {
+            grecaptcha.execute('@Librarys.GetRecaptchaV3ClientKey()', { action: 'contact_us' }).then(function (token) {
+                $("#GoogleCaptchaToken").val(token);
+            });
+        });
+
+        $(function () {
+            var obj = $('#forgetform');
+            var validator = obj.validate();
+
+            $("#btnSubmit").click(function () {
+                var btn = $(this);
+                btn.prop('disabled', true);
+
+                if (obj.valid()) {
+
+                    $.post("@Url.Action("PasswordSend", "Ajax")", obj.serialize(), function (res) {
+                        if (res.code == "200") {
+                            $.confirm({
+                                title: '提示訊息',
+                                content: res.message,
+                                boxWidth: '25%',
+                                useBootstrap: false,
+                                type: 'green',
+                                buttons: {
+                                    ok: function () {
+                                        btn.prop('disabled', false);
+                                        location.href = "https://www.tfoodies.com/";
+                                    }
+                                }
+                            });
+                            return false;
+                        } else {
+                            grecaptcha.ready(function () {
+                                grecaptcha.execute('@Librarys.GetRecaptchaV3ClientKey()', { action: 'contact_us' }).then(function (token) {
+                                    $("#GoogleCaptchaToken").val(token);
+                                });
+                            });
+
+                            $.alert({
+                                title: '提示訊息',
+                                content: res.message,
+                                boxWidth: '25%',
+                                useBootstrap: false,
+                                type: 'red',
+                            });
+
+                            btn.prop('disabled', false);
+                            return false;
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+}

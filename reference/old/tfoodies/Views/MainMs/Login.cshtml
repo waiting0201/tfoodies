@@ -1,0 +1,75 @@
+﻿@{
+    bool isdisplay = (bool)ViewBag.Isdisplay;
+}
+<main id="main">
+    <section class="clr allsection">
+        <h1 class="heading">食在呼登入</h1>
+        <div class="restrict allpadding">
+            <article class="container">
+                <div class="fifty">
+                    <h2>會員登入</h2>
+                    <div class="error">密碼錯誤！請再次輸入正確手機號碼與密碼。</div>
+                    <form id="loginform" method="post">
+                        <div class="controlgroup"><label for="cellphone"></label><input type="text" name="mobile" placeholder="手機號碼" class="input"></div>
+                        <div class="controlgroup"><label for="pwd"></label><input type="password" name="password" placeholder="密碼" class="input"></div>
+                        <div class="controlgroup">
+                            @*<label for="captcha"></label><input type="text" name="inputcode" placeholder="驗證碼" class="input captcha">
+                                <div class="captcha"><img id="captcha" src="@Url.Action("VerificationCode", "Captcha")"></div>*@
+
+                            @*<div class="g-recaptcha" data-sitekey="6LcLZz8UAAAAAFZZJnkJD_XKqA7CrcC524W9-94R"></div>*@
+                            <input type="hidden" id="GoogleCaptchaToken" name="GoogleCaptchaToken" />
+                        </div>
+                        @*<div class="inline">
+                                <div class="refresh"></div><a href="javascript:;" class="descript inline" id="refreshcaptcha">換一組驗證碼</a>
+                            </div>*@
+                        <div class="checkbox"><label class="checkbox-item"><input type="checkbox" name="isremember" value="y"><a class="descript inline">記住帳號</a></label><label class="checkbox-item"><a href="@Url.Action("Forget")" class="descript inline">忘記密碼？</a></label></div>
+                        <div class="centered space-top"><button type="button" class="btn outline-btn" id="btnlogin">登入</button></div>
+                    </form>
+                </div>
+                <div class="fifty">
+                    <h2>首次購物</h2>
+                    <p class="darkgray">商品加入購物車後，點選下方按鈕就可以直接購物，若已是會員，請先透過左邊表單登入。</p>
+                    @if (isdisplay)
+                    {
+                        <div class="centered space"><a href="@Url.Action("ShoppingCart", "MainMs")" class="btn outline-btn centered">前往結帳</a></div>
+                    }
+                </div>
+            </article>
+        </div>
+    </section>
+</main>
+@section scripts {
+    <script>
+        grecaptcha.ready(function () {
+            grecaptcha.execute('@Librarys.GetRecaptchaV3ClientKey()', { action: 'contact_us' }).then(function (token) {
+                $("#GoogleCaptchaToken").val(token);
+            });
+        });
+
+        $(function () {
+            $(".error").hide();
+
+            $("#btnlogin").click(function () {
+                $.post("@Url.Action("Login", "Ajax")", $("#loginform").serialize(), function (result) {
+                    $(".error").hide();
+                    if (result.code != "200") {
+                        grecaptcha.ready(function () {
+                            grecaptcha.execute('@Librarys.GetRecaptchaV3ClientKey()', { action: 'contact_us' }).then(function (token) {
+                                $("#GoogleCaptchaToken").val(token);
+                            });
+                        });
+
+                        $(".error").html(result.message).show();
+                        return false;
+                    } else {
+                        if (result.iscart == "y") {
+                            location.href = "@Url.Action("ShoppingCart", "MainMs")";
+                        } else {
+                            location.href = "@Url.Action("Orders", "MemberMs")";
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+}

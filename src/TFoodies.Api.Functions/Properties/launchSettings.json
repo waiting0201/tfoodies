@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "TFoodies.Api.Functions": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7166",
+      "launchBrowser": false
+    }
+  }
+}

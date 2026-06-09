@@ -1,0 +1,179 @@
+﻿@model Warehousestocks
+@{
+    var warehousedatas = (IEnumerable<Warehouses>)ViewBag.Warehouses;
+}
+
+<div id="content">
+
+    <!-- widget grid -->
+    <section id="widget-grid" class="">
+
+        <!-- row -->
+        <div class="row">
+
+            <!-- NEW WIDGET START -->
+            <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                <!-- Widget ID (each widget will need unique ID)-->
+                <div class="jarviswidget" id="wid-id-4" data-widget-editbutton="false" data-widget-colorbutton="false" data-widget-togglebutton="false" data-widget-deletebutton="false" data-widget-fullscreenbutton="false" data-widget-custombutton="false" data-widget-collapsed="false" data-widget-sortable="false">
+                    <header>
+                        <span class="widget-icon"> <i class="fa fa-pencil-square-o"></i> </span>
+                        <h2>新增移倉</h2>
+
+                    </header>
+
+                    <!-- widget div-->
+                    <div>
+
+                        <!-- widget edit box -->
+                        <div class="jarviswidget-editbox">
+                            <!-- This area used as dropdown edit box -->
+
+                        </div>
+                        <!-- end widget edit box -->
+                        <!-- widget content -->
+                        <div class="widget-body">
+
+                            <form id="form" method="post" class="form-horizontal" action="@Url.Action("AddWarehousestocks", "InventoryMs", new { p = ViewBag.pageNumber })"
+                                  data-bv-message="This value is not valid"
+                                  data-bv-feedbackicons-valid="glyphicon glyphicon-ok"
+                                  data-bv-feedbackicons-invalid="glyphicon glyphicon-remove"
+                                  data-bv-feedbackicons-validating="glyphicon glyphicon-refresh">
+
+                                @if (Html.ValidationSummary(true) != null)
+                                {
+                                    <div class="alert alert-danger alert-block">
+                                        <h4 class="alert-heading">Error!</h4>
+                                        @Html.ValidationSummary(true)
+                                    </div>
+                                }
+
+                                <fieldset>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-2 control-label" for="transdate">移倉日期</label>
+                                        <div class="col-lg-2">
+                                            @Html.TextBoxFor(model => model.transdate, new Dictionary<string, object>() { { "class", "form-control datepicker" }, { "data-dateformat", "yy-mm-dd" }, { "data-bv-notempty", "true" }, { "data-bv-message", "請選擇移倉日期" } })
+                                        </div>
+                                    </div>
+                                        
+
+                                    <div class="form-group">
+                                        <label class="col-lg-2 control-label" for="whid">移出倉</label>
+                                        <div class="col-lg-2">
+                                            <select id="whid" name="whid" class="form-control selectwh" data-bv-notempty="true" data-bv-message="此為必填欄位">
+                                                <option value="">請選擇移出倉</option>
+                                                @foreach (Warehouses entity in warehousedatas)
+                                                {
+                                                    <option value="@entity.warehouseid">@entity.title</option>
+                                                }
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-2 control-label" for="stockid">產品</label>
+                                        <div class="col-lg-2">
+                                            <select id="stockid" name="stockid" class="form-control stockid" data-bv-notempty="true" data-bv-message="此為必填欄位">
+                                                <option value="">請選擇產品</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-2 control-label" for="warehouseid">移入倉</label>
+                                        <div class="col-lg-2">
+                                            <select id="warehouseid" name="warehouseid" class="form-control warehouseid" data-bv-notempty="true" data-bv-message="此為必填欄位">
+                                                <option value="">請選擇入庫倉</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-2 control-label" for="quantity">數量</label>
+                                        <div class="col-lg-2">
+                                            <select name="quantity" id="quantity" class="form-control" data-bv-notempty="true" data-bv-message="請選擇數量">
+                                                <option value="">請選擇數量</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-2 control-label" for="memo">備註</label>
+                                        <div class="col-lg-3">
+                                            @Html.TextAreaFor(model => model.memo, 2, 30, new Dictionary<string, object>() { { "class", "form-control" } })
+                                        </div>
+                                    </div>
+
+                                </fieldset>
+
+                                <div class="form-actions">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <a class="btn btn-default" href="@Url.Action("Warehousestocks", "InventoryMs", new { p = ViewBag.pageNumber })">
+                                                返回
+                                            </a>
+                                            <button class="btn btn-primary" type="submit">
+                                                <i class="fa fa-save"></i>
+                                                確認
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </form>
+                        </div>
+                        <!-- end widget content -->
+
+                    </div>
+                    <!-- end widget div -->
+
+                </div>
+                <!-- end widget -->
+
+            </article>
+            <!-- WIDGET END -->
+
+        </div>
+        <!-- end row -->
+
+    </section>
+    <!-- end widget grid -->
+
+</div>
+@section scripts {
+<script>
+    $(function () {
+        $(".selectwh").change(function () {
+            var obj = $(this);
+            var parentobj = obj.parent().parent().parent();
+            var targetobj = parentobj.find(".warehouseid");
+            var stocktargetobj = parentobj.find(".stockid");
+            $.post("@Url.Action("GetWarehousesWithoutSelf", "Ajax")", {
+                'warehouseid': $(this).val()
+            }, function (res) {
+                stocktargetobj.find('option').remove().end().append(res.stockoptions);
+                targetobj.find('option').remove().end().append(res.warehouseoptions);
+            });
+        });
+
+        $(".stockid").change(function () {
+            var obj = $(this);
+            var warehouseid = $(".selectwh").val();
+
+            if (obj.val() != "" && warehouseid != "") {
+                $.post("@Url.Action("GetWarehouseStock", "Ajax")", {
+                    'stockid': obj.val(),
+                    'warehouseid': warehouseid
+                }, function (res) {
+                    $("#quantity").find('option').remove().end();
+                    $("#quantity").append("<option value=''>請選擇數量</option>");
+                    for (var o = 1; o <= res.stockamounts; o++) {
+                        $("#quantity").append("<option value='" + o + "'>" + o + "</option>");
+                    }
+                });
+            }
+        });
+    })
+</script>
+}

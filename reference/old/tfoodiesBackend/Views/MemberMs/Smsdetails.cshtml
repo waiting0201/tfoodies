@@ -1,0 +1,340 @@
+﻿@{
+    var data = (IPagedList<Smsdetails>)ViewBag.Smsdetails;
+    var memberdatas = (IEnumerable<Members>)ViewBag.Members;
+}
+
+<!-- MAIN CONTENT -->
+<div id="content">
+
+    <!-- widget grid -->
+    <section id="widget-grid" class="">
+        <!-- row -->
+        <div class="row">
+            <!-- NEW WIDGET START -->
+            <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                <div class="well padding-10">
+
+                    <!-- widget content -->
+                    <div class="widget-body">
+
+                        <div class="widget-body-toolbar">
+
+                            <div class="row">
+
+                                <div class="form-inline">
+
+                                    <div class="col-sm-10">
+                                        <a class="btn btn-default" href="@Url.Action("Sms", "MemberMs", new { p = ViewBag.smsp })">返回</a>
+                                        <a class="btn btn-success btn-labeled" href="javascript:;" data-toggle="modal" data-target="#memberModal"> <span class="btn-label"><i class="fa fa-plus"></i></span>新增收訊人 </a>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        @using (Html.BeginForm("Smsdetails", "MemberMs", new { smsid = ViewBag.SmsID, p = ViewBag.pageNumber, ViewBag.smsp }, FormMethod.Post, new { @id = "smsform" }))
+                        {
+                            <div class="widget-body-toolbar">
+
+                                <div class="row">
+
+                                    <div class="form-inline">
+                                        <div class="col-sm-8">
+                                            <select class="form-control" name="issend">
+                                                <option value="">發送狀態</option>
+                                                <option value="0">未發送</option>
+                                                <option value="1">已發送</option>
+                                            </select>
+                                            <button class="btn btn-primary" type="submit">篩選</button>
+                                        </div>
+                                        <div class="col-sm-4 text-right">
+                                            <button type="button" class="btn btn-primary" id="btnSendConfirm" data-smsid="@ViewBag.SmsID">開始發送</button>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            if (Html.ValidationSummary(true) != null)
+                            {
+                                <div class="alert alert-danger alert-block fade in">
+                                    <button class="close" data-dismiss="alert">
+                                        ×
+                                    </button>
+                                    <i class="fa-fw fa fa-info"></i>
+                                    @Html.ValidationSummary(true)
+                                </div>
+                            }
+
+                            <div class="table-responsive">
+
+                                <table class="table table-hover table-bordered table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th width="6%" class="text-center">Section</th>
+                                            <th width="7%" class="text-center">型態</th>
+                                            <th width="7%" class="text-center">縣市</th>
+                                            <th>姓名</th>
+                                            <th width="6%" class="text-center">狀態碼</th>
+                                            <th width="6%" class="text-center">狀態</th>
+                                            <th width="5%" class="text-center">刪除</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (Smsdetails entity in data)
+                                        {
+                                            <tr>
+                                                <td class="text-center">@entity.section</td>
+                                                <td class="text-center">
+                                                @if (entity.Members.ismember == 1)
+                                                {
+                                                    <span class="label label-success">會員</span>
+                                                }
+                                                else if (entity.Members.ismember == 2)
+                                                {
+                                                    <span class="label label-primary">客戶</span>
+                                                }
+                                                </td>
+                                                <td class="text-center">@((entity.Members.Zipcodes != null) ? entity.Members.Zipcodes.city : "")</td>
+                                                <td>@entity.Members.name</td>
+                                                <td class="text-center">@entity.statuscode</td>
+                                                <td class="text-center">
+                                                @if (entity.issend == 0)
+                                                {
+                                                    <span class="label label-danger">未發送</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="label label-success">已發送</span>
+                                                }
+                                                </td>
+                                                <td class="text-center"><a href="#" class="btn btn-danger btn-xs del" data-href="@Url.Action("DeleteSmsdetails", "MemberMs", new { smsdetailid = entity.smsdetailid, p = ViewBag.pageNumber, ViewBag.smsp })" data-toggle="modal" data-target="#confirm-delete"><i class="fa fa-trash-o"></i></a></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+
+                            </div>
+                        }
+                    </div>
+                    <!-- end widget content -->
+
+                    <div class="text-center">
+                        @Html.PagedListPager(list: data, generatePageUrl: page => Url.Action("Smsdetails", new { ViewBag.SmsID, p = page, ViewBag.smsp, ViewBag.issend }))
+                    </div>
+
+                </div>
+
+            </article>
+            <!-- WIDGET END -->
+
+        </div>
+        <!-- end row -->
+
+    </section>
+    <!-- end widget grid -->
+
+</div>
+<!-- END MAIN CONTENT -->
+<!-- Modal -->
+<div class="modal fade" id="confirm-delete" tabindex="-1" role="dialog" aria-labelledby="" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                    &times;
+                </button>
+                <h4 class="modal-title" id="myModalLabel">確認</h4>
+            </div>
+            <div class="modal-body">
+                <p>
+                    確定要刪除嗎？
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">
+                    取消
+                </button>
+                <a href="#" class="btn btn-primary btn-ok">
+                    確定
+                </a>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+<!-- Modal -->
+<div class="modal fade" id="memberModal" tabindex="-1" role="dialog" aria-labelledby="memberModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                    &times;
+                </button>
+                <h4 class="modal-title" id="memberModalLabel">請選擇會員</h4>
+            </div>
+            <div class="modal-body">
+
+                <div class="row">
+
+                    <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                        <!-- Widget ID (each widget will need unique ID)-->
+                        <div class="jarviswidget jarviswidget-color-darken" id="wid-id-1" data-widget-editbutton="false">
+
+                            <header>
+                                <span class="widget-icon"> <i class="fa fa-table"></i> </span>
+                                <h2>會員列表</h2>
+                            </header>
+
+                            <!-- widget div-->
+                            <div>
+
+                                <form id="memberform">
+
+                                    <input type="hidden" name="smsid" value="@ViewBag.SmsID" />
+                                    <!-- widget content -->
+                                    <div class="widget-body no-padding">
+
+                                        <div class="widget-body-toolbar">
+                                            <div class="row">
+                                                <div class="col-xs-6 text-left">
+                                                    <button type="button" class="btn btn-success" id="btnAddConfirm">確定加入</button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="table-responsive">
+
+                                            <table id="dtmember" class="table table-bordered table-striped has-tickbox">
+                                                <thead>
+                                                    <tr>
+                                                        <th>
+                                                            <label>
+                                                                <input type="checkbox" id="select-all" />
+                                                            </label>
+                                                        </th>
+                                                        <th>縣市</th>
+                                                        <th>姓名</th>
+                                                        <th>手機</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (Members member in memberdatas)
+                                                    {
+                                                        <tr>
+                                                            <td>
+                                                                <label>
+                                                                    <input type="checkbox" name="ids" value="@member.memberid" />
+                                                                </label>
+                                                            </td>
+                                                            <td>@(member.Zipcodes != null ? member.Zipcodes.city : "")</td>
+                                                            <td>@member.name</td>
+                                                            <td>@member.mobile</td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+
+                                        </div>
+                                    </div>
+                                    <!-- end widget content -->
+
+                                </form>
+
+                            </div>
+                            <!-- end widget div -->
+
+                        </div>
+                        <!-- end widget -->
+
+                    </article>
+
+                </div>
+
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div>
+
+@section scripts {
+<script>
+    $(function () {
+        var table = $("#dtmember").DataTable({
+            'columnDefs': [{
+                'targets': 0,
+                'searchable': false,
+                'orderable': false,
+                'className': 'dt-body-center'
+            }],
+            'order': [1, 'asc']
+        });
+
+        $("#select-all").click(function () {
+            var rows = table.rows({
+                search: 'none'
+            }).nodes();
+            $("input[type='checkbox']", rows).prop("checked", this.checked);
+        });
+
+        $("#btnAddConfirm").click(function () {
+            var obj = $(this);
+            obj.prop("disabled", true);
+
+            table.$('input[type="checkbox"]').each(function () {
+                // If checkbox is checked
+                if (this.checked) {
+                    // Create a hidden element
+                    $("#memberform").append(
+                        $('<input>')
+                            .attr('type', 'hidden')
+                            .attr('name', 'memberids')
+                            .val(this.value)
+                    );
+                }
+            });
+
+            $.post("@Url.Action("AddSmsMembers", "Ajax")", $("#memberform").serialize(), function (res) {
+                if (res.code == "200") {
+                    $("input[type='checkbox']").prop("checked", false);
+                    alert(res.message);
+                    location.reload();
+                    //$('#memberModal').modal('hide');
+                    return;
+                } else {
+                    alert(res.message);
+                    obj.prop("disabled", false);
+                    //location.reload();
+                    return;
+                }
+            });
+        });
+
+        $("#btnSendConfirm").click(function () {
+            var obj = $(this);
+            var smsid = obj.data("smsid");
+            obj.prop("disabled", true);
+
+            $.post("@Url.Action("SendSms", "Ajax")", {
+                smsid : smsid
+            }, function (res) {
+                if (res.code == "200") {
+                    alert(res.message);
+                    location.reload();
+                    //$('#memberModal').modal('hide');
+                    return;
+                } else {
+                    alert(res.message);
+                    obj.prop("disabled", false);
+                    //location.reload();
+                    return;
+                }
+            });
+        });
+    });
+</script>
+}

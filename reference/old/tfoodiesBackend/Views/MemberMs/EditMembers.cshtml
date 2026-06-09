@@ -1,0 +1,238 @@
+﻿@model Members
+@{
+    var citydatas = (IEnumerable<string>)ViewBag.Citys;
+}
+
+<div id="content">
+
+    <!-- widget grid -->
+    <section id="widget-grid" class="">
+
+        <!-- row -->
+        <div class="row">
+
+            <!-- NEW WIDGET START -->
+            <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                <!-- Widget ID (each widget will need unique ID)-->
+                <div class="jarviswidget" id="wid-id-4" data-widget-editbutton="false" data-widget-colorbutton="false" data-widget-togglebutton="false" data-widget-deletebutton="false" data-widget-fullscreenbutton="false" data-widget-custombutton="false" data-widget-collapsed="false" data-widget-sortable="false">
+                    <header>
+                        <span class="widget-icon"> <i class="fa fa-pencil-square-o"></i> </span>
+                        <h2>編輯會員</h2>
+
+                    </header>
+
+                    <!-- widget div-->
+                    <div>
+
+                        <!-- widget edit box -->
+                        <div class="jarviswidget-editbox">
+                            <!-- This area used as dropdown edit box -->
+
+                        </div>
+                        <!-- end widget edit box -->
+                        <!-- widget content -->
+                        <div class="widget-body">
+
+                            <form id="form" method="post" class="form-horizontal" action="@Url.Action("EditMembers", "MemberMs", new { p = ViewBag.pageNumber })"
+                                  data-bv-message="This value is not valid"
+                                  data-bv-feedbackicons-valid="glyphicon glyphicon-ok"
+                                  data-bv-feedbackicons-invalid="glyphicon glyphicon-remove"
+                                  data-bv-feedbackicons-validating="glyphicon glyphicon-refresh">
+
+                                @if (Html.ValidationSummary(true) != null)
+                                {
+                                    <div class="alert alert-danger alert-block">
+                                        <h4 class="alert-heading">Error!</h4>
+                                        @Html.ValidationSummary(true)
+                                    </div>
+                                }
+                                
+                                @Html.HiddenFor(model => model.memberid)
+
+                                    <fieldset>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-2 control-label" for="isenable">開通</label>
+                                            <div class="col-lg-3">
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.isenable, true)
+                                                    是
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.isenable, false)
+                                                    否
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-2 control-label" for="name">姓名</label>
+                                            <div class="col-lg-2">
+                                                @Html.TextBoxFor(model => model.name, new Dictionary<string, object>() { { "class", "form-control" }, { "data-bv-notempty", "true" }, { "data-bv-message", "請輸入姓名" } })
+                                                @Html.ValidationMessageFor(model => model.name)
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-2 control-label" for="mobile">手機</label>
+                                            <div class="col-lg-2">
+                                                @Html.TextBoxFor(model => model.mobile, new Dictionary<string, object>() { { "class", "form-control" }, { "data-bv-notempty", "true" }, { "data-bv-message", "請輸入手機" }, { "placeholder", "例 : 0987654321" }, { "data-bv-remote", "true" }, { "data-bv-remote-url", Url.Action("Checkmobile", "Ajax", new { memberid = Model.memberid }) }, { "data-bv-remote-message", "手機重複" }, { "data-bv-remote-type", "GET" } })
+                                                @Html.ValidationMessageFor(model => model.mobile)
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-2 control-label" for="password">密碼</label>
+                                            <div class="col-lg-2">
+                                                @Html.PasswordFor(model => model.password, new Dictionary<string, object>() { { "class", "form-control" } })
+                                                @Html.ValidationMessageFor(model => model.password)
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-2 control-label" for="gender">性別</label>
+                                            <div class="col-lg-3">
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.gender, 1)
+                                                    男生
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.gender, 0)
+                                                    女生
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-2 control-label" for="birthday">生日</label>
+                                            <div class="col-lg-2">
+                                                @Html.TextBoxFor(model => model.birthday, new Dictionary<string, object>() { { "class", "form-control datepicker" }, { "data-dateformat", "yy-mm-dd" } })
+                                                @Html.ValidationMessageFor(model => model.birthday)
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-2 control-label" for="email">Email</label>
+                                            <div class="col-lg-2">
+                                                @Html.TextBoxFor(model => model.email, new Dictionary<string, object>() { { "class", "form-control" }, { "data-bv-emailaddress", "true" }, { "data-bv-emailaddress-message", "Email格式錯誤" } })
+                                                @Html.ValidationMessageFor(model => model.email)
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-2 control-label">地址</label>
+                                            <div class="col-lg-6 form-inline">
+                                                <select id="city" name="city" class="form-control selectcity">
+                                                    <option value="">請選擇縣市</option>
+                                                    @foreach (string city in citydatas)
+                                                    {
+                                                        <option>@city</option>
+                                                    }
+                                                </select>
+                                                <select id="area" name="area" class="form-control selectarea">
+                                                    <option value="">鄉鎮市區</option>
+                                                </select>
+                                                <input type="hidden" id="zipcodeid" name="zipcodeid" value="" />
+                                                @Html.TextBoxFor(model => model.address, new Dictionary<string, object>() { { "style", "width:60%" }, { "class", "form-control" } })
+                                                <input type="hidden" id="zipcodefullid" value="@(Model.Zipcodes != null ? Model.Zipcodes.city + "," + Model.zipcodeid : "")" />
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-2 control-label" for="ismember">型態</label>
+                                            <div class="col-lg-3">
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.ismember, 1)
+                                                    會員
+                                                </label>
+                                                <label class="radio radio-inline">
+                                                    @Html.RadioButtonFor(model => model.ismember, 2)
+                                                    客戶
+                                                </label>
+                                                <p>
+                                                    客戶為線下有購買，但還不是線上網站會員
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-2 control-label" for="memo">備註</label>
+                                            <div class="col-lg-3">
+                                                @Html.TextAreaFor(model => model.memo, 3, 40, new Dictionary<string, object>() { { "class", "form-control" } })
+                                            </div>
+                                        </div>
+
+                                    </fieldset>
+
+                                <div class="form-actions">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <a class="btn btn-default" href="@Url.Action("Members", "MemberMs", new { p = ViewBag.pageNumber })">
+                                                取消
+                                            </a>
+                                            <button class="btn btn-primary" type="submit">
+                                                <i class="fa fa-save"></i>
+                                                確認
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </form>
+                        </div>
+                        <!-- end widget content -->
+
+                    </div>
+                    <!-- end widget div -->
+
+                </div>
+                <!-- end widget -->
+
+            </article>
+            <!-- WIDGET END -->
+
+        </div>
+        <!-- end row -->
+
+    </section>
+    <!-- end widget grid -->
+
+</div>
+@section scripts {
+<script>
+$(function () {
+    $(".selectcity").change(function () {
+        var obj = $(this);
+        var parentobj = obj.parent().parent();
+        var targetobj = parentobj.find(".selectarea");
+        $.post("@Url.Action("GetZipcodeByCity", "Ajax")", {
+            'city': $(this).val()
+        }, function (res) {
+            if (defaultValue) {
+                targetobj.find('option').remove().end().append(res).val(fullIdPath[1]).trigger('change');
+            } else {
+                targetobj.find('option').remove().end().append(res).trigger('change');
+            }
+        });
+    });
+
+    $('.selectarea').change(function () {
+        var obj = $(this);
+        obj.next("input[type='hidden']").val(obj.val());
+    });
+
+    var defaultValue = false;
+    var fullIdPath = [];
+
+    if (0 < $.trim($('#zipcodefullid').val()).length) {
+        fullIdPath = $('#zipcodefullid').val().split(',');
+        defaultValue = true;
+    }
+
+    if (defaultValue) {
+        $('#city').val(fullIdPath[0]).trigger('change');
+    }
+});
+</script>
+}

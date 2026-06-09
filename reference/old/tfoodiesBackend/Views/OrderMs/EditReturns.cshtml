@@ -1,0 +1,304 @@
+﻿@model Returns
+
+<div id="content">
+
+    <!-- widget grid -->
+    <section id="widget-grid" class="">
+
+        <!-- row -->
+        <div class="row">
+
+            <!-- NEW WIDGET START -->
+            <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                <!-- Widget ID (each widget will need unique ID)-->
+                <div class="jarviswidget" id="wid-id-4" data-widget-editbutton="false" data-widget-colorbutton="false" data-widget-togglebutton="false" data-widget-deletebutton="false" data-widget-fullscreenbutton="false" data-widget-custombutton="false" data-widget-collapsed="false" data-widget-sortable="false">
+                    <header>
+                        <span class="widget-icon"> <i class="fa fa-pencil-square-o"></i> </span>
+                        <h2>編輯退貨</h2>
+
+                    </header>
+
+                    <!-- widget div-->
+                    <div>
+
+                        <!-- widget edit box -->
+                        <div class="jarviswidget-editbox">
+                            <!-- This area used as dropdown edit box -->
+
+                        </div>
+                        <!-- end widget edit box -->
+                        <!-- widget content -->
+                        <div class="widget-body">
+
+                            <form id="form" method="post" class="form-horizontal" action="@Url.Action("EditReturns", "OrderMs", new { p = ViewBag.pageNumber })"
+                                  data-bv-message="This value is not valid"
+                                  data-bv-feedbackicons-valid="glyphicon glyphicon-ok"
+                                  data-bv-feedbackicons-invalid="glyphicon glyphicon-remove"
+                                  data-bv-feedbackicons-validating="glyphicon glyphicon-refresh">
+
+                                @if (Html.ValidationSummary(true) != null)
+                                {
+                                    <div class="alert alert-danger alert-block">
+                                        <h4 class="alert-heading">Error!</h4>
+                                        @Html.ValidationSummary(true)
+                                    </div>
+                                }
+
+                                @Html.HiddenFor(model => model.returnid)
+
+                                <fieldset>
+
+                                    <legend>退貨資料</legend>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-2 control-label" for="returncode">退貨編號</label>
+                                        <div class="col-lg-2">
+                                            @Html.TextBoxFor(model => model.returncode, new Dictionary<string, object>() { { "class", "form-control" }, { "disabled", "disabled" } })
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-2 control-label" for="returndate">退貨日期</label>
+                                        <div class="col-lg-2">
+                                            @Html.TextBoxFor(model => model.returndate, "{0:yyyy-MM-dd}", new Dictionary<string, object>() { { "class", "form-control datepicker" }, { "data-dateformat", "yy-mm-dd" }, { "data-bv-notempty", "true" }, { "data-bv-message", "請選擇退貨日期" } })
+                                            @Html.ValidationMessageFor(model => model.returndate)
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-2 control-label" for="refundstatus">退款狀態</label>
+                                        <div class="col-lg-8">
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.refundstatus, 0)
+                                                未退款
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.refundstatus, 1, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                已退款
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.refundstatus, 2, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                折讓
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.refundstatus, 3)
+                                                免退款
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.refundstatus, 4)
+                                                取消
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-2 control-label" for="refunddate">退款日期</label>
+                                        <div class="col-lg-2">
+                                            @Html.TextBoxFor(model => model.refunddate, "{0:yyyy-MM-dd}", new Dictionary<string, object>() { { "class", "form-control datepicker" }, { "data-dateformat", "yy-mm-dd" } })
+                                            @Html.ValidationMessageFor(model => model.refunddate)
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-2 control-label" for="receivestatus">收貨狀態</label>
+                                        <div class="col-lg-8">
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.receivestatus, 0)
+                                                退貨中
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.receivestatus, 1)
+                                                已到達
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.receivestatus, 2)
+                                                取消
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.receivestatus, 3)
+                                                免退回
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-2 control-label" for="receivedate">收貨日期</label>
+                                        <div class="col-lg-2">
+                                            @Html.TextBoxFor(model => model.receivedate, "{0:yyyy-MM-dd}", new Dictionary<string, object>() { { "class", "form-control datepicker" }, { "data-dateformat", "yy-mm-dd" } })
+                                            @Html.ValidationMessageFor(model => model.receivedate)
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-2 control-label">備註</label>
+                                        <div class="col-lg-3">
+                                            @Html.TextAreaFor(model => model.note, 3, 35, new Dictionary<string, object>() { { "class", "form-control" } })
+                                        </div>
+                                    </div>
+
+                                </fieldset>
+
+                                <fieldset>
+
+                                    <div class="widget-body-toolbar">
+
+                                        <div class="row">
+
+                                            <div class="form-inline">
+                                                <div class="col-sm-12">
+                                                    <input class="form-control" id="ordercode" placeholder="@Model.Orders.ordercode" type="text" />
+                                                    @if (Model.warehousestatus == (int)EnumWarehouseStatus.未入庫)
+                                                    {
+                                                        <a class="btn btn-success btn-primary" href="javascript:;" id="btnorderfilter">查詢</a>
+                                                    }
+                                                    <input type="hidden" name="orderid" id="orderid" value="@Model.orderid" />
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                    <div class="table-responsive">
+                                        <table id="dt_basic" class="table table-bordered producttable">
+                                            <thead>
+                                                <tr>
+                                                    <th width="10%">產品編號</th>
+                                                    <th>產品名稱</th>
+                                                    <th class="text-center" width="10%">購買數量</th>
+                                                    <th class="text-center" width="10%">退貨數量</th>
+                                                    <th class="text-right" width="10%">退款</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @{
+                                                    int x = 0;
+                                                }
+                                                @foreach (Returndetails rd in Model.Returndetails)
+                                                {
+                                                    string s = string.Empty;
+                                                    if (rd.Orderdetails.Products.isset)
+                                                    {
+                                                        foreach (Setproducts sp in rd.Orderdetails.Products.Setproducts)
+                                                        {
+                                                            s = s + "<br><small class=\"text-muted\">" + sp.Products1.title + " " + sp.Products1.capacity + " " + sp.qty + "</small>";
+                                                        }
+                                                    }
+                                                <tr>
+                                                    <td>@rd.Orderdetails.Products.productnum<input type="hidden" name="returndetails[@x].orderdetailid" value="@rd.orderdetailid" /><input type="hidden" name="returndetails[@x].returndetailid" value="@rd.returndetailid" /></td>
+                                                    <td>@rd.Orderdetails.Products.title @rd.Orderdetails.Products.capacity @Html.Raw(s)</td>
+                                                    <td class="text-center">@rd.Orderdetails.qty</td>
+                                                    <td class="text-center">
+                                                        @if (Model.warehousestatus == (int)EnumWarehouseStatus.未入庫)
+                                                        {
+                                                            <select name="returndetails[@x].qty" class="form-control">
+                                                                @for (int q = 0; q <= rd.Orderdetails.qty; q++)
+                                                                {
+                                                                    <option value="@q" @(q == rd.qty ? "selected" : "")>@q</option>
+                                                                }
+                                                            </select>
+                                                        }
+                                                        else
+                                                        {
+                                                            <input type="text" name="returndetails[@x].qty" class="form-control" value="@rd.qty" readonly />
+                                                        }
+                                                    </td>
+                                                    <td class="text-right">@rd.price</td>
+                                                </tr>
+                                                    x++;
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                </fieldset>
+
+                                <div class="form-actions">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <a class="btn btn-default" href="@Url.Action("Returns", "OrderMs", new { p = ViewBag.pageNumber })">
+                                                取消
+                                            </a>
+                                            <button class="btn btn-primary" type="submit">
+                                                <i class="fa fa-save"></i>
+                                                確認
+                                            </button>
+                                            @if (Model.warehousestatus == (int)EnumWarehouseStatus.未入庫)
+                                            {
+                                                <a class="btn btn-success" href="javascript:;" id="btnSubmitWarehousing" data-returnid="@Model.returnid">
+                                                    <i class="fa fa-check"></i>
+                                                    提交入庫
+                                                </a>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </form>
+                        </div>
+                        <!-- end widget content -->
+
+                    </div>
+                    <!-- end widget div -->
+
+                </div>
+                <!-- end widget -->
+
+            </article>
+            <!-- WIDGET END -->
+
+        </div>
+        <!-- end row -->
+
+    </section>
+    <!-- end widget grid -->
+
+</div>
+
+@section scripts {
+    <script>
+    $(function () {
+        $("#btnorderfilter").click(function () {
+            var ordercode = $("#ordercode").val();
+
+            if (ordercode == "") {
+                alert("請輸入已出貨訂單編號！");
+                return false;
+            }
+
+            if (ordercode == "@Model.Orders.ordercode") {
+                alert(ordercode + " 重複輸入訂單編號！");
+                return false;
+            }
+
+            $.post('@Url.Action("GetOrderdetailByOrdercode", "Ajax")', {
+                ordercode: ordercode
+            }, function (res) {
+                if (res.code == "200") {
+                    $("#orderid").val(res.orderid);
+                    $("#dt_basic tbody").html(res.orderdetails);
+                } else {
+                    alert(res.message);
+                    return;
+                }
+            });
+        });
+
+        $("#btnSubmitWarehousing").on("click", function () {
+            $.post("@Url.Action("ChangeWarehousing", "Ajax")", {
+                'returnid': $(this).data('returnid')
+            }, function (res) {
+                if (res.code == "200") {
+                    alert(res.message);
+                    location.reload();
+                    return;
+                } else {
+                    alert(res.message);
+                    return;
+                }
+            });
+        });
+    });
+    </script>
+}

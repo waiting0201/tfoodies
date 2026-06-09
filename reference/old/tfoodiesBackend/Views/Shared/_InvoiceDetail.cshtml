@@ -1,0 +1,35 @@
+﻿@model IEnumerable<Invoicedetails>
+
+<fieldset class="invoicedetail">
+
+    <div class="table-responsive">
+        <table id="dt_basic" class="table table-bordered has-tickbox">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th class="text-left">訂單單號</th>
+                    <th width="8%" class="text-center">訂單日期</th>
+                    <th width="12%" class="text-center">發票號碼</th>
+                    <th width="6%" class="text-right">金額</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (Invoicedetails entity in Model)
+                {
+                    <tr>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="orderid" value="@entity.orderid" />
+                            </label>
+                        </td>
+                        <td class="text-left">@entity.Orders.ordercode</td>
+                        <td class="text-center">@entity.Orders.orderdate.ToString("yyyy-MM-dd")</td>
+                        <td class="text-center">@entity.Orders.invoicecode</td>
+                        <td class="text-right"><b>@entity.price</b></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+</fieldset>

@@ -1,0 +1,51 @@
+﻿@{
+    var questiontypedatas = (IEnumerable<Questiontypes>)ViewBag.QuestionTypes;
+    var questiondatas = (IEnumerable<Questions>)ViewBag.Questions;
+    int q = 1;
+    int x = 1;
+}
+
+<main id="main">
+    <section class="allpadding clr section">
+        <div id="all-policy" class="restrict">
+            <div class="menu-wrapper">
+                <div class="menu-container">
+                    <div class="center">
+                        <div class="pattern"><img src="~/content/images/section/paypattern.png"></div>
+                        <h1 class="main">購物說明</h1>
+                        <ul class="howtobuy-nav">
+                            @foreach(Questiontypes questiontype in questiontypedatas)
+                            { 
+                            <li><a href="@Url.Action("Howtobuy", "PageMs", new { questiontypeid = questiontype.questiontypeid })">@questiontype.title</a></li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="rights-wrapper">
+                <div class="rights-container">
+                    <div class="content-block block-border">
+                        <h2>會員常見問題</h2>
+                        <div class="qalink-wrapper">
+                            <div class="qalink">
+                                @foreach(Questions question in questiondatas)
+                                { 
+                                <a href="#member-q@(q)">Q@(q). @question.title</a>
+                                    q++;
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    @foreach(Questions question in questiondatas)
+                    {
+                    <div id="member-q@(x)" class="content-block block-border">
+                        <h3>Q@(x). @question.title</h3>
+                        <p>@Html.Raw(question.answer)</p>
+                    </div>
+                        x++;
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+</main>

@@ -1,0 +1,298 @@
+﻿@model Purchases
+
+<div id="content">
+
+    <!-- widget grid -->
+    <section id="widget-grid" class="">
+
+        <!-- row -->
+        <div class="row">
+
+            <!-- NEW WIDGET START -->
+            <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                <!-- Widget ID (each widget will need unique ID)-->
+                <div class="jarviswidget" id="wid-id-4" data-widget-editbutton="false" data-widget-colorbutton="false" data-widget-togglebutton="false" data-widget-deletebutton="false" data-widget-fullscreenbutton="false" data-widget-custombutton="false" data-widget-collapsed="false" data-widget-sortable="false">
+                    <header>
+                        <span class="widget-icon"> <i class="fa fa-pencil-square-o"></i> </span>
+                        <h2>新增採購單</h2>
+
+                    </header>
+
+                    <!-- widget div-->
+                    <div>
+
+                        <!-- widget content -->
+                        <div class="widget-body">
+
+                            <form id="form" method="post" class="form-horizontal" action="@Url.Action("AddPurchases", "PurchaseMs", new { p = ViewBag.pageNumber })"
+                                  data-bv-message="This value is not valid"
+                                  data-bv-feedbackicons-valid="glyphicon glyphicon-ok"
+                                  data-bv-feedbackicons-invalid="glyphicon glyphicon-remove"
+                                  data-bv-feedbackicons-validating="glyphicon glyphicon-refresh">
+
+                                @if (Html.ValidationSummary(true) != null)
+                                {
+                                    <div class="alert alert-danger alert-block">
+                                        <h4 class="alert-heading">Error!</h4>
+                                        @Html.ValidationSummary(true)
+                                    </div>
+                                }
+
+                                    <fieldset>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-2 control-label" for="supplierid">供應商</label>
+                                            <div class="col-lg-2">
+                                                @Html.DropDownListFor(model => model.supplierid, null, "--請選擇供應商--", new Dictionary<string, object>() { { "class", "form-control" }, { "data-bv-notempty", "true" }, { "data-bv-message", "請選擇供應商" } })
+                                                @Html.ValidationMessageFor(model => model.supplierid)
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-2 control-label" for="exchangeid">幣別</label>
+                                            <div class="col-lg-2">
+                                                @Html.DropDownListFor(model => model.exchangeid, null, "--請選擇幣別--", new Dictionary<string, object>() { { "class", "form-control" }, { "data-bv-notempty", "true" }, { "data-bv-message", "請選擇幣別" } })
+                                                @Html.ValidationMessageFor(model => model.exchangeid)
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-2 control-label" for="purchasedate">採購日期</label>
+                                            <div class="col-lg-2">
+                                                @Html.TextBoxFor(model => model.purchasedate, new Dictionary<string, object>() { { "class", "form-control datepicker" }, { "data-dateformat", "yy-mm-dd" }, { "data-bv-notempty", "true" }, { "data-bv-message", "請選擇採購日期" } })
+                                                @Html.ValidationMessageFor(model => model.purchasedate)
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-2 control-label" for="etd">ETD</label>
+                                            <div class="col-lg-2">
+                                                @Html.TextBoxFor(model => model.etd, new Dictionary<string, object>() { { "class", "form-control datepicker" }, { "data-dateformat", "yy-mm-dd" } })
+                                                @Html.ValidationMessageFor(model => model.etd)
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-2 control-label">付款條件</label>
+                                            <div class="col-lg-3">
+                                                @Html.TextBoxFor(model => model.payment, new Dictionary<string, object>() { { "class", "form-control" }, { "data-bv-notempty", "true" }, { "data-bv-message", "請輸入付款條件" } })
+                                                @Html.ValidationMessageFor(model => model.payment)
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-2 control-label">交貨期限</label>
+                                            <div class="col-lg-4">
+                                                @Html.TextBoxFor(model => model.deliverterm, new Dictionary<string, object>() { { "class", "form-control" } })
+                                                @Html.ValidationMessageFor(model => model.deliverterm)
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-lg-2 control-label">備註</label>
+                                            <div class="col-lg-5">
+                                                @Html.TextAreaFor(model => model.note, 5, 35, new Dictionary<string, object>() { { "class", "form-control" } })
+                                            </div>
+                                        </div>
+
+                                    </fieldset>
+
+                                <fieldset>
+
+                                    <div class="widget-body-toolbar">
+
+                                        <div class="row">
+
+                                            <div class="form-inline">
+                                                <div class="col-sm-12 text-right">
+                                                    <a class="btn btn-success btn-labeled" href="javascript:;" id="addproduct"> <span class="btn-label"><i class="fa fa-plus"></i></span>新增產品 </a>
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                    <div class="table-responsive">
+                                        <table id="dt_basic" class="table table-bordered producttable">
+                                            <thead>
+                                                <tr>
+                                                    <th width="10%">產品編號</th>
+                                                    <th>產品名稱</th>
+                                                    <th class="text-center" width="6%">數量</th>
+                                                    <th class="text-center" width="8%">單價</th>
+                                                    <th class="text-center" width="8%">小計</th>
+                                                    <th class="text-center" width="5%">刪除</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><input type="text" name="purchasedetails[0].productnum" class="form-control productnum" /><input type="hidden" name="purchasedetails[0].productid" value="" /></td>
+                                                    <td></td>
+                                                    <td><input type="text" name="purchasedetails[0].qty" class="form-control text-center productqty" /></td>
+                                                    <td><input type="text" name="purchasedetails[0].unitprice" class="form-control text-center productprice" /></td>
+                                                    <td><input type="text" name="purchasedetails[0].subtotal" class="form-control text-center productsubtotal" readonly /></td>
+                                                    <td class="text-center"><a href="javascript:;" class="btn btn-danger btn-xs del"><i class="fa fa-trash-o"></i></a></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                </fieldset>
+
+                                <div class="form-actions">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <a class="btn btn-default" href="@Url.Action("Purchases", "PurchaseMs", new { p = ViewBag.pageNumber })">
+                                                取消
+                                            </a>
+                                            <button class="btn btn-primary" type="submit">
+                                                <i class="fa fa-save"></i>
+                                                確認
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </form>
+                        </div>
+                        <!-- end widget content -->
+
+                    </div>
+                    <!-- end widget div -->
+
+                </div>
+                <!-- end widget -->
+
+            </article>
+            <!-- WIDGET END -->
+
+        </div>
+        <!-- end row -->
+
+    </section>
+    <!-- end widget grid -->
+
+</div>
+
+@section scripts {
+    <script>
+    function recountRow(obj) {
+        var countRow = 0;
+        obj.find('tr').each(function () {
+            $(this).find("input,textarea").each(function () {
+                $(this).attr("name", $(this).attr("name").replace(/\[(\d+)\]/g, "[" + countRow + "]"));
+            });
+            countRow++;
+        });
+    }
+
+    function recountSubTotal(obj) {
+        var qty = obj.find("td:eq(2) input").val();
+        var price = obj.find("td:eq(3) input").val();
+
+        return qty * price;
+    }
+
+    function recountTotal(obj) {
+        var total = 0;
+
+        obj.find('tr').each(function () {
+            total += parseInt($(this).find('td:eq(4) input').val());
+        });
+
+        $("#total").val(parseInt(total));
+    }
+
+    function removeValue(obj) {
+        obj.find("input").val("");
+        obj.find("td:eq(1)").html("");
+    }
+
+    $(function () {
+        $("#addproduct").click(function () {
+            var obj = $('.producttable tbody');
+            var countRow = obj.find('tr').length;
+
+            var row = '<tr>';
+            row += '<td><input type="text" name="purchasedetails[' + countRow + '].productnum" class="form-control productnum" /><input type="hidden" name="purchasedetails[' + countRow + '].productid" value="" /></td>';
+            row += '<td></td>';
+            row += '<td><input type="text" name="purchasedetails[' + countRow + '].qty" class="form-control text-center productqty" /></td>';
+            row += '<td><input type="text" name="purchasedetails[' + countRow + '].unitprice" class="form-control text-center productprice" /></td>';
+            row += '<td><input type="text" name="purchasedetails[' + countRow + '].subtotal" class="form-control text-center productsubtotal" readonly /></td>';
+            row += '<td class="text-center"><a href="javascript:;" class="btn btn-danger btn-xs del"><i class="fa fa-trash-o"></i></a></td>';
+            row += '</tr>';
+
+            obj.append(row);
+        });
+
+        $('.table').on('click', '.del', function () {
+            var obj = $(this).parent().parent().parent();
+            var countRow = obj.find('tr').length;
+            if (countRow > 1) {
+                var pobj = $(this).parent().parent();
+                var tobj = pobj.parent();
+                pobj.remove();
+                recountRow(tobj);
+            }
+            recountTotal(obj);
+        });
+
+        $('.producttable').on('blur', '.productnum', function (e) {
+            var obj = $(this);
+            var procode = obj.val();
+            var trobj = obj.parents("tr");
+            var tbobj = obj.parents("tbody");
+            var isavalible = true;
+
+            trobj.addClass("currentrow");
+            tbobj.find("tr").each(function () {
+                if (!$(this).hasClass("currentrow")) {
+                    var v = $(this).find("input.productnum").val();
+                    if (v == procode) {
+                        isavalible = false;
+                        return false;
+                    }
+                }
+            });
+            trobj.removeClass("currentrow");
+
+            if (isavalible && procode != "") {
+                $.post('@Url.Action("GetProductbyProductnum", "Ajax")', {
+                    productnum: procode
+                }, function (res) {
+                    if (res.code == "200") {
+                        trobj.find("td:eq(1)").html(res.title + " " + res.capacity);
+                        trobj.find("input").each(function () {
+                            if ($(this).attr("name").search(/(productid)/) != -1) $(this).val(res.productid);
+                            if ($(this).attr("name").search(/(qty)/) != -1) $(this).val(1);
+                            if ($(this).attr("name").search(/(subtotal)/) != -1) $(this).val(recountSubTotal(trobj));
+                        });
+                        recountTotal(tbobj);
+                    } else {
+                        alert("查無此產品!");
+                        removeValue(trobj);
+                        recountTotal(tbobj);
+                        return;
+                    }
+                });
+            } else {
+                alert("產品不可以重複加入!");
+                removeValue(trobj);
+                recountTotal(tbobj);
+                return;
+            }
+        });
+
+        $('.producttable').on('keyup', '.productqty, .productprice', function () {
+            var obj = $(this);
+            var trobj = obj.parents("tr");
+            var tbobj = obj.parents("tbody");
+
+            trobj.find("input.productsubtotal").val(recountSubTotal(trobj));
+            recountTotal(tbobj);
+        });
+    });
+    </script>
+}

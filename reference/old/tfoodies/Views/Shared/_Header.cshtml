@@ -1,0 +1,117 @@
+﻿@{
+    var carcontentdatas = (IEnumerable<CartItem>)ViewBag.CartContents;
+    var branddatas = (IEnumerable<Brands>)ViewBag.Brands;
+}
+
+<header id="header">
+    <div id="topnav">
+        <div class="restrict-wide">
+            <div class="social-link">
+                <a href="https://www.facebook.com/trulyfoodies/" class="social-icon" target="_blank" rel="nofollow"><img src="~/content/images/common/facebook.png"></a>
+                <a href="https://www.instagram.com/tfoodies/" class="social-icon" target="_blank" rel="nofollow"><img src="~/content/images/common/instagram.png"></a>
+                <a href="https://www.youtube.com/channel/UCACS-XffRxWsTb-a8uCWA4Q" class="social-icon" target="_blank" rel="nofollow"><img src="~/content/images/common/youtube.png"></a>
+                <div class="inline must freeship">消費滿2,000免運！</div>
+                <div class="inline"> <img src="~/content/images/common/freeshipping.gif"></div>
+            </div>
+            <div class="login-wrap">
+                <div class="member">
+                    @if (Session["IsLogin"] != null && (bool)Session["IsLogin"])
+                    {
+                        <a href="@Url.Action("Orders", "MemberMs")" class="member-icon"></a>
+                        <a href="@Url.Action("Logout", "MemberMs")" class="logout">
+                            <div class="small">登出</div>
+                        </a>
+                    }
+                    else
+                    {
+                        <a href="@Url.Action("Login", "MainMs")" class="member-icon" rel="nofollow"></a>
+                        <a href="@Url.Action("Login", "MainMs")" class="logout" rel="nofollow">
+                            <div class="small">登入</div>
+                        </a>
+                    }
+                </div>
+                <div class="shopping-cart">
+                    <a href="javascript:;" class="cart-icon"></a>
+                    <div class="addnumber @ViewBag.AddActive">
+                        <div class="addsmall">@ViewBag.CartItems</div>
+                    </div>
+                    <div class="cart-content">
+                        <!-- <div class="triangle"></div> -->
+                        <div class="buy-item-wrap">
+                            @foreach (CartItem item in carcontentdatas)
+                            {
+                                <div class="buy-item">
+                                    <div class="buy-pic"><img src="@(ViewBag.BlobUrl + item.Photo)"></div>
+                                    <div class="buy-info">
+                                        <p>@(item.Name + item.Capacity)</p>
+                                        <div class="amount descript">
+                                            <div class="numb">數量:</div>
+                                            <div class="quantity-wrap">
+                                                <div class="quantity">
+                                                    <div class="qtyinput">@item.Quantity</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <div class="centered"><a href="javascript:;" class="btn basic paycheck" rel="nofollow">前往結帳</a></div>
+                    </div>
+                </div>
+            </div>
+
+            @*<div class="search-column">
+                <div class="searchall">
+                    <div class="controlgroup"><label for="searchall"></label><input type="text" name="search" value=""></div>
+                    <a href="javascript:;" class="search-icon"></a>
+                </div>
+                <div class="language-wrap">
+                    <div class="slidedown">Language</div>
+                    <div class="slidecontent"><a href="javascript:;">中文</a><a href="javascript:;">English</a></div>
+                </div>
+            </div>*@
+        </div>
+    </div>
+    <nav id="nav">
+        <div class="restrict-wide">
+            <div id="menuNavigation">
+                <ul>
+                    <li class="navItem"><a href="@Url.Action("Products", "MainMs")" title="所有產品">所有產品</a></li>
+                    <li class="navItem">
+                        <a href="javascript:;">品牌系列</a>
+                        <ul class="navContent">
+                            @foreach (Brands brand in branddatas)
+                            {
+                                <li><a href="@Url.Action("Brand", "MainMs", new { brandtitle = brand.title })" title="@brand.title">@brand.title</a></li>
+                            }
+                        </ul>
+                    </li>
+                    <li class="navItem">
+                        <a href="@Url.Action("News", "MainMs")" title="最新消息">最新消息</a>
+                        <ul class="navContent">
+                            <li><a href="@Url.Action("Events", "MainMs")" title="活動花絮">活動花絮</a></li>
+                        </ul>
+                    </li>
+                    <li class="navItem"><a href="@Url.Action("Reports", "MainMs")" title="檢驗報告">檢驗報告</a></li>
+                    <li class="navItem">
+                        <a href="@Url.Action("Index", "MainMs")" class="logoli" title="首頁"></a>
+                    </li>
+                    <li class="navItem"><a href="@Url.Action("Recipes", "MainMs")" title="美味料理">美味料理</a></li>
+                    <li class="navItem">
+                        <a href="@Url.Action("Issues", "MainMs")" title="綠誌">綠誌</a>
+                        <ul class="navContent">
+                            <li><a href="@Url.Action("Knowledges", "MainMs")" title="小知識">小知識</a></li>
+                        </ul>
+                    </li>
+                    <li class="navItem"><a href="@Url.Action("Blogs", "MainMs")" title="部落客分享">部落客分享</a></li>
+                    <li class="navItem"><a href="@Url.Action("About", "MainMs")" title="關於我們">關於我們</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="logo">
+        <a href="@Url.Action("Index", "MainMs")" title="首頁"><img src="~/content/images/common/logo-main.png"></a>
+    </div>
+    <a id="btn_menu" href="javascript:;" class="sb-toggle-left"><img src="~/content/images/common/mobile-menu.png" alt=""></a>
+</header>

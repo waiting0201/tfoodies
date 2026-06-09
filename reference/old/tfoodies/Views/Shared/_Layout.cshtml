@@ -1,0 +1,58 @@
+﻿@using StackExchange.Profiling;
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="utf-8">
+    <title>@ViewBag.Title</title>
+    <meta name="keywords" content="@ViewBag.Keywords">
+    <meta name="description" content="@ViewBag.Description">
+    <meta name="robots" content="all">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="icon" type="image/x-icon" href="~/content/images/favicon.ico">
+    <meta property="fb:pages" content="1585654311734754" />
+    <meta property="fb:app_id" content="1709066672677327" />
+    <meta property="og:title" content="@ViewBag.OgTitle" />
+    <meta property="og:description" content="@ViewBag.OgDescription" />
+    <meta property="og:site_name" content="食在呼 TFoodies" />
+    <meta property="og:image" content="@ViewBag.OgImage" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="@ViewBag.OgUrl">
+    <link rel="canonical" href="@ViewBag.OgUrl">
+    @{ Html.RenderPartial("_Styles"); }
+    <script src="https://www.google.com/recaptcha/api.js?render=@Librarys.GetRecaptchaV3ClientKey()"></script>
+    <!-- Global Site Tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-88479607-1"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments) };
+        gtag('js', new Date());
+
+        gtag('config', 'UA-88479607-1');
+    </script>
+</head>
+
+<body>
+    <div id="fb-root"></div>
+    <script>
+        (function (d, s, id) {
+            var js, fjs = d.getElementsByTagName(s)[0];
+            if (d.getElementById(id)) return;
+            js = d.createElement(s); js.id = id;
+            js.src = 'https://connect.facebook.net/zh_TW/sdk.js#xfbml=1&version=v3.1&appId=1709066672677327';
+            fjs.parentNode.insertBefore(js, fjs);
+        }(document, 'script', 'facebook-jssdk'));
+    </script>
+    @*<div class="fb-customerchat" page_id="1585654311734754"></div>*@
+    <div id="sb-site">
+        <div id="wrapper">
+            @{ Html.RenderPartial("_Header");}
+            @RenderBody()
+            @{ Html.RenderPartial("_Footer");}
+        </div>
+    </div>
+    @{ Html.RenderPartial("_SubMenu");}
+    @{ Html.RenderPartial("_Scripts");}
+    @RenderSection("scripts", required: false)
+    @MiniProfiler.Current.RenderIncludes()
+</body>
+</html>

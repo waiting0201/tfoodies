@@ -1,0 +1,136 @@
+﻿@{
+    var data = (IPagedList<Purchases>)ViewBag.Purchases;
+}
+
+<!-- MAIN CONTENT -->
+<div id="content">
+
+    <!-- widget grid -->
+    <section id="widget-grid" class="">
+        <!-- row -->
+        <div class="row">
+            <!-- NEW WIDGET START -->
+            <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                <div class="well padding-10">
+
+                    <!-- widget content -->
+                    <div class="widget-body">
+
+                        @using (Html.BeginForm("Purchases", "PurchaseMs", new { p = ViewBag.pageNumber }, FormMethod.Post, new { @id = "purchasesform" }))
+                        {
+                            <div class="widget-body-toolbar">
+
+                                <div class="row">
+
+                                    <div class="form-inline">
+
+                                        <div class="col-sm-10">
+
+                                            <input class="form-control datepicker" data-dateformat="yy-mm-dd" name="purchasedate" placeholder="採購日期" type="text" value="">
+                                            <button class="btn btn-primary" type="submit">篩選</button>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        }
+
+                        @using (Html.BeginForm("PurchasesExport", "PurchaseMs", new { p = ViewBag.pageNumber }, FormMethod.Post, new { @id = "exportform" }))
+                        {
+                            <div class="widget-body-toolbar">
+
+                                <div class="row">
+
+                                    <div class="form-inline">
+
+                                        <div class="col-sm-10">
+
+                                            <button class="btn btn-primary" type="submit">匯出</button>
+                                            <a class="btn btn-success btn-labeled" href="@Url.Action("AddPurchases", "PurchaseMs", new { p = ViewBag.pageNumber })"> <span class="btn-label"><i class="fa fa-plus"></i></span>新增採購單 </a>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            if (Html.ValidationSummary(true) != null)
+                            {
+                                <div class="alert alert-danger alert-block fade in">
+                                    <button class="close" data-dismiss="alert">
+                                        ×
+                                    </button>
+                                    <i class="fa-fw fa fa-info"></i>
+                                    @Html.ValidationSummary(true)
+                                </div>
+                            }
+
+                            <div class="table-responsive">
+
+                                <table class="table table-hover table-bordered table-striped has-tickbox">
+                                    <thead>
+                                        <tr>
+                                            <th>
+                                                <label>
+                                                    <input type="checkbox" id="checkall" />
+                                                </label>
+                                            </th>
+                                            <th width="10%" class="text-center">採購編號</th>
+                                            <th width="10%" class="text-center">採購日期</th>
+                                            <th>供應商</th>
+                                            <th width="8%" class="text-center">幣別</th>
+                                            <th width="5%" class="text-center">列印</th>
+                                            <th width="5%" class="text-center">編輯</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (Purchases entity in data)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <label>
+                                                        <input type="checkbox" name="purchaseids" value="@entity.purchaseid" />
+                                                    </label>
+                                                </td>
+                                                <td class="text-center">@entity.purchasecode</td>
+                                                <td class="text-center">@entity.purchasedate.ToString("yyyy-MM-dd")</td>
+                                                <td>@entity.Suppliers.title</td>
+                                                <td class="text-center">@entity.Exchanges.title</td>
+                                                <td class="text-center"><a href="#" class="btn btn-primary btn-xs" target="_blank"><i class="fa fa-print"></i></a></td>
+                                                <td class="text-center"><a href="@Url.Action("EditPurchases", "PurchaseMs", new { entityid = entity.purchaseid, p = ViewBag.pageNumber })" class="btn btn-info btn-xs"><i class="fa fa-edit"></i></a></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+
+                            </div>
+                        }
+                    </div>
+                    <!-- end widget content -->
+
+                    <div class="text-center">
+                        @Html.PagedListPager(list: data, generatePageUrl: page => Url.Action("Purchases", new { p = page }))
+                    </div>
+
+                </div>
+
+            </article>
+            <!-- WIDGET END -->
+
+        </div>
+        <!-- end row -->
+
+    </section>
+    <!-- end widget grid -->
+
+</div>
+<!-- END MAIN CONTENT -->
+@section scripts {
+
+}

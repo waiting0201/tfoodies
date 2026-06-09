@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+ <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <!-- Diagram content (shape and connector positions) -->
+    <edmx:Diagrams>
+      <Diagram DiagramId="fd829ddd4a2843f897af26396cfffbbc" Name="Diagram1">
+        <EntityTypeShape EntityType="tfoodiesModel.AdminLims" Width="1.5" PointX="3" PointY="1" IsExpanded="true" />
+        <EntityTypeShape EntityType="tfoodiesModel.Admins" Width="1.5" PointX="0.75" PointY="5.375" IsExpanded="true" />
+        <AssociationConnector Association="tfoodiesModel.FK_AdminLims_Admins" ManuallyRouted="false" />
+        <EntityTypeShape EntityType="tfoodiesModel.Banners" Width="1.5" PointX="3.375" PointY="4.75" />
+        <EntityTypeShape EntityType="tfoodiesModel.Producttypes" Width="1.5" PointX="8.625" PointY="4.625" />
+        <EntityTypeShape EntityType="tfoodiesModel.Tags" Width="1.5" PointX="13.125" PointY="9.875" />
+        <EntityTypeShape EntityType="tfoodiesModel.Zipcodes" Width="1.5" PointX="3.375" PointY="9.5" />
+        <EntityTypeShape EntityType="tfoodiesModel.Productphotos" Width="1.5" PointX="13.125" PointY="12.625" />
+        <EntityTypeShape EntityType="tfoodiesModel.Issues" Width="1.5" PointX="13.875" PointY="15.625" />
+        <EntityTypeShape EntityType="tfoodiesModel.Recipeingredients" Width="1.5" PointX="18.375" PointY="13.125" />
+        <EntityTypeShape EntityType="tfoodiesModel.Recipes" Width="1.5" PointX="16.125" PointY="12.25" />
+        <EntityTypeShape EntityType="tfoodiesModel.Recipeseasonings" Width="1.5" PointX="18.375" PointY="16" />
+        <EntityTypeShape EntityType="tfoodiesModel.Recipesteps" Width="1.5" PointX="18.375" PointY="10.375" />
+        <AssociationConnector Association="tfoodiesModel.FK_Recipeingredients_Recipes" />
+        <AssociationConnector Association="tfoodiesModel.FK_Recipeseasonings_Recipes" />
+        <AssociationConnector Association="tfoodiesModel.FK_Recipesteps_Recipes" />
+        <AssociationConnector Association="tfoodiesModel.Issuerecipes" />
+        <EntityTypeShape EntityType="tfoodiesModel.Issuemedias" Width="1.5" PointX="16.125" PointY="17.75" />
+        <AssociationConnector Association="tfoodiesModel.FK_Issuemedias_Issues" />
+        <EntityTypeShape EntityType="tfoodiesModel.Productmedias" Width="1.5" PointX="13.125" PointY="20.125" />
+        <EntityTypeShape EntityType="tfoodiesModel.Ordercodes" Width="1.5" PointX="5.375" PointY="0.75" />
+        <EntityTypeShape EntityType="tfoodiesModel.Brandphotos" Width="1.5" PointX="3" PointY="12.75" />
+        <EntityTypeShape EntityType="tfoodiesModel.Orderdetails" Width="1.5" PointX="16.125" PointY="4.875" />
+        <EntityTypeShape EntityType="tfoodiesModel.Questions" Width="1.5" PointX="9.625" PointY="0.875" />
+        <EntityTypeShape EntityType="tfoodiesModel.Questiontypes" Width="1.5" PointX="7.375" PointY="1.125" />
+        <AssociationConnector Association="tfoodiesModel.FK_Questions_Questiontypes" />
+        <EntityTypeShape EntityType="tfoodiesModel.Questionmedias" Width="1.5" PointX="11.875" PointY="0.75" />
+        <AssociationConnector Association="tfoodiesModel.FK_Questionmedias_Questions" />
+        <EntityTypeShape EntityType="tfoodiesModel.Declarationdetails" Width="1.5" PointX="13.125" PointY="6.25" />
+        <EntityTypeShape EntityType="tfoodiesModel.Declarations" Width="1.5" PointX="10.875" PointY="4.125" />
+        <EntityTypeShape EntityType="tfoodiesModel.Logistics" Width="1.5" PointX="5.625" PointY="13" />
+        <AssociationConnector Association="tfoodiesModel.FK_Declarationdetails_Declarations" />
+        <EntityTypeShape EntityType="tfoodiesModel.Brands" Width="1.5" PointX="0.75" PointY="8" />
+        <AssociationConnector Association="tfoodiesModel.FK_Brandphotos_Brands" />
+        <EntityTypeShape EntityType="tfoodiesModel.Atmcodes" Width="1.5" PointX="5.375" PointY="3.75" />
+        <EntityTypeShape EntityType="tfoodiesModel.Outofnotices" Width="1.5" PointX="19.125" PointY="2.125" />
+        <EntityTypeShape EntityType="tfoodiesModel.Purchasecodes" Width="1.5" PointX="16.625" PointY="0.75" />
+        <EntityTypeShape EntityType="tfoodiesModel.Purchasedetails" Width="1.5" PointX="18.375" PointY="8.375" />
+        <EntityTypeShape EntityType="tfoodiesModel.Suppliers" Width="1.5" PointX="0.75" PointY="12.125" />
+        <AssociationConnector Association="tfoodiesModel.FK_Brands_Suppliers" />
+        <EntityTypeShape EntityType="tfoodiesModel.Warehouses" Width="1.5" PointX="20.625" PointY="10.875" />
+        <EntityTypeShape EntityType="tfoodiesModel.Warehousestocks" Width="1.5" PointX="22.875" PointY="6.5" />
+        <AssociationConnector Association="tfoodiesModel.FK_Warehousestocks_Warehouses" />
+        <EntityTypeShape EntityType="tfoodiesModel.Orderdetailstocks" Width="1.5" PointX="25.125" PointY="6" />
+        <AssociationConnector Association="tfoodiesModel.FK_Orderdetailstocks_Orderdetails" />
+        <AssociationConnector Association="tfoodiesModel.FK_Orderdetailstocks_Warehousestocks" />
+        <EntityTypeShape EntityType="tfoodiesModel.Blogs" Width="1.5" PointX="15.375" PointY="8.75" />
+        <EntityTypeShape EntityType="tfoodiesModel.News" Width="1.5" PointX="10.375" PointY="15.75" />
+        <EntityTypeShape EntityType="tfoodiesModel.Newmedias" Width="1.5" PointX="12.625" PointY="26.875" />
+        <AssociationConnector Association="tfoodiesModel.FK_Newmedias_News" />
+        <EntityTypeShape EntityType="tfoodiesModel.Preorderdetails" Width="1.5" PointX="21.125" PointY="13.625" />
+        <EntityTypeShape EntityType="tfoodiesModel.Preorders" Width="1.5" PointX="18.875" PointY="19.75" />
+        <AssociationConnector Association="tfoodiesModel.FK_Preorderdetails_Preorders" />
+        <EntityTypeShape EntityType="tfoodiesModel.Discounts" Width="1.5" PointX="5.375" PointY="17" />
+        <EntityTypeShape EntityType="tfoodiesModel.Sms" Width="1.5" PointX="7.375" PointY="16.875" />
+        <EntityTypeShape EntityType="tfoodiesModel.Members" Width="1.5" PointX="5.625" PointY="7.625" />
+        <AssociationConnector Association="tfoodiesModel.FK_Members_Zipcodes" />
+        <AssociationConnector Association="tfoodiesModel.FK_Outofnotices_Members" />
+        <EntityTypeShape EntityType="tfoodiesModel.Smsdetails" Width="1.5" PointX="9.625" PointY="19.75" />
+        <AssociationConnector Association="tfoodiesModel.FK_Smsdetails_Members" />
+        <AssociationConnector Association="tfoodiesModel.FK_Smsdetails_Sms" />
+        <EntityTypeShape EntityType="tfoodiesModel.Stocks" Width="1.5" PointX="20.625" PointY="5.875" />
+        <AssociationConnector Association="tfoodiesModel.FK_Stocks_Purchasedetails" />
+        <AssociationConnector Association="tfoodiesModel.FK_Warehousestocks_Stocks" />
+        <EntityTypeShape EntityType="tfoodiesModel.Setproducts" Width="1.5" PointX="13.375" PointY="24" />
+        <EntityTypeShape EntityType="tfoodiesModel.Products" Width="1.5" PointX="21.875" PointY="0.75" />
+        <AssociationConnector Association="tfoodiesModel.FK_Products_Brands" />
+        <AssociationConnector Association="tfoodiesModel.FK_Orderdetails_Products" />
+        <AssociationConnector Association="tfoodiesModel.FK_Outofnotices_Products" />
+        <AssociationConnector Association="tfoodiesModel.FK_Preorderdetails_Products" />
+        <AssociationConnector Association="tfoodiesModel.FK_Productmedias_Products" />
+        <AssociationConnector Association="tfoodiesModel.FK_Productphotos_Products" />
+        <AssociationConnector Association="tfoodiesModel.FK_Products_Producttypes" />
+        <AssociationConnector Association="tfoodiesModel.FK_Purchasedetails_Products" />
+        <AssociationConnector Association="tfoodiesModel.FK_Setproducts_Products" />
+        <AssociationConnector Association="tfoodiesModel.FK_Setproducts_Products1" />
+        <AssociationConnector Association="tfoodiesModel.Memberproducts" />
+        <AssociationConnector Association="tfoodiesModel.Producttags" />
+        <AssociationConnector Association="tfoodiesModel.Recipeproducts" />
+        <EntityTypeShape EntityType="tfoodiesModel.Returncodes" Width="1.5" PointX="8.375" PointY="7.75" />
+        <EntityTypeShape EntityType="tfoodiesModel.Promoteproducts" Width="1.5" PointX="24.125" PointY="2.875" />
+        <EntityTypeShape EntityType="tfoodiesModel.Promotes" Width="1.5" PointX="21.875" PointY="20.5" />
+        <AssociationConnector Association="tfoodiesModel.FK_Promoteproducts_Products" />
+        <AssociationConnector Association="tfoodiesModel.FK_Promoteproducts_Promotes" />
+        <EntityTypeShape EntityType="tfoodiesModel.Viewlogs" Width="1.5" PointX="10.375" PointY="7.75" />
+        <AssociationConnector Association="tfoodiesModel.Issueproducts" />
+        <EntityTypeShape EntityType="tfoodiesModel.Eventphotos" Width="1.5" PointX="3" PointY="21.625" />
+        <EntityTypeShape EntityType="tfoodiesModel.Events" Width="1.5" PointX="0.75" PointY="21" />
+        <AssociationConnector Association="tfoodiesModel.FK_Eventmedias_Events" />
+        <EntityTypeShape EntityType="tfoodiesModel.Expenditurecodes" Width="1.5" PointX="8.375" PointY="12.75" />
+        <EntityTypeShape EntityType="tfoodiesModel.Expendituredetails" Width="1.5" PointX="7.625" PointY="24.375" />
+        <EntityTypeShape EntityType="tfoodiesModel.Outcomecodes" Width="1.5" PointX="10.375" PointY="12.75" />
+        <EntityTypeShape EntityType="tfoodiesModel.Exchanges" Width="1.5" PointX="5.375" PointY="21.25" />
+        <EntityTypeShape EntityType="tfoodiesModel.Purchases" Width="1.5" PointX="15.625" PointY="25.625" />
+        <AssociationConnector Association="tfoodiesModel.FK_Purchases_Exchanges" />
+        <AssociationConnector Association="tfoodiesModel.FK_Purchasedetails_Purchases" />
+        <AssociationConnector Association="tfoodiesModel.FK_Purchases_Suppliers" />
+        <EntityTypeShape EntityType="tfoodiesModel.Refoundcodes" Width="1.5" PointX="0.75" PointY="15.75" />
+        <EntityTypeShape EntityType="tfoodiesModel.Refounds" Width="1.5" PointX="28.75" PointY="13.125" />
+        <AssociationConnector Association="tfoodiesModel.FK_Refounds_Members" />
+        <EntityTypeShape EntityType="tfoodiesModel.Incomecodes" Width="1.5" PointX="24.375" PointY="20.75" />
+        <EntityTypeShape EntityType="tfoodiesModel.Incomes" Width="1.5" PointX="7.875" PointY="27.625" />
+        <AssociationConnector Association="tfoodiesModel.FK_Incomes_Members" />
+        <EntityTypeShape EntityType="tfoodiesModel.Invoicecodes" Width="1.5" PointX="21.375" PointY="17.75" />
+        <EntityTypeShape EntityType="tfoodiesModel.Orders" Width="1.5" PointX="28.875" PointY="17.125" />
+        <AssociationConnector Association="tfoodiesModel.FK_Declarationdetails_Orders" />
+        <AssociationConnector Association="tfoodiesModel.FK_Orders_Discounts" />
+        <AssociationConnector Association="tfoodiesModel.FK_Orders_Logistics" />
+        <AssociationConnector Association="tfoodiesModel.FK_Orders_Members" />
+        <AssociationConnector Association="tfoodiesModel.FK_Orderdetails_Orders" />
+        <AssociationConnector Association="tfoodiesModel.FK_Orders_Warehouses" />
+        <AssociationConnector Association="tfoodiesModel.FK_Orders_Zipcodes" />
+        <EntityTypeShape EntityType="tfoodiesModel.Lims" Width="1.5" PointX="21.375" PointY="25" />
+        <AssociationConnector Association="tfoodiesModel.FK_AdminLims_Lims" />
+        <AssociationConnector Association="tfoodiesModel.FK_Lims_Lims" />
+        <EntityTypeShape EntityType="tfoodiesModel.Returns" Width="1.5" PointX="31.125" PointY="14.875" />
+        <AssociationConnector Association="tfoodiesModel.FK_Returns_Members" />
+        <AssociationConnector Association="tfoodiesModel.FK_Returns_Orders" />
+        <AssociationConnector Association="tfoodiesModel.FK_Refounds_Returns" />
+        <EntityTypeShape EntityType="tfoodiesModel.Invoicedetails" Width="1.5" PointX="31.125" PointY="21.5" />
+        <EntityTypeShape EntityType="tfoodiesModel.Invoices" Width="1.5" PointX="18.125" PointY="25.5" />
+        <AssociationConnector Association="tfoodiesModel.FK_Invoices_Incomes" />
+        <AssociationConnector Association="tfoodiesModel.FK_Invoicedetails_Invoices" />
+        <AssociationConnector Association="tfoodiesModel.FK_Invoicedetails_Orders" />
+        <AssociationConnector Association="tfoodiesModel.FK_Invoices_Members" />
+        <EntityTypeShape EntityType="tfoodiesModel.Knowledgemedias" Width="1.5" PointX="25.625" PointY="25.125" />
+        <EntityTypeShape EntityType="tfoodiesModel.Knowledges" Width="1.5" PointX="23.375" PointY="25" />
+        <AssociationConnector Association="tfoodiesModel.FK_Knowledgemedias_Knowledges" />
+        <EntityTypeShape EntityType="tfoodiesModel.Accountings" Width="1.5" PointX="23.375" PointY="10.875" />
+        <AssociationConnector Association="tfoodiesModel.FK_Expendituredetails_Accountings" />
+        <EntityTypeShape EntityType="tfoodiesModel.Returndetails" Width="1.5" PointX="33.375" PointY="10.75" />
+        <AssociationConnector Association="tfoodiesModel.FK_Returndetails_Orderdetails" />
+        <AssociationConnector Association="tfoodiesModel.FK_Returndetails_Returns" />
+        <AssociationConnector Association="tfoodiesModel.FK_Invoicedetails_Accountings" />
+        <AssociationConnector Association="tfoodiesModel.FK_Returndetails_Accountings" />
+        <EntityTypeShape EntityType="tfoodiesModel.Expenditures" Width="1.5" PointX="23.875" PointY="16.125" />
+        <AssociationConnector Association="tfoodiesModel.FK_Expendituredetails_Expenditures" />
+        <AssociationConnector Association="tfoodiesModel.FK_Expenditures_Purchases" />
+        <AssociationConnector Association="tfoodiesModel.FK_Expenditures_Suppliers" />
+        <EntityTypeShape EntityType="tfoodiesModel.Outcomes" Width="1.5" PointX="26.125" PointY="16.625" />
+        <AssociationConnector Association="tfoodiesModel.FK_Outcomes_Expenditures" />
+        <EntityTypeShape EntityType="tfoodiesModel.GlobalMyB2B" Width="1.5" PointX="15.375" PointY="21.75" />
+        </Diagram>
+    </edmx:Diagrams>
+  </edmx:Designer>
+</edmx:Edmx>

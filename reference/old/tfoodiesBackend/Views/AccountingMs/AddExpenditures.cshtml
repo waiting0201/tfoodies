@@ -1,0 +1,357 @@
+﻿@model Expenditures
+@{ 
+    var accountingdatas = (IEnumerable<Accountings>)ViewBag.Accountings;
+}
+
+<div id="content">
+
+    <!-- widget grid -->
+    <section id="widget-grid" class="">
+
+        <!-- row -->
+        <div class="row">
+
+            <!-- NEW WIDGET START -->
+            <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                <!-- Widget ID (each widget will need unique ID)-->
+                <div class="jarviswidget" id="wid-id-4" data-widget-editbutton="false" data-widget-colorbutton="false" data-widget-togglebutton="false" data-widget-deletebutton="false" data-widget-fullscreenbutton="false" data-widget-custombutton="false" data-widget-collapsed="false" data-widget-sortable="false">
+                    <header>
+                        <span class="widget-icon"> <i class="fa fa-pencil-square-o"></i> </span>
+                        <h2>新增營業支出</h2>
+
+                    </header>
+
+                    <!-- widget div-->
+                    <div>
+
+                        <!-- widget content -->
+                        <div class="widget-body">
+
+                            <form id="form" method="post" class="form-horizontal" action="@Url.Action("AddExpenditures", "AccountingMs", new { p = ViewBag.pageNumber })"
+                                  data-bv-message="This value is not valid"
+                                  data-bv-feedbackicons-valid="glyphicon glyphicon-ok"
+                                  data-bv-feedbackicons-invalid="glyphicon glyphicon-remove"
+                                  data-bv-feedbackicons-validating="glyphicon glyphicon-refresh">
+
+                                @if (Html.ValidationSummary(true) != null)
+                                {
+                                    <div class="alert alert-danger alert-block">
+                                        <h4 class="alert-heading">Error!</h4>
+                                        @Html.ValidationSummary(true)
+                                    </div>
+                                }
+
+                                <fieldset>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-2 control-label" for="expendituredate">日期</label>
+                                        <div class="col-lg-2">
+                                            @Html.TextBoxFor(model => model.expendituredate, new Dictionary<string, object>() { { "class", "form-control datepicker" }, { "data-dateformat", "yy-mm-dd" }, { "data-bv-notempty", "true" }, { "data-bv-message", "請選擇日期" } })
+                                            @Html.ValidationMessageFor(model => model.expendituredate)
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-2 control-label">備註</label>
+                                        <div class="col-lg-5">
+                                            @Html.TextAreaFor(model => model.note, 5, 35, new Dictionary<string, object>() { { "class", "form-control" } })
+                                        </div>
+                                    </div>
+
+                                </fieldset>
+
+                                <fieldset>
+
+                                    <div class="widget-body-toolbar">
+
+                                        <div class="row">
+
+                                            <div class="form-inline">
+                                                <div class="col-sm-12 text-right">
+                                                    <a class="btn btn-success btn-labeled" href="javascript:;" id="addproduct"> <span class="btn-label"><i class="fa fa-plus"></i></span>新增支出 </a>
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                    <div class="table-responsive">
+                                        <table id="dt_basic" class="table table-bordered producttable">
+                                            <thead>
+                                                <tr>
+                                                    <th width="10%" class="text-center">科目代號</th>
+                                                    <th width="15%">科目名稱</th>
+                                                    <th>備註</th>
+                                                    <th class="text-right" width="8%">金額</th>
+                                                    <th class="text-center" width="5%">刪除</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>
+                                                        <div class="input-group">
+                                                            <input type="text" name="expendituredetails[0].accountingcode" class="form-control accountingcode" /><input type="hidden" name="expendituredetails[0].accountingid" value="" />
+                                                            <div class="input-group-btn">
+                                                                <a class="btn btn-primary" data-toggle="modal" data-target="#accountingModal">...</a>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td></td>
+                                                    <td><input type="text" name="expendituredetails[0].summary" class="form-control summary" /></td>
+                                                    <td><input type="text" name="expendituredetails[0].price" class="form-control text-center price" /></td>
+                                                    <td class="text-center"><a href="javascript:;" class="btn btn-danger btn-xs del"><i class="fa fa-trash-o"></i></a></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                </fieldset>
+
+                                <div class="form-actions">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <a class="btn btn-default" href="@Url.Action("Expenditures", "AccountingMs", new { p = ViewBag.pageNumber })">
+                                                取消
+                                            </a>
+                                            <button class="btn btn-primary" type="submit">
+                                                <i class="fa fa-save"></i>
+                                                確認
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </form>
+                        </div>
+                        <!-- end widget content -->
+
+                    </div>
+                    <!-- end widget div -->
+
+                </div>
+                <!-- end widget -->
+
+            </article>
+            <!-- WIDGET END -->
+
+        </div>
+        <!-- end row -->
+
+    </section>
+    <!-- end widget grid -->
+
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="accountingModal" tabindex="-1" role="dialog" aria-labelledby="accountingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                    &times;
+                </button>
+                <h4 class="modal-title" id="accountingModalLabel">請選擇科目</h4>
+            </div>
+            <div class="modal-body">
+
+                <div class="row">
+
+                    <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                        <!-- Widget ID (each widget will need unique ID)-->
+                        <div class="jarviswidget jarviswidget-color-darken" id="wid-id-1" data-widget-editbutton="false">
+
+                            <header>
+                                <span class="widget-icon"> <i class="fa fa-table"></i> </span>
+                                <h2>會計科目</h2>
+                            </header>
+
+                            <!-- widget div-->
+                            <div>
+
+                                <!-- widget edit box -->
+                                <div class="jarviswidget-editbox">
+                                    <!-- This area used as dropdown edit box -->
+
+                                </div>
+                                <!-- end widget edit box -->
+                                <!-- widget content -->
+                                <div class="widget-body no-padding">
+
+                                    <div class="table-responsive">
+
+                                        <table id="dtaccounting" class="table table-bordered table-striped table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>科目代號</th>
+                                                    <th>標題</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (Accountings accounting in accountingdatas)
+                                                {
+                                                    <tr data-accountingid="@accounting.accountingid" data-accountingcode="@accounting.accountingcode" data-title="@accounting.title">
+                                                        <td>@accounting.accountingcode</td>
+                                                        <td>@accounting.title</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+
+                                    </div>
+                                </div>
+                                <!-- end widget content -->
+
+                            </div>
+                            <!-- end widget div -->
+
+                        </div>
+                        <!-- end widget -->
+
+                    </article>
+
+                </div>
+
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div>
+<!-- /.modal -->
+
+@section scripts {
+    <script>
+    function recountRow(obj) {
+        var countRow = 0;
+        obj.find('tr').each(function () {
+            $(this).find("input,textarea").each(function () {
+                $(this).attr("name", $(this).attr("name").replace(/\[(\d+)\]/g, "[" + countRow + "]"));
+            });
+            countRow++;
+        });
+    }
+
+    function removeValue(obj) {
+        obj.find("input").val("");
+        obj.find("td:eq(1)").html("");
+    }
+
+    var modalobj;
+    $(function () {
+        $("#addproduct").on('click', function () {
+            var obj = $('.producttable tbody');
+            var countRow = obj.find('tr').length;
+
+            var row = '<tr>';
+            row += '<td>';
+            row += '<div class="input-group">';
+            row += '<input type="text" name="expendituredetails[' + countRow + '].accountingcode" class="form-control accountingcode" /><input type="hidden" name="expendituredetails[' + countRow + '].accountingid" value="" />';
+            row += '<div class="input-group-btn">';
+            row += '<a class="btn btn-primary" data-toggle="modal" data-target="#accountingModal">...</a>';
+            row += '</div>';
+            row += '</div>';
+            row += '</td>';
+            row += '<td></td>';
+            row += '<td><input type="text" name="expendituredetails[' + countRow + '].summary" class="form-control summary" /></td>';
+            row += '<td><input type="text" name="expendituredetails[' + countRow + '].price" class="form-control text-center price" /></td>';
+            row += '<td class="text-center"><a href="javascript:;" class="btn btn-danger btn-xs del"><i class="fa fa-trash-o"></i></a></td>';
+            row += '</tr>';
+
+            obj.append(row);
+        });
+
+        $('.table').on('click', '.del', function () {
+            var obj = $(this).parent().parent().parent();
+            var countRow = obj.find('tr').length;
+            if (countRow > 1) {
+                var pobj = $(this).parent().parent();
+                var tobj = pobj.parent();
+                pobj.remove();
+                recountRow(tobj);
+            }
+        });
+
+        $('.producttable').on('blur', '.accountingcode', function (e) {
+            var obj = $(this);
+            var procode = obj.val();
+            var trobj = obj.parents("tr");
+            var tbobj = obj.parents("tbody");
+            var isavalible = true;
+
+            trobj.addClass("currentrow");
+            tbobj.find("tr").each(function () {
+                if (!$(this).hasClass("currentrow")) {
+                    var v = $(this).find("input.accountingcode").val();
+                    if (v == procode) {
+                        isavalible = false;
+                        return false;
+                    }
+                }
+            });
+            trobj.removeClass("currentrow");
+
+            if (isavalible && procode != "") {
+                $.post('@Url.Action("GetAccountingbyAccountingcode", "Ajax")', {
+                    accountingcode: procode
+                }, function (res) {
+                    if (res.code == "200") {
+                        trobj.find("td:eq(1)").html(res.title);
+                        trobj.find("input").each(function () {
+                            if ($(this).attr("name").search(/(accountingid)/) != -1) $(this).val(res.accountingid);
+                        });
+                    } else {
+                        alert("查無此科目!");
+                        removeValue(trobj);
+                        return;
+                    }
+                });
+            } else {
+                alert("科目不可以重複加入!");
+                removeValue(trobj);
+                return;
+            }
+        });
+
+        $('#accountingModal').on('show.bs.modal', function (e) {
+            modalobj = $(e.relatedTarget);
+        });
+
+        $("#dtaccounting tbody").on("click", "tr", function () {
+            var tr = $(this);
+            var accountingid = tr.data("accountingid");
+            var accountingcode = tr.data("accountingcode");
+            var title = tr.data("title");
+
+            var trobj = modalobj.parents("tr");
+            var tbobj = modalobj.parents("tbody");
+            var isavalible = true;
+
+            trobj.addClass("currentrow");
+            tbobj.find("tr").each(function () {
+                if (!$(this).hasClass("currentrow")) {
+                    var v = $(this).find("input.accountingcode").val();
+                    if (v == accountingcode) {
+                        isavalible = false;
+                        return false;
+                    }
+                }
+            });
+            trobj.removeClass("currentrow");
+
+            if (isavalible && accountingcode != "") {
+                trobj.find("td:eq(1)").html(title);
+                trobj.find("input").each(function () {
+                    if ($(this).attr("name").search(/(accountingcode)/) != -1) $(this).val(accountingcode);
+                    if ($(this).attr("name").search(/(accountingid)/) != -1) $(this).val(accountingid);
+                });
+
+                $('#accountingModal').modal('hide');
+            } else {
+                alert("科目不可以重複加入!");
+                return;
+            }
+        });
+    });
+    </script>
+}

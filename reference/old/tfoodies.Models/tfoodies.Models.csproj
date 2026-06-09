@@ -1,0 +1,352 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\EntityFramework.6.4.4\build\EntityFramework.props" Condition="Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.props')" />
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{3DD1E787-D2EC-43A1-867E-F8EBE76D7AB2}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>tfoodies.Models</RootNamespace>
+    <AssemblyName>tfoodies.Models</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Accountings.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="AdminLims.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Admins.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Atmcodes.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Banners.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Blogs.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Brandphotos.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Brands.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Declarationdetails.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Declarations.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Discounts.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Eventphotos.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Events.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Exchanges.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Expenditurecodes.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Expendituredetails.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Expenditures.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="GlobalMyB2B.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Incomecodes.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Incomes.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Interface\IRepository.cs" />
+    <Compile Include="Invoicecodes.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Invoicedetails.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Invoices.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Issuemedias.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Issues.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Knowledgemedias.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Knowledges.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Lims.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Logistics.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Members.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Newmedias.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="News.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Objects\CaptchaResponseViewModel.cs" />
+    <Compile Include="Objects\CheckInventoryResponse.cs" />
+    <Compile Include="Objects\DiscountResponse.cs" />
+    <Compile Include="Objects\ExpenditureItem.cs" />
+    <Compile Include="Objects\PickUp.cs" />
+    <Compile Include="Objects\ReportItem.cs" />
+    <Compile Include="Orderdetailstocks.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Orders.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Outcomecodes.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Outcomes.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Outofnotices.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Partial\Admins.cs" />
+    <Compile Include="Objects\CartItem.cs" />
+    <Compile Include="Objects\Geoplugin.cs" />
+    <Compile Include="Partial\Lims.cs" />
+    <Compile Include="Objects\PagingResponse.cs" />
+    <Compile Include="Objects\SearchProductResponse.cs" />
+    <Compile Include="Objects\ViewLog.cs" />
+    <Compile Include="Ordercodes.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Orderdetails.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Preorderdetails.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Preorders.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Productmedias.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Productphotos.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Products.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Producttypes.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Promoteproducts.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Promotes.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Purchasecodes.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Purchasedetails.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Purchases.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Questionmedias.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Questions.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Questiontypes.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Recipeingredients.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Recipes.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Recipeseasonings.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Recipesteps.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Refoundcodes.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Refounds.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Repository\GenericRepository.cs" />
+    <Compile Include="Returncodes.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Returndetails.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Returns.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Setproducts.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Sms.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Smsdetails.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Stocks.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Suppliers.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Tags.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="tfoodiesModel.Context.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>tfoodiesModel.Context.tt</DependentUpon>
+    </Compile>
+    <Compile Include="tfoodiesModel.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="tfoodiesModel.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>tfoodiesModel.edmx</DependentUpon>
+    </Compile>
+    <Compile Include="Partial\AdminLims.cs" />
+    <Compile Include="Viewlogs.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Warehouses.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Warehousestocks.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Zipcodes.cs">
+      <DependentUpon>tfoodiesModel.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EntityDeploy Include="tfoodiesModel.edmx">
+      <Generator>EntityModelCodeGenerator</Generator>
+      <LastGenOutput>tfoodiesModel.Designer.cs</LastGenOutput>
+    </EntityDeploy>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.Config" />
+    <None Include="packages.config" />
+    <None Include="tfoodiesModel.edmx.diagram">
+      <DependentUpon>tfoodiesModel.edmx</DependentUpon>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="tfoodiesModel.Context.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <DependentUpon>tfoodiesModel.edmx</DependentUpon>
+      <LastGenOutput>tfoodiesModel.Context.cs</LastGenOutput>
+    </Content>
+    <Content Include="tfoodiesModel.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <DependentUpon>tfoodiesModel.edmx</DependentUpon>
+      <LastGenOutput>tfoodiesModel.cs</LastGenOutput>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>此專案參考這部電腦上所缺少的 NuGet 套件。請啟用 NuGet 套件還原，以下載該套件。如需詳細資訊，請參閱 http://go.microsoft.com/fwlink/?LinkID=322105。缺少的檔案是 {0}。</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.4.4\build\EntityFramework.props'))" />
+    <Error Condition="!Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.4.4\build\EntityFramework.targets'))" />
+  </Target>
+  <Import Project="..\packages\EntityFramework.6.4.4\build\EntityFramework.targets" Condition="Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.targets')" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

@@ -1,0 +1,127 @@
+﻿@model Orders
+
+<main id="main">
+    <section class="clr allsection step-section">
+        <div class="restrict centered">
+            <div class="step-wrap">
+                <div class="shopstep">
+                    <div class="step-circle">
+                        <div class="step-inner">
+                            <div class="step-number">1</div>
+                            <p class="white">商品資訊</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="shopstep">
+                    <div class="step-line stp2"></div>
+                </div>
+                <div class="shopstep">
+                    <div class="step-circle stp2">
+                        <div class="step-inner">
+                            <div class="step-number">2</div>
+                            <p class="white">訂購資訊</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="shopstep">
+                    <div class="step-line stp3"></div>
+                </div>
+                <div class="shopstep">
+                    <div class="step-circle stp3">
+                        <div class="step-inner">
+                            <div class="step-number">3</div>
+                            <p class="white">完成訂購</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="clr allsection">
+        <div class="restrict-tiny centered formstyle">
+            <img src="~/content/images/section/paypattern.png">
+            <h1>訂購成功</h1>
+            <div class="content">
+                <p>訂單編號：@Model.ordercode</p>
+            </div>
+            @if (Model.paytype == (int)EnumPayType.信用卡線上刷卡)
+            {
+                <div class="content">
+                    <p>感謝您的購買！我們已收到您的訂單。</p>
+                </div>
+                <div class="content">
+                    <p>@ViewBag.OrderResult</p>
+                </div>
+            }
+            @if (Model.paytype == (int)EnumPayType.ATM轉帳付款)
+            {
+                <div class="content">
+                    <p>感謝您的購買！我們已收到您的訂單，請依下列資訊匯款，並於 <b>@ViewBag.LimitDay</b> 天內完成付款。</p>
+                </div>
+                @*<div class="centered printing">
+                        <a href="#" class="print inline"></a><a href="#" class="inline">列印繳款明細與商品明細</a>
+                    </div>*@
+            }
+        </div>
+    </section>
+    @if (Model.paytype == (int)EnumPayType.ATM轉帳付款)
+    {
+        <section class="clr paysection">
+            <div class="restrict-tiny allpadding centered shopflow">
+                <h2>匯款資訊</h2>
+                <table class="left-table">
+                    <tr>
+                        <td>轉帳銀行：</td>
+                        <td>013 國泰世華銀行</td>
+                    </tr>
+                    <tr>
+                        <td>匯款帳號：</td>
+                        <td>@Model.codeatm</td>
+                    </tr>
+                    <tr>
+                        <td>轉帳金額：</td>
+                        <td class="yellow">NT. @Convert.ToInt32(Model.freight + Model.total - Model.discount).ToString("#,0")</td>
+                    </tr>
+                    <tr>
+                        <td>繳款截止日：</td>
+                        <td class="yellow">@Convert.ToDateTime(Model.expirepaydate).ToString("yyyy-MM-dd")</td>
+                    </tr>
+                </table>
+            </div>
+        </section>
+    }
+    <section class="clr paysection">
+        <div class="centered more"><a href="@Url.Action("Orders", "MemberMs")" class="outline-btn">前往會員中心</a></div>
+    </section>
+</main>
+
+@section scripts {
+    <script>
+        var itemlist = [];
+        var orderData = {
+            'transaction_id': '@Model.ordercode',
+            'value': '@Model.total',
+            'tax': '@(Math.Round((Model.total + Model.freight) * 0.05, MidpointRounding.AwayFromZero))',
+            'shipping': '@Model.freight'
+        };
+
+        @foreach (Orderdetails od in Model.Orderdetails)
+        {
+            <text>
+                itemlist.push({
+                    'id': '@od.Products.productid',
+                    'name': '@od.Products.title',
+                    'category': '@od.Products.Producttypes.title',
+                    'price': '@od.price',
+                    'quantity': '@od.qty'
+                });
+            </text>
+        }
+        gtag.purchase(itemlist, orderData);
+    </script>
+
+    @if (Model.RID != "" && Model.Click_ID != "")
+    {
+        <iframe src="https://marktamerica.go2cloud.org/aff_l?offer_id=3825&adv_sub=@(Model.ordercode)&amount=@(Convert.ToInt32(Model.total - Model.discount))" width="1" height="1" />
+    }
+}

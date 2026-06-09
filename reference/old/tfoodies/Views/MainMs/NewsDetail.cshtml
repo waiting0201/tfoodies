@@ -1,0 +1,60 @@
+﻿@model News
+@{
+    var newsotherdatas = (IEnumerable<News>)ViewBag.Newsothers;
+}
+
+<main id="main">
+    <section class="restrict-wide allpadding">
+        <div class="locate">
+            <p><a href="@Url.Action("News", "MainMs", new { p = ViewBag.pageNumber })" class="descript">最新消息/</a><a href="javascript:;" class="descript main">@Model.title</a></p>
+        </div>
+    </section>
+    <section class="allpadding clr section">
+        <div class="restrict-wide">
+            <div class="article-left">
+                <div class="timeline">
+                    <h1>@Model.title</h1>
+                    @if(Model.activitydate != null && Model.activitydate != "")
+                    { 
+                    <div class="clr">
+                        <div class="inline">
+                            <div class="time-tag">活動時間</div>
+                        </div>
+                        <div class="inline">@Model.activitydate</div>
+                    </div>
+                    }
+                    @if(Model.activityschedule != null && Model.activityschedule != "")
+                    { 
+                    <div class="clr">
+                        <div class="inline">
+                            <div class="time-tag">活動時程</div>
+                        </div>
+                        <div class="inline">@Model.activityschedule</div>
+                    </div>
+                    }
+                    <div class="share inline">
+                        @Html.Partial("_Addthis", new ViewDataDictionary { { "url", Model.shortener }, { "title", Model.title } })
+                    </div>
+                    <p class="inline">@Model.publishdate.ToString("yyyy-MM-dd")</p>
+                </div>
+                <section class="allsection">
+                    @Html.Raw(Model.intro)
+                </section>
+               <div class="centered more"><a href="@Url.Action("News", "MainMs", new { p = ViewBag.pageNumber })" class="outline-btn">返回列表</a></div>
+            </div>
+            <div class="article-right">
+                <div class="other">
+                    <h2>其他消息</h2>
+                </div>
+                @foreach (News entity in newsotherdatas)
+                {
+                    <a href="@Url.Action("NewsDetail", "MainMs", new { newid = entity.newid })" class="other-article">
+                        <img src="@(ViewBag.BlobUrl + entity.photo)">
+                        <p class="centered">@entity.title</p>
+                    </a>
+                }            
+            </div>
+        </div>
+    </section>
+    <div class="centered more btn-show"><a href="@Url.Action("News", "MainMs", new { p = ViewBag.pageNumber })" class="outline-btn">返回列表</a></div>
+</main>

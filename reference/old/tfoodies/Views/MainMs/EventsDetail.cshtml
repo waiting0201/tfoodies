@@ -1,0 +1,51 @@
+﻿@model Events
+
+<main id="main">
+    <section class="allpadding clr tallsection">
+        <div class="restrict-wide">
+            <div class="clr">
+                <div class="pull-left">
+                    <a href="@Url.Action("Events", "MainMs", new { p = ViewBag.pageNumber })" class="back">
+                        <div class="inline">&#60;</div>
+                        <div class="inline">返回活動花絮列表</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="allpadding clr section">
+        <div class="restrict-wide">
+            <div oncopy="return false;" class="article-left none-copy">
+                <div class="timeline">
+                    <h1>@Model.title</h1>
+                    <div class="clr">
+                        <div class="inline">
+                            <div class="time-tag">活動時間</div>
+                        </div>
+                        <div class="inline">@Model.eventdate.ToString("yyyy-MM-dd")</div>
+                    </div>
+                    <div class="share inline">
+                        @Html.Partial("_Addthis", new ViewDataDictionary { { "url", Model.shortener }, { "title", Model.title } })
+                    </div>
+                    <p class="inline"> </p>
+                </div>
+            </div>
+        </div>
+        <div class="restrict-wide">
+            <p class="darkgray">
+                @Html.Raw(Model.intro)
+            </p>
+        </div>
+        <div class="restrict-wide">
+            <div class="photo-wrapper clr page popup-gallery">
+                @foreach (Eventphotos eventphoto in Model.Eventphotos.OrderBy(o => o.sort))
+                {
+                    <a href="@(ViewBag.BlobUrl + eventphoto.photo)" title="" class="photo">
+                        <div style="background-image:url(@(ViewBag.BlobUrl + eventphoto.photo))" class="article-pic"><img src="~/content/images/section/photo-block.png"></div>
+                    </a>
+                }
+            </div>
+        </div>
+        <div class="centered more"><a href="#wrapper" class="outline-btn">TOP</a></div>
+    </section>
+</main>

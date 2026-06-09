@@ -1,0 +1,17 @@
+{
+  "name": "tfoodies-web",
+  "private": true,
+  "version": "0.0.0",
+  "description": "TFoodies frontend monorepo — Nuxt 3 store (SEO/SSR) + Vue 3 admin SPA + shared design tokens",
+  "workspaces": [
+    "packages/*",
+    "store",
+    "admin"
+  ],
+  "scripts": {
+    "dev:store": "npm --workspace store run dev",
+    "dev:admin": "npm --workspace admin run dev",
+    "build:store": "npm --workspace store run build",
+    "build:admin": "npm --workspace admin run build"
+  }
+}

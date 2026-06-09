@@ -1,0 +1,171 @@
+﻿@{
+    IEnumerable<Orders> data = (IEnumerable<Orders>)ViewBag.Orders;
+    int total = 0;
+}
+
+<!-- MAIN CONTENT -->
+<div id="content">
+
+    <!-- widget grid -->
+    <section id="widget-grid" class="">
+        <!-- row -->
+        <div class="row">
+            <!-- NEW WIDGET START -->
+            <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                <div class="well padding-10">
+
+                    <!-- widget content -->
+                    <div class="widget-body">
+
+                        <form id="form" method="post" action="@Url.Action("Amountreports", "ReportMs")">
+
+                            <div class="widget-body-toolbar">
+
+                                <div class="row">
+
+                                    <div class="form-inline">
+
+                                        <div class="col-sm-10">
+
+                                            <input class="form-control datepicker" data-dateformat="yy-mm-dd" name="sd" placeholder="起始日期" type="text">
+                                            <input class="form-control datepicker" data-dateformat="yy-mm-dd" name="ed" placeholder="結束日期" type="text">
+                                            <select class="form-control" name="paystatus">
+                                                <option value="">付款狀態</option>
+                                                <option value="@((int)EnumPayStatus.未付款)">未付款</option>
+                                                <option value="@((int)EnumPayStatus.已付款)">已付款</option>
+                                                <option value="@((int)EnumPayStatus.退款)">退款</option>
+                                                <option value="@((int)EnumPayStatus.免付款)">免付款</option>
+                                            </select>
+
+                                            <button class="btn btn-primary" type="submit">查詢</button>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </form>
+
+                        @if (Html.ValidationSummary(true) != null)
+                        {
+                            <div class="alert alert-danger alert-block fade in">
+                                <button class="close" data-dismiss="alert">
+                                    ×
+                                </button>
+                                <i class="fa-fw fa fa-info"></i>
+                                @Html.ValidationSummary(true)
+                            </div>
+                        }
+
+                        <div class="table-responsive">
+
+                            <table class="table table-hover table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th width="6%" class="text-center">訂單類型</th>
+                                        <th width="8%" class="text-center">出貨倉</th>
+                                        <th width="8%" class="text-center">訂單編號</th>
+                                        <th width="8%" class="text-center">訂單日期</th>
+                                        <th>購買人姓名</th>
+                                        <th width="8%" class="text-center">購買人電話</th>
+                                        <th width="12%">收件人</th>
+                                        <th width="10%" class="text-center">付款方式</th>
+                                        <th width="6%" class="text-right">總金額</th>
+                                        <th width="6%" class="text-center">付款狀態</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (Orders entity in data)
+                                    {
+                                        <tr>
+                                            <td class="text-center">
+                                                @if ((int)EnumOrderType.線上單 == entity.ordertype)
+                                                {
+                                                    <span class="label label-primary">@Enum.GetName(typeof(EnumOrderType), entity.ordertype)</span>
+                                                }
+                                                else if ((int)EnumOrderType.線下單 == entity.ordertype)
+                                                {
+                                                    <span class="label label-warning">@Enum.GetName(typeof(EnumOrderType), entity.ordertype)</span>
+                                                }
+                                                else if ((int)EnumOrderType.自用 == entity.ordertype)
+                                                {
+                                                    <span class="label label-success">@Enum.GetName(typeof(EnumOrderType), entity.ordertype)</span>
+                                                }
+                                                else if ((int)EnumOrderType.預購 == entity.ordertype)
+                                                {
+                                                    <span class="label label-danger">@Enum.GetName(typeof(EnumOrderType), entity.ordertype)</span>
+                                                }
+                                                else if ((int)EnumOrderType.公關 == entity.ordertype)
+                                                {
+                                                    <span class="label label-info">@Enum.GetName(typeof(EnumOrderType), entity.ordertype)</span>
+                                                }
+                                            </td>
+                                            <td class="text-center">@(entity.Warehouses != null ? entity.Warehouses.title : "")</td>
+                                            <td class="text-center">@entity.ordercode</td>
+                                            <td class="text-center">@entity.orderdate.ToString("yyyy-MM-dd")</td>
+                                            <td>@entity.Members.name</td>
+                                            <td class="text-center">@entity.Members.mobile</td>
+                                            <td>@entity.recivername</td>
+                                            <td class="text-center">@Enum.GetName(typeof(EnumPayType), entity.paytype)</td>
+                                            <td class="text-right"><strong>@(entity.freight + entity.total - entity.discount)</strong></td>
+                                            <td class="text-center">
+                                                @if ((int)EnumPayStatus.取消 == entity.paystatus)
+                                                {
+                                                    <span class="label label-danger">@Enum.GetName(typeof(EnumPayStatus), entity.paystatus)</span>
+                                                }
+                                                else if ((int)EnumPayStatus.未付款 == entity.paystatus)
+                                                {
+                                                    <span class="label label-default">@Enum.GetName(typeof(EnumPayStatus), entity.paystatus)</span>
+                                                }
+                                                else if ((int)EnumPayStatus.已付款 == entity.paystatus)
+                                                {
+                                                    <span class="label label-success">@Enum.GetName(typeof(EnumPayStatus), entity.paystatus)</span>
+                                                }
+                                                else if ((int)EnumPayStatus.免付款 == entity.paystatus)
+                                                {
+                                                    <span class="label label-primary">@Enum.GetName(typeof(EnumPayStatus), entity.paystatus)</span>
+                                                }
+                                                else if ((int)EnumPayStatus.退款 == entity.paystatus)
+                                                {
+                                                    <span class="label label-warning">@Enum.GetName(typeof(EnumPayStatus), entity.paystatus)</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                        total = total + (entity.freight + entity.total - Convert.ToInt32(entity.discount));
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="8" class="text-right"><strong>總計</strong></td>
+                                        <td class="text-right"><strong>@total.ToString("#,0")</strong></td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+
+                        </div>
+
+                    </div>
+                    <!-- end widget content -->
+
+                </div>
+
+            </article>
+            <!-- WIDGET END -->
+
+        </div>
+        <!-- end row -->
+
+    </section>
+    <!-- end widget grid -->
+
+</div>
+<!-- END MAIN CONTENT -->
+
+@section scripts {
+
+}

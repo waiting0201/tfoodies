@@ -1,0 +1,46 @@
+name: visual-regression
+
+# Pixel-diff the store build against legacy baselines (plan §7.1 gate).
+# Baselines live under web/visual-regression/tests/__legacy_baseline__ (captured from the
+# legacy site via `npm run test:update` with BASE_URL=https://www.tfoodies.com).
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['web/store/**', 'web/packages/**', 'web/visual-regression/**']
+
+permissions:
+  contents: read
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci
+        working-directory: web
+      - name: Build & start store
+        working-directory: web
+        run: |
+          npm --workspace store run build
+          (cd store && PORT=3000 node .output/server/index.mjs &)
+          npx --yes wait-on http://localhost:3000
+      - name: Install Playwright
+        working-directory: web/visual-regression
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+      - name: Run visual parity
+        working-directory: web/visual-regression
+        env:
+          BASE_URL: http://localhost:3000
+        run: npm test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: visual-diffs
+          path: web/visual-regression/test-results

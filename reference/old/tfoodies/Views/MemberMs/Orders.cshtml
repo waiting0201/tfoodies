@@ -1,0 +1,81 @@
+﻿@{
+    var orderdatas = (IEnumerable<Orders>)ViewBag.Memberorders;
+}
+
+<main id="main">
+    <section>
+        <div class="member-banner"><img src="~/content/images/section/order.jpg"></div>
+    </section>
+    <section class="allpadding clr section">
+        <div class="restrict-wide">
+            <div class="centered">
+                <h1>會員中心</h1>
+                <div id="tabber">
+                    <div class="tabber-selectors">
+                        <ul>
+                            <li><a href="@Url.Action("Orders", "MemberMs")" class="tabber-anchor active">訂單查詢</a></li>
+                            <li><a href="@Url.Action("Mylists", "MemberMs")" class="tabber-anchor">追蹤清單</a></li>
+                            <li><a href="@Url.Action("EditProfile", "MemberMs")" class="tabber-anchor">會員資料</a></li>
+                            <li><a href="@Url.Action("EditPassword", "MemberMs")" class="tabber-anchor">修改密碼</a></li>
+                        </ul>
+                    </div>
+                    <div class="direct-line"></div>
+                    <div class="restrict-small">
+                        @*<div class="tablescroll">
+                            <table>
+                                <tr>
+                                    <th>訂購日期</th>
+                                    <th>訂單編號</th>
+                                    <th>收件人</th>
+                                    <th>付款狀態</th>
+                                    <th>進度查詢</th>
+                                    <th>應付金額</th>
+                                    <th>訂單詳情</th>
+                                </tr>
+                                @foreach (Orders order in orderdatas)
+                                {
+                                    <tr>
+                                        <td>@order.orderdate.ToString("yyyy-MM-dd")</td>
+                                        <td>@order.ordercode</td>
+                                        <td>@order.recivername</td>
+                                        <td>@Enum.GetName(typeof(EnumPayStatus), order.paystatus)</td>
+                                        <td>@Enum.GetName(typeof(EnumDeliverStatus), order.deliverstatus)</td>
+                                        <td>NT. @Convert.ToInt32(order.freight + order.total - order.discount).ToString("#,0")</td>
+                                        <td><a href="@Url.Action("OrderDetail", "MemberMs", new { orderid = order.orderid })" class="td-product main">查看詳情</a></td>
+                                    </tr>
+                                }
+                            </table>
+                        </div>*@
+                        <div class="rwd-table">
+                            <div class="thead">
+                                <div class="tr">
+                                    <div class="th">訂單日期</div>
+                                    <div class="th">訂單查詢</div>
+                                    <div class="th">收件人</div>
+                                    <div class="th">付款狀態</div>
+                                    <div class="th">進度查詢</div>
+                                    <div class="th">應付金額</div>
+                                    <div class="th">訂單詳情</div>
+                                </div>
+                            </div>
+                            <div class="tbody">
+                                @foreach (Orders order in orderdatas)
+                                {
+                                    <div class="tr">
+                                        <div data-label="訂單日期" class="td">@order.orderdate.ToString("yyyy-MM-dd")</div>
+                                        <div data-label="訂單查詢" class="td">@order.ordercode</div>
+                                        <div data-label="收件人" class="td">@order.recivername</div>
+                                        <div data-label="付款狀態" class="td">@Enum.GetName(typeof(EnumPayStatus), order.paystatus)</div>
+                                        <div data-label="進度查詢" class="td">@Enum.GetName(typeof(EnumDeliverStatus), order.deliverstatus)</div>
+                                        <div data-label="應付金額" class="td">NT. @Convert.ToInt32(order.freight + order.total - order.discount).ToString("#,0")</div>
+                                        <div data-label="訂單詳情" class="td"><a href="@Url.Action("OrderDetail", "MemberMs", new { orderid = order.orderid })" class="main">查看詳情</a></div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>

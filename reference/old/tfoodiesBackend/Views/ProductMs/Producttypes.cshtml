@@ -1,0 +1,131 @@
+﻿@{
+    var data = ViewBag.Producttypes as IPagedList<Producttypes>;
+    int x = 0;
+}
+
+<!-- MAIN CONTENT -->
+<div id="content">
+
+    <!-- widget grid -->
+    <section id="widget-grid" class="">
+        <!-- row -->
+        <div class="row">
+            <!-- NEW WIDGET START -->
+            <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                <div class="well padding-10">
+
+                    <!-- widget content -->
+                    <div class="widget-body">
+
+                        @using (Html.BeginForm("SortProducttypes", "ProductMs", new { p = ViewBag.pageNumber }, FormMethod.Post, new { @id = "form" }))
+                        {
+                            <div class="widget-body-toolbar">
+
+                                <div class="row">
+
+                                    <div class="form-inline">
+                                        <div class="col-sm-10">
+                                            <button class="btn btn-info btn-labeled" type="submit"> <span class="btn-label"><i class="fa fa-refresh"></i></span>儲存排序</button>
+                                            <a class="btn btn-success btn-labeled" href="@Url.Action("AddProducttypes", "ProductMs", new { p = ViewBag.pageNumber })"> <span class="btn-label"><i class="fa fa-plus"></i></span>新增產品分類 </a>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            if (Html.ValidationSummary(true) != null)
+                            {
+                                <div class="alert alert-danger alert-block fade in">
+                                    <button class="close" data-dismiss="alert">
+                                        ×
+                                    </button>
+                                    <i class="fa-fw fa fa-info"></i>
+                                    @Html.ValidationSummary(true)
+                                </div>
+                            }
+
+                            <div class="table-responsive">
+
+                                <table class="table table-hover table-bordered table-striped smart-form">
+                                    <thead>
+                                        <tr>
+                                            <th width="6%" class="text-center">排序</th>
+                                            <th>標題</th>
+                                            <th width="5%" class="text-center">狀態</th>
+                                            <th width="5%" class="text-center">編輯</th>
+                                            <th width="5%" class="text-center">刪除</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (Producttypes entity in data)
+                                        {
+                                            <tr>
+                                                <td class="text-center">
+                                                    <label class="input form-group">
+                                                        <input type="text" name="EntityLists[@x].sort" data-bv-notempty="true" data-bv-message="" class="text-center" value="@entity.sort">
+                                                        <input type="hidden" name="EntityLists[@x].producttypeid" value="@entity.producttypeid">
+                                                    </label>
+                                                </td>
+                                                <td>@entity.title</td>
+                                                <td class="text-center">@(entity.isenable ? "開啟" : "關閉")</td>
+                                                <td class="text-center"><a href="@Url.Action("EditProducttypes", "ProductMs", new { entityid = entity.producttypeid, p = ViewBag.pageNumber })" class="btn btn-info btn-xs"><i class="fa fa-edit"></i></a></td>
+                                                <td class="text-center"><a href="#" class="btn btn-danger btn-xs del" data-href="@Url.Action("DeleteProducttypes", "ProductMs", new { producttypeid = entity.producttypeid, p = ViewBag.pageNumber })" data-toggle="modal" data-target="#confirm-delete"><i class="fa fa-trash-o"></i></a></td>
+                                            </tr>
+                                            x++;
+                                        }
+                                    </tbody>
+                                </table>
+
+                            </div>
+                        }
+                    </div>
+                    <!-- end widget content -->
+
+                    <div class="text-center">
+                        @Html.PagedListPager(list: data, generatePageUrl: page => Url.Action("Producttypes", new { p = page }))
+                    </div>
+
+                </div>
+
+            </article>
+            <!-- WIDGET END -->
+
+        </div>
+        <!-- end row -->
+
+    </section>
+    <!-- end widget grid -->
+
+</div>
+<!-- END MAIN CONTENT -->
+<!-- Modal -->
+<div class="modal fade" id="confirm-delete" tabindex="-1" role="dialog" aria-labelledby="" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                    &times;
+                </button>
+                <h4 class="modal-title" id="myModalLabel">確認</h4>
+            </div>
+            <div class="modal-body">
+                <p>
+                    確定要刪除嗎？
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">
+                    取消
+                </button>
+                <a href="#" class="btn btn-primary btn-ok">
+                    確定
+                </a>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+@section scripts {
+
+}

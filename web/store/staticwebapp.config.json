@@ -1,0 +1,13 @@
+{
+  "platform": { "apiRuntime": "node:20" },
+  "routes": [
+    { "route": "/content/*", "headers": { "cache-control": "public, max-age=31536000, immutable" } },
+    { "route": "/scripts/*", "headers": { "cache-control": "public, max-age=31536000, immutable" } }
+  ],
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff"
+  },
+  "mimeTypes": {
+    ".webmanifest": "application/manifest+json"
+  }
+}

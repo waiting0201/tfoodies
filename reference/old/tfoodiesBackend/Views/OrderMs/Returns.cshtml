@@ -1,0 +1,183 @@
+﻿@{
+    var data = ViewBag.Returns as IPagedList<Returns>;
+}
+
+<!-- MAIN CONTENT -->
+<div id="content">
+
+    <!-- widget grid -->
+    <section id="widget-grid" class="">
+        <!-- row -->
+        <div class="row">
+            <!-- NEW WIDGET START -->
+            <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                <div class="well padding-10">
+
+                    <!-- widget content -->
+                    <div class="widget-body">
+
+                        @using (Html.BeginForm("Returns", "OrderMs", new { p = 1 }, FormMethod.Post, new { @id = "returnsform" }))
+                        {
+                            <div class="widget-body-toolbar">
+
+                                <div class="row">
+
+                                    <div class="form-inline">
+
+                                        <div class="col-sm-10">
+
+                                            <input class="form-control datepicker" data-dateformat="yy-mm-dd" name="returndate" placeholder="依退貨日期" type="text" value="">
+                                            <input class="form-control datetpicker" name="returnmonth" placeholder="依退貨月份" type="text" value="">
+                                            <button class="btn btn-primary" type="submit">篩選</button>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        }
+
+                        @using (Html.BeginForm("ReturnsExport", "OrderMs", new { ViewBag.orderdate, ViewBag.ordermonth }, FormMethod.Post, new { @id = "exportform" }))
+                        {
+                            <div class="widget-body-toolbar">
+
+                                <div class="row">
+
+                                    <div class="form-inline">
+
+                                        <div class="col-sm-10">
+
+                                            <a class="btn btn-success btn-labeled" href="@Url.Action("AddReturns", "OrderMs", new { p = ViewBag.pageNumber })"> <span class="btn-label"><i class="fa fa-plus"></i></span>新增退貨 </a>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            if (Html.ValidationSummary(true) != null)
+                            {
+                                <div class="alert alert-danger alert-block fade in">
+                                    <button class="close" data-dismiss="alert">
+                                        ×
+                                    </button>
+                                    <i class="fa-fw fa fa-info"></i>
+                                    @Html.ValidationSummary(true)
+                                </div>
+                            }
+
+                            <div class="table-responsive">
+
+                                <table class="table table-hover table-bordered table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th width="8%" class="text-center">退貨編號</th>
+                                            <th width="8%" class="text-center">訂單編號</th>
+                                            <th width="8%" class="text-center">退貨日期</th>
+                                            <th>退貨人姓名</th>
+                                            <th width="8%" class="text-center">退貨人電話</th>
+                                            <th width="6%" class="text-center">退款狀態</th>
+                                            <th width="6%" class="text-center">收貨狀態</th>
+                                            <th width="6%" class="text-center">入庫狀態</th>
+                                            <th width="5%" class="text-center">編輯</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (Returns entity in data)
+                                        {
+                                            <tr>
+                                                <td class="text-center">@entity.returncode</td>
+                                                <td class="text-center">@entity.Orders.ordercode</td>
+                                                <td class="text-center">@entity.returndate.ToString("yyyy-MM-dd")</td>
+                                                <td>@entity.Orders.Members.name</td>
+                                                <td class="text-center">@entity.Orders.Members.mobile</td>
+                                                <td class="text-center">
+                                                    @if ((int)EnumRefundStatus.未退款 == entity.refundstatus)
+                                                    {
+                                                        <span class="label label-warning">@Enum.GetName(typeof(EnumRefundStatus), entity.refundstatus)</span>
+                                                    }
+                                                    else if ((int)EnumRefundStatus.已退款 == entity.refundstatus)
+                                                    {
+                                                        <span class="label label-default">@Enum.GetName(typeof(EnumRefundStatus), entity.refundstatus)</span>
+                                                    }
+                                                    else if ((int)EnumRefundStatus.免退款 == entity.refundstatus)
+                                                    {
+                                                        <span class="label label-success">@Enum.GetName(typeof(EnumRefundStatus), entity.refundstatus)</span>
+                                                    }
+                                                    else if ((int)EnumRefundStatus.折讓 == entity.refundstatus)
+                                                    {
+                                                        <span class="label label-primary">@Enum.GetName(typeof(EnumRefundStatus), entity.refundstatus)</span>
+                                                    }
+                                                    else if ((int)EnumRefundStatus.取消 == entity.refundstatus)
+                                                    {
+                                                        <span class="label label-danger">@Enum.GetName(typeof(EnumRefundStatus), entity.refundstatus)</span>
+                                                    }
+                                                </td>
+                                                <td class="text-center">
+                                                    @if ((int)EnumReceiveStatus.退貨中 == entity.receivestatus)
+                                                    {
+                                                        <span class="label label-warning">@Enum.GetName(typeof(EnumReceiveStatus), entity.receivestatus)</span>
+                                                    }
+                                                    else if ((int)EnumReceiveStatus.已到達 == entity.receivestatus)
+                                                    {
+                                                        <span class="label label-default">@Enum.GetName(typeof(EnumReceiveStatus), entity.receivestatus)</span>
+                                                    }
+                                                    else if ((int)EnumReceiveStatus.取消 == entity.receivestatus)
+                                                    {
+                                                        <span class="label label-danger">@Enum.GetName(typeof(EnumReceiveStatus), entity.receivestatus)</span>
+                                                    }
+                                                </td>
+                                                <td class="text-center">
+                                                    @if ((int)EnumWarehouseStatus.未入庫 == entity.warehousestatus)
+                                                    {
+                                                        <span class="label label-warning">@Enum.GetName(typeof(EnumWarehouseStatus), entity.warehousestatus)</span>
+                                                    }
+                                                    else if ((int)EnumWarehouseStatus.已入庫 == entity.warehousestatus)
+                                                    {
+                                                        <span class="label label-default">@Enum.GetName(typeof(EnumWarehouseStatus), entity.warehousestatus)</span>
+                                                    }
+                                                </td>
+                                                <td class="text-center"><a href="@Url.Action("EditReturns", "OrderMs", new { entityid = entity.returnid, p = ViewBag.pageNumber })" class="btn btn-info btn-xs"><i class="fa fa-edit"></i></a></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+
+                            </div>
+                        }
+                    </div>
+                    <!-- end widget content -->
+
+                    <div class="text-center">
+                        @Html.PagedListPager(list: data, generatePageUrl: page => Url.Action("Returns", new { p = page, ViewBag.orderdate, ViewBag.ordermonth }))
+                    </div>
+
+                </div>
+
+            </article>
+            <!-- WIDGET END -->
+
+        </div>
+        <!-- end row -->
+
+    </section>
+    <!-- end widget grid -->
+
+</div>
+<!-- END MAIN CONTENT -->
+
+@section scripts {
+    <script>
+        $(function () {
+            $('.datetpicker').datetimepicker({
+                viewMode: 'years',
+                format: 'YYYY-MM'
+            });
+        });
+    </script>
+}

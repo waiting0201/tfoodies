@@ -1,0 +1,227 @@
+﻿@{
+    var cartcontentdatas = (IEnumerable<CartItem>)ViewBag.CartContents;
+    var totalprice = (int)ViewBag.TotalPrice;
+    var discountprice = (int)ViewBag.DiscountPrice;
+    var freightprice = (int)ViewBag.FreightPrice;
+    var amountprice = (int)ViewBag.AmountPrice; 
+}
+
+<main id="main">
+    <section class="clr allsection step-section">
+        <h1 class="heading">STEP 1</h1>
+        <div class="restrict centered">
+            <div class="step-wrap">
+                <div class="shopstep">
+                    <div class="step-circle">
+                        <div class="step-inner">
+                            <div class="step-number">1</div>
+                            <p class="white">商品資訊</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="shopstep">
+                    <div class="step-line stp0"></div>
+                </div>
+                <div class="shopstep">
+                    <div class="step-circle stp0">
+                        <div class="step-inner">
+                            <div class="step-number">2</div>
+                            <p class="white">訂購資訊</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="shopstep">
+                    <div class="step-line stp0"></div>
+                </div>
+                <div class="shopstep">
+                    <div class="step-circle stp0">
+                        <div class="step-inner">
+                            <div class="step-number">3</div>
+                            <p class="white">完成訂購</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="clr allsection">
+        <div class="restrict allpadding centered shopflow">
+            <h2>商品明細</h2>
+            <p class="darkgray">歡迎您訂購食在呼嚴選商品，請確認購物商品明細和輸入折扣代碼。</p>
+            @*<div class="tablescroll">
+                <table>
+                    <tr>
+                        <th></th>
+                        <th>商品名稱</th>
+                        <th>單價</th>
+                        <th>數量</th>
+                        <th>小計</th>
+                        <th>刪除</th>
+                    </tr>
+                    @foreach (CartItem item in cartcontentdatas)
+                    {
+                        <tr>
+                            <td class="cart-thumb"><img src="@(ViewBag.BlobUrl + item.Photo)"></td>
+                            <td><a href="@Url.Action("ProductDetail", "MainMs", new { producttitle = item.Name })" class="td-product darkgray">@(item.Name + item.Capacity)</a></td>
+                            <td>NT. @item.Price.ToString("#,0")</td>
+                            <td class="td-qty">
+                                <div class="amount descript">
+                                    <div class="quantity-wrap">
+                                        <div class="quantity" data-added="@item.Added">
+                                            <div class="qty-minus"><a href="javascript:;" class="sminus" data-rowid="@item.RowId" rel="nofollow">-</a></div>
+                                            <div class="qtyinput"><input type="text" name="checkqty" value="@item.Quantity" class="input form-input checkqty" readonly></div>
+                                            <div class="qty-plus"><a href="javascript:;" class="splus" data-rowid="@item.RowId" rel="nofollow">+</a></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="darkgray">NT. @item.SubTotal.ToString("#,0")</td>
+                            <td class="td-delete"><a href="javascript:;" class="delete js-remove-cart" data-rowid="@item.RowId" rel="nofollow"></a></td>
+                        </tr>
+                    }
+                    <tr>
+                        <td colspan="3" class="discount border-none">
+                            <div class="clr">
+                                <div for="discount" class="darkgray">請輸入折扣代碼</div>
+                                <div class="descript darkgray">若您有「食在呼好朋友」等之折扣券，請於方框中輸入折扣代碼享優惠，謝謝。</div>
+                                <div class="coupon-input">
+                                    <input type="text" id="discountcode" name="discountcode" class="input" value="@Session["DiscountCode"]">
+                                </div>
+                                <div class="coupon-btn">
+                                    <a href="javascript:;" id="btnDiscountcode" class="btn basic descript" rel="nofollow">使用此代碼</a>
+                                </div>
+                            </div>
+                            <div class="descript">輸入時，請注意大小寫之分別。</div>
+                            <div id="codecaution" class="must inline descript"></div>
+                        </td>
+                        <td class="descript darkgray border-none">總金額</td>
+                        <td colspan="2" class="total border-none">NT. @totalprice.ToString("#,0")</td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" class="border-none"></td>
+                        <td class="descript darkgray border-none">額外折扣</td>
+                        <td colspan="2" class="total border-none" id="discountresult">- NT. @discountprice.ToString("#,0")</td>
+                    </tr>
+                    <tr>
+                        <td colspan="3"></td>
+                        <td class="descript darkgray">
+                            運費<div class="descript darkgray">(滿1,500免運)</div>
+                        </td>
+                        <td colspan="2" class="total">NT. @freightprice.ToString("#,0")</td>
+                    </tr>
+                    <tr class="td-main">
+                        <td colspan="3"></td>
+                        <td>總計</td>
+                        <td colspan="2" id="amountprice">NT. @amountprice.ToString("#,0")</td>
+                    </tr>
+                </table>
+            </div>*@
+            <div class="checkout-cart">
+                <div class="cart_title">
+                    <div class="label_info">商品名稱</div>
+                    <div class="label_price">單價</div>
+                    <div class="label_quantity">數量</div>
+                    <div class="label_price">小計</div>
+                    <div class="label_remove">刪除</div>
+                </div>
+                <div class="cart_container">
+                    <ul class="cart-items">
+                        @foreach (CartItem item in cartcontentdatas)
+                        {
+                            <li class="item">
+                                <div class="thumb"><img src="@(ViewBag.BlobUrl + item.Photo)"></div>
+                                <div class="item-content">
+                                    <div class="ci-info">
+                                        <a href="@Url.Action("ProductDetail", "MainMs", new { producttitle = item.Name })" class="ci-name darkgray">@(item.Name + item.Capacity)</a>
+                                    </div>
+                                    <div data-label="單價:" class="ci-price">NT. @item.Price.ToString("#,0")</div>
+                                    <div data-label="數量:" class="ci-quantity">
+                                        <div class="quantity-wrap">
+                                            <div class="quantity" data-added="@item.Added">
+                                                @*<div class="qty-minus"><a href="#" class="ddd">-</a></div>
+                                                <div class="qtyinput">
+                                                    <input type="text" value="1" class="input form-input">
+                                                </div>
+                                                <div class="qty-plus"><a href="#" class="ddd">+</a></div>*@
+                                                <div class="qty-minus"><a href="javascript:;" class="sminus" data-rowid="@item.RowId" rel="nofollow">-</a></div>
+                                                <div class="qtyinput"><input type="text" name="checkqty" value="@item.Quantity" class="input form-input checkqty" readonly></div>
+                                                <div class="qty-plus"><a href="javascript:;" class="splus" data-rowid="@item.RowId" rel="nofollow">+</a></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div data-label="小計:" class="ci-price">NT. @item.SubTotal.ToString("#,0")</div>
+                                </div>
+                                <div class="remove"><a href="javascript:;" class="delete js-remove-cart" data-rowid="@item.RowId" rel="nofollow"></a></div>
+                            </li>
+                        }
+                    </ul>
+                </div>
+                <div class="cart-summary">
+                    <ul class="summary-items">
+                        <li class="item">
+                            <div class="input-info">
+                                <label for="discount">請輸入折扣代碼</label>
+                                <div class="descript darkgray">若您有「食在呼好朋友」之折扣券，請於方框中輸入折扣代碼享優惠，折扣代碼恕不與活動優惠合併使用，謝謝。</div>
+                                <div class="coupon-control">
+                                    <input type="text" id="discountcode" name="discountcode" class="input" value="@Session["DiscountCode"]">
+                                    <button id="btnDiscountcode" class="btn basic">使用此代碼</button>
+                                </div>
+                                <div class="descript"> 輸入時，請注意大小寫之分別。</div>
+                                <div id="codecaution" class="must inline descript"></div>
+                            </div>
+                            <div class="label">總金額</div>
+                            <div class="price">NT. @totalprice.ToString("#,0")</div>
+                        </li>
+                        <li class="item">
+                            <div class="input-info"></div>
+                            <div class="label">額外折扣</div>
+                            <div class="price" id="discountresult">- NT. @discountprice.ToString("#,0")</div>
+                        </li>
+                        <li class="item">
+                            <div class="input-info"></div>
+                            <div class="label">運費<br><small>(滿1,500免運)</small></div>
+                            <div class="price">NT. @freightprice.ToString("#,0")</div>
+                        </li>
+                    </ul>
+                    <div class="total-calculation">
+                        <label>總計</label>
+                        <div class="total-amount" id="amountprice">NT. @amountprice.ToString("#,0")</div>
+                    </div>
+                </div>
+            </div>
+            <div class="choose-wrap mb_fixed">
+                <div class="choose-left"><a href="@Url.Action("Products", "MainMs")" class="btn outline-btn">繼續購物</a></div>
+                <div class="choose-right"><a href="@Url.Action("ShoppingProfile", "MainMs")" class="btn basic" rel="nofollow">下一步</a></div>
+            </div>
+        </div>
+    </section>
+</main>
+@section scripts {
+<script>
+    var itemlist = [];
+    @foreach (CartItem item in cartcontentdatas)
+    {
+        <text>
+            itemlist.push({
+                'id': '@item.ProductId',
+                'name': '@item.Name'
+            });
+        </text>
+    }
+    gtag.begin_checkout(itemlist);
+
+    $(function () {
+        $('#btnDiscountcode').click(function () {
+            var discountcode = $("#discountcode").val();
+
+            $.post("@Url.Action("GetDiscountCode", "Ajax")", {
+                "discountcode": discountcode
+            }, function (res) {
+                $("#codecaution").html(res.rsmessage);
+                $("#discountresult").html("- NT. " + res.discount);
+                $("#amountprice").html("NT. " + res.amountprice);
+            });
+        });
+    });
+</script>
+}

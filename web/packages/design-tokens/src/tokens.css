@@ -1,0 +1,39 @@
+/*
+ * TFoodies design tokens — extracted verbatim from the legacy front store
+ * (reference/old/tfoodies/Content/styles/main.css). These are the visual source of
+ * truth so the Vue/Nuxt rewrite reproduces the existing design 1:1. Do not invent
+ * new brand colors; add tokens only when found in the legacy CSS.
+ */
+:root {
+  /* Brand — teal family (primary #26b7bc used ~55×) */
+  --tf-color-primary: #26b7bc;
+  --tf-color-primary-dark: #156467;
+  --tf-color-primary-darker: #007382;
+  --tf-color-primary-alt: #1d8e92;
+
+  /* Accents */
+  --tf-color-accent: #ea5520;        /* orange */
+  --tf-color-gold: #eda02f;
+  --tf-color-gold-dark: #db8c0a;
+  --tf-color-olive: #95ad25;
+  --tf-color-danger: #d0021b;
+
+  /* Neutrals */
+  --tf-color-text: #393939;
+  --tf-color-text-soft: #3e3e3e;
+  --tf-color-muted: #9b9b9b;
+  --tf-color-border: #e1e1e1;
+  --tf-color-border-soft: #e6e6e6;
+  --tf-color-bg-soft: #f2f2f2;
+  --tf-color-white: #ffffff;
+
+  /* Typography (legacy: Open Sans + Noto Sans TC body, Didot serif headings) */
+  --tf-font-body: "Open Sans", "Noto Sans TC", "Helvetica Neue", Arial, "微軟正黑體", sans-serif;
+  --tf-font-heading: "GFS Didot", Didot, serif;
+
+  /* Bootstrap-compatible breakpoints (legacy grid uses Bootstrap classes) */
+  --tf-bp-sm: 576px;
+  --tf-bp-md: 768px;
+  --tf-bp-lg: 992px;
+  --tf-bp-xl: 1200px;
+}

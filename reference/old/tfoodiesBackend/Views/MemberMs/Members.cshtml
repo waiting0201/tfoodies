@@ -1,0 +1,176 @@
+﻿@{
+    var data = (IPagedList<Members>)ViewBag.Members;
+}
+
+<!-- MAIN CONTENT -->
+<div id="content">
+
+    <!-- widget grid -->
+    <section id="widget-grid" class="">
+        <!-- row -->
+        <div class="row">
+            <!-- NEW WIDGET START -->
+            <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                <div class="well padding-10">
+
+                    <!-- widget content -->
+                    <div class="widget-body">
+
+                        @using (Html.BeginForm("Members", "MemberMs", new { p = ViewBag.pageNumber }, FormMethod.Post, new { @id = "membersform" }))
+                        {
+                            <div class="widget-body-toolbar">
+
+                                <div class="row">
+
+                                    <div class="form-inline">
+
+                                        <div class="col-sm-10">
+
+                                            <select name="field" class="form-control">
+                                                <option value="">請選擇條件</option>
+                                                <option value="name">姓名</option>
+                                                <option value="mobile">電話</option>
+                                            </select>
+                                            <input class="form-control" name="v" type="text">
+                                            <button class="btn btn-primary" type="submit">篩選</button>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        }
+
+                        @using (Html.BeginForm("SortMembers", "MemberMs", new { p = ViewBag.pageNumber }, FormMethod.Post, new { @id = "form" }))
+                        {
+                            <div class="widget-body-toolbar">
+
+                                <div class="row">
+
+                                    <div class="form-inline">
+                                        <div class="col-sm-10">
+                                            <a class="btn btn-success btn-labeled" href="@Url.Action("AddMembers", "MemberMs", new { p = ViewBag.pageNumber })"> <span class="btn-label"><i class="fa fa-plus"></i></span>新增會員 </a>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            if (Html.ValidationSummary(true) != null)
+                            {
+                                <div class="alert alert-danger alert-block fade in">
+                                    <button class="close" data-dismiss="alert">
+                                        ×
+                                    </button>
+                                    <i class="fa-fw fa fa-info"></i>
+                                    @Html.ValidationSummary(true)
+                                </div>
+                            }
+
+                            <div class="table-responsive">
+
+                                <table class="table table-hover table-bordered table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th width="7%" class="text-center">型態</th>
+                                            <th width="8%" class="text-center">縣市</th>
+                                            <th>姓名</th>
+                                            <th width="5%" class="text-center">性別</th>
+                                            <th width="10%" class="text-center">電話</th>
+                                            <th width="15%" class="text-center">Email</th>
+                                            <th width="6%" class="text-center">開通</th>
+                                            <th width="5%" class="text-center">編輯</th>
+                                            <th width="5%" class="text-center">刪除</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (Members entity in data)
+                                        {
+                                            <tr>
+                                                <td class="text-center">
+                                                @if (entity.ismember == 1)
+                                                {
+                                                    <span class="label label-success">會員</span>
+                                                }
+                                                else if (entity.ismember == 2)
+                                                {
+                                                    <span class="label label-primary">客戶</span>
+                                                }
+                                                </td>
+                                                <td class="text-center">@((entity.Zipcodes != null) ? entity.Zipcodes.city : "")</td>
+                                                <td>@entity.name</td>
+                                                <td class="text-center">@(entity.gender != null ? (entity.gender == 0 ? "女生" : "男生") : "")</td>
+                                                <td class="text-center">@entity.mobile</td>
+                                                <td class="text-center">@entity.email</td>
+                                                <td class="text-center">
+                                                @if (entity.isenable == true)
+                                                {
+                                                    <span class="label label-primary">開通</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="label label-danger">關閉</span>
+                                                }
+                                                </td>
+                                                <td class="text-center"><a href="@Url.Action("EditMembers", "MemberMs", new { entityid = entity.memberid, p = ViewBag.pageNumber })" class="btn btn-info btn-xs"><i class="fa fa-edit"></i></a></td>
+                                                <td class="text-center"><a href="#" class="btn btn-danger btn-xs del" data-href="@Url.Action("DeleteMembers", "MemberMs", new { entityid = entity.memberid, p = ViewBag.pageNumber })" data-toggle="modal" data-target="#confirm-delete"><i class="fa fa-trash-o"></i></a></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+
+                            </div>
+                        }
+                    </div>
+                    <!-- end widget content -->
+
+                    <div class="text-center">
+                        @Html.PagedListPager(list: data, generatePageUrl: page => Url.Action("Members", new { p = page, v = ViewBag.V, field = ViewBag.Field }))
+                    </div>
+
+                </div>
+
+            </article>
+            <!-- WIDGET END -->
+
+        </div>
+        <!-- end row -->
+
+    </section>
+    <!-- end widget grid -->
+
+</div>
+<!-- END MAIN CONTENT -->
+<!-- Modal -->
+<div class="modal fade" id="confirm-delete" tabindex="-1" role="dialog" aria-labelledby="" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                    &times;
+                </button>
+                <h4 class="modal-title" id="myModalLabel">確認</h4>
+            </div>
+            <div class="modal-body">
+                <p>
+                    確定要刪除嗎？
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">
+                    取消
+                </button>
+                <a href="#" class="btn btn-primary btn-ok">
+                    確定
+                </a>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+@section scripts {
+
+}

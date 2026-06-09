@@ -1,0 +1,116 @@
+﻿@{
+    ViewBag.PageId = "extr-page";
+    ViewBag.PageClass = "animated fadeInDown";
+}
+@section topright{
+    @*<span id="extr-page-header-space"> <span class="hidden-mobile">Need an account?</span> <a href="@Url.Action("register", "account")" class="btn btn-danger">Create account</a> </span>*@
+}
+<div id="content" class="container">
+    <div class="row">
+        @{ Html.RenderPartial("_LoginText"); }
+        <div class="col-xs-12 col-sm-12 col-md-5 col-lg-4">
+            <div class="well no-padding">
+                <form id="login-form" action="@Url.Action("Login", "Main")" method="POST" class="smart-form client-form">
+                    <header>
+                        登入系統
+                    </header>
+                    <fieldset>
+                        <section>
+                            <label class="label">帳號</label>
+                            <label class="input">
+                                <i class="icon-append fa fa-user"></i>
+                                <input type="text" name="username" id="username">
+                                <b class="tooltip tooltip-top-right"><i class="fa fa-user txt-color-teal"></i> 請輸入管理帳號</b>
+                            </label>
+                        </section>
+                        <section>
+                            <label class="label">密碼</label>
+                            <label class="input">
+                                <i class="icon-append fa fa-lock"></i>
+                                <input type="password" name="password" id="password">
+                                <b class="tooltip tooltip-top-right"><i class="fa fa-lock txt-color-teal"></i> 請輸入密碼</b>
+                            </label>
+                            @*<div class="note">
+                                    <a href="@Url.Action("forgotpassword", "account")"><i class="fa fa-frown-o"></i> Forgot password?</a>
+                                </div>*@
+                                            </section>
+                                            @*<section>
+                                <label class="checkbox">
+                                    <input type="checkbox" name="rememberMe" value="true" checked="checked">
+                                    <input type="hidden" name="rememberMe" value="false" />
+                                    <i></i>Stay signed in
+                                </label>
+                            </section>*@
+                        <input type="hidden" id="GoogleCaptchaToken" name="GoogleCaptchaToken" />
+                    </fieldset>
+                    @*<fieldset>
+                        <div class="row">
+                            <section class="col col-12">
+                                <div class="g-recaptcha" data-sitekey="6LcLZz8UAAAAAFZZJnkJD_XKqA7CrcC524W9-94R"></div>
+                            </section>
+                        </div>
+                    </fieldset>*@
+                    <footer>
+                        <button type="submit" class="btn btn-primary">
+                            登入
+                        </button>
+                    </footer>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@section pagespecific {
+    <script src="https://www.google.com/recaptcha/api.js?render=@Librarys.GetRecaptchaV3ClientKey()"></script>
+    <script>
+        grecaptcha.ready(function () {
+            grecaptcha.execute('@Librarys.GetRecaptchaV3ClientKey()', { action: 'contact_us' }).then(function (token) {
+                $("#GoogleCaptchaToken").val(token);
+            });
+        });
+
+        $(function () {
+            // Validation
+            $("#login-form").validate({
+                // Rules for form validation
+                rules: {
+                    username: {
+                        required: true
+                    },
+                    password: {
+                        required: true,
+                        minlength: 3,
+                        maxlength: 20
+                    },
+                    inputcode: {
+                        required: true,
+                        minlength: 4,
+                        maxlength: 4
+                    }
+                },
+
+                // Messages for form validation
+                messages: {
+                    username: {
+                        required: '請輸入帳號'
+                    },
+                    password: {
+                        required: '請輸入密碼'
+                    },
+                    inputcode: {
+                        required: '請輸入驗證碼'
+                    }
+                },
+
+                // Do not change code below
+                errorPlacement: function (error, element) {
+                    error.insertAfter(element.parent());
+                }
+            });
+
+            @*$("#refreshcaptcha").click(function () {
+                $("#captcha").attr("src", "@Url.Action("VerificationCode", "Captcha")?r=" + (new Date()).getTime());
+            });*@
+        });
+    </script>
+}

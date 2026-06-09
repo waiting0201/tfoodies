@@ -1,0 +1,641 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\EntityFramework.6.4.4\build\EntityFramework.props" Condition="Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.props')" />
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>
+    </ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{70E72FF4-C55F-4BF4-9CBB-DD7FE3CF42F4}</ProjectGuid>
+    <ProjectTypeGuids>{349c5851-65df-11da-9384-00065b846f21};{fae04ec0-301f-11d3-bf4b-00c04f79efbc}</ProjectTypeGuids>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>tfoodies</RootNamespace>
+    <AssemblyName>tfoodies</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <UseIISExpress>true</UseIISExpress>
+    <IISExpressSSLPort />
+    <IISExpressAnonymousAuthentication />
+    <IISExpressWindowsAuthentication />
+    <IISExpressUseClassicPipelineMode />
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+    <UseGlobalApplicationHostFile />
+    <Use64BitIISExpress />
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Antlr3.Runtime, Version=3.5.0.2, Culture=neutral, PublicKeyToken=eb42632606e9261f, processorArchitecture=MSIL">
+      <HintPath>..\packages\Antlr.3.5.0.2\lib\Antlr3.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Azure.Documents.Client, Version=2.18.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Azure.DocumentDB.2.18.0\lib\net461\Microsoft.Azure.Documents.Client.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.8.0.0\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions, Version=8.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.DependencyInjection.Abstractions.8.0.0\lib\net462\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Web.Infrastructure, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Web.Infrastructure.2.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Win32.Primitives, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Win32.Primitives.4.3.0\lib\net46\Microsoft.Win32.Primitives.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="MiniProfiler, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b44f9351044011a3, processorArchitecture=MSIL">
+      <HintPath>..\packages\MiniProfiler.4.3.8\lib\net461\MiniProfiler.dll</HintPath>
+    </Reference>
+    <Reference Include="MiniProfiler.EF6, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b44f9351044011a3, processorArchitecture=MSIL">
+      <HintPath>..\packages\MiniProfiler.EF6.4.3.8\lib\net461\MiniProfiler.EF6.dll</HintPath>
+    </Reference>
+    <Reference Include="MiniProfiler.Mvc, Version=3.0.11.0, Culture=neutral, PublicKeyToken=b44f9351044011a3, processorArchitecture=MSIL">
+      <HintPath>..\packages\MiniProfiler.MVC4.3.0.11\lib\net40\MiniProfiler.Mvc.dll</HintPath>
+    </Reference>
+    <Reference Include="MiniProfiler.Shared, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b44f9351044011a3, processorArchitecture=MSIL">
+      <HintPath>..\packages\MiniProfiler.Shared.4.3.8\lib\net461\MiniProfiler.Shared.dll</HintPath>
+    </Reference>
+    <Reference Include="MongoDB.Bson, Version=2.3.0.157, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MongoDB.Bson.2.3.0\lib\net45\MongoDB.Bson.dll</HintPath>
+    </Reference>
+    <Reference Include="MongoDB.Driver, Version=2.3.0.157, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MongoDB.Driver.2.3.0\lib\net45\MongoDB.Driver.dll</HintPath>
+    </Reference>
+    <Reference Include="MongoDB.Driver.Core, Version=2.3.0.157, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MongoDB.Driver.Core.2.3.0\lib\net45\MongoDB.Driver.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="PagedList, Version=1.17.0.0, Culture=neutral, PublicKeyToken=abbb863e9397c5e1, processorArchitecture=MSIL">
+      <HintPath>..\packages\PagedList.1.17.0.0\lib\net40\PagedList.dll</HintPath>
+    </Reference>
+    <Reference Include="PagedList.Mvc, Version=4.5.0.0, Culture=neutral, PublicKeyToken=abbb863e9397c5e1, processorArchitecture=MSIL">
+      <HintPath>..\packages\PagedList.Mvc.4.5.0.0\lib\net40\PagedList.Mvc.dll</HintPath>
+    </Reference>
+    <Reference Include="System.AppContext, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.AppContext.4.3.0\lib\net463\System.AppContext.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.Console, Version=4.0.1.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Console.4.3.1\lib\net46\System.Console.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Diagnostics.DiagnosticSource, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Diagnostics.DiagnosticSource.8.0.0\lib\net462\System.Diagnostics.DiagnosticSource.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Diagnostics.Tracing, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Diagnostics.Tracing.4.3.0\lib\net462\System.Diagnostics.Tracing.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Globalization.Calendars, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Globalization.Calendars.4.3.0\lib\net46\System.Globalization.Calendars.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.IO, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.IO.4.3.0\lib\net462\System.IO.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.IO.Compression, Version=4.1.2.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.IO.Compression.4.3.0\lib\net46\System.IO.Compression.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.IO.Compression.ZipFile, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.IO.Compression.ZipFile.4.3.0\lib\net46\System.IO.Compression.ZipFile.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.IO.FileSystem, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.IO.FileSystem.4.3.0\lib\net46\System.IO.FileSystem.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.IO.FileSystem.Primitives, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.IO.FileSystem.Primitives.4.3.0\lib\net46\System.IO.FileSystem.Primitives.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Linq, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Linq.4.3.0\lib\net463\System.Linq.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Linq.Expressions, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Linq.Expressions.4.3.0\lib\net463\System.Linq.Expressions.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Memory, Version=4.0.1.2, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Memory.4.5.5\lib\net461\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http, Version=4.1.1.3, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Net.Http.4.3.4\lib\net46\System.Net.Http.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Net.Http.WinHttpHandler, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Net.Http.WinHttpHandler.8.0.0\lib\net462\System.Net.Http.WinHttpHandler.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Sockets, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Net.Sockets.4.3.0\lib\net46\System.Net.Sockets.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reflection, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Reflection.4.3.0\lib\net462\System.Reflection.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Runtime, Version=4.1.1.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.4.3.1\lib\net462\System.Runtime.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Runtime.Caching" />
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.6.0.0\lib\net461\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.Extensions, Version=4.1.1.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.Extensions.4.3.1\lib\net462\System.Runtime.Extensions.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Runtime.InteropServices, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.InteropServices.4.3.0\lib\net463\System.Runtime.InteropServices.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Runtime.InteropServices.RuntimeInformation, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.InteropServices.RuntimeInformation.4.3.0\lib\net45\System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.Algorithms, Version=4.2.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.Algorithms.4.3.1\lib\net463\System.Security.Cryptography.Algorithms.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.Encoding, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.Encoding.4.3.0\lib\net46\System.Security.Cryptography.Encoding.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.Primitives, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.Primitives.4.3.0\lib\net46\System.Security.Cryptography.Primitives.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.X509Certificates, Version=4.1.1.2, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.X509Certificates.4.3.2\lib\net461\System.Security.Cryptography.X509Certificates.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Text.RegularExpressions, Version=4.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Text.RegularExpressions.4.3.1\lib\net463\System.Text.RegularExpressions.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Threading.Tasks.Extensions.4.5.4\lib\net461\System.Threading.Tasks.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Transactions" />
+    <Reference Include="System.Web.DynamicData" />
+    <Reference Include="System.Web.Entity" />
+    <Reference Include="System.Web.ApplicationServices" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Helpers, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.3.0\lib\net45\System.Web.Helpers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Mvc, Version=5.3.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.Mvc.5.3.0\lib\net45\System.Web.Mvc.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Optimization, Version=1.1.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.Web.Optimization.1.1.3\lib\net40\System.Web.Optimization.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.Razor.3.3.0\lib\net45\System.Web.Razor.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.3.0\lib\net45\System.Web.WebPages.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages.Deployment, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.3.0\lib\net45\System.Web.WebPages.Deployment.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.3.0\lib\net45\System.Web.WebPages.Razor.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Web.Services" />
+    <Reference Include="System.EnterpriseServices" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Xml.ReaderWriter, Version=4.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Xml.ReaderWriter.4.3.1\lib\net46\System.Xml.ReaderWriter.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="UAParser, Version=3.1.47.0, Culture=neutral, PublicKeyToken=f7377bf021646069, processorArchitecture=MSIL">
+      <HintPath>..\packages\UAParser.3.1.47\lib\net45\UAParser.dll</HintPath>
+    </Reference>
+    <Reference Include="WebGrease, Version=1.6.5135.21930, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\WebGrease.1.6.0\lib\WebGrease.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Content\images\arrow_select.png" />
+    <Content Include="Content\images\banner\01-Index-ch.jpg" />
+    <Content Include="Content\images\banner\about.jpg" />
+    <Content Include="Content\images\banner\blank.png" />
+    <Content Include="Content\images\banner\index-banner.png" />
+    <Content Include="Content\images\banner\index-banner22.jpg" />
+    <Content Include="Content\images\banner\productbanner.png" />
+    <Content Include="Content\images\bx\controls.png" />
+    <Content Include="Content\images\bx\loader.gif" />
+    <Content Include="Content\images\bx\next.png" />
+    <Content Include="Content\images\bx\prev.png" />
+    <Content Include="Content\images\common\arrowdown.png" />
+    <Content Include="Content\images\common\brand-select.png" />
+    <Content Include="Content\images\common\chat.png" />
+    <Content Include="Content\images\common\comming-title.png" />
+    <Content Include="Content\images\common\cookpad.png" />
+    <Content Include="Content\images\common\directline-dark.png" />
+    <Content Include="Content\images\common\directline.png" />
+    <Content Include="Content\images\common\facebook-w.png" />
+    <Content Include="Content\images\common\facebook.png" />
+    <Content Include="Content\images\common\freeshipping.gif" />
+    <Content Include="Content\images\common\green.png" />
+    <Content Include="Content\images\common\icon-facebook.png" />
+    <Content Include="Content\images\common\instagram-w.png" />
+    <Content Include="Content\images\common\instagram.png" />
+    <Content Include="Content\images\common\logo-10.png" />
+    <Content Include="Content\images\common\logo-main.png" />
+    <Content Include="Content\images\common\logo.png" />
+    <Content Include="Content\images\common\logoli.png" />
+    <Content Include="Content\images\common\mobile-menu.png" />
+    <Content Include="Content\images\common\news-icon-hover.png" />
+    <Content Include="Content\images\common\news-icon.png" />
+    <Content Include="Content\images\common\next-hover.png" />
+    <Content Include="Content\images\common\next.png" />
+    <Content Include="Content\images\common\owl.video.play.png" />
+    <Content Include="Content\images\common\pattern-10.png" />
+    <Content Include="Content\images\common\prev-hover.png" />
+    <Content Include="Content\images\common\prev.png" />
+    <Content Include="Content\images\common\select-arrow.png" />
+    <Content Include="Content\images\common\youtube-w.png" />
+    <Content Include="Content\images\common\youtube.png" />
+    <Content Include="Content\images\favicon.ico" />
+    <Content Include="Content\images\logo.png" />
+    <Content Include="Content\images\product\h1.png" />
+    <Content Include="Content\images\product\h1t.png" />
+    <Content Include="Content\images\product\h2.png" />
+    <Content Include="Content\images\product\h3.png" />
+    <Content Include="Content\images\product\h4.png" />
+    <Content Include="Content\images\product\indexProduct-balsamic-fig.jpg" />
+    <Content Include="Content\images\product\indexProduct-Evoo1-mixed.jpg" />
+    <Content Include="Content\images\product\indexProduct-quinoa.jpg" />
+    <Content Include="Content\images\product\indexProduct-vinegar-bloodplum.jpg" />
+    <Content Include="Content\images\product\oil-chili-2.jpg" />
+    <Content Include="Content\images\product\p1.jpg" />
+    <Content Include="Content\images\product\p1.png" />
+    <Content Include="Content\images\product\p2.jpg" />
+    <Content Include="Content\images\product\p2.png" />
+    <Content Include="Content\images\product\p3.jpg" />
+    <Content Include="Content\images\product\p3.png" />
+    <Content Include="Content\images\product\p4.jpg" />
+    <Content Include="Content\images\product\p4.png" />
+    <Content Include="Content\images\product\p5.jpg" />
+    <Content Include="Content\images\product\p5.png" />
+    <Content Include="Content\images\product\p6.jpg" />
+    <Content Include="Content\images\product\p6.png" />
+    <Content Include="Content\images\product\p7.jpg" />
+    <Content Include="Content\images\product\p7.png" />
+    <Content Include="Content\images\product\p8.jpg" />
+    <Content Include="Content\images\product\p8.png" />
+    <Content Include="Content\images\product\p9.jpg" />
+    <Content Include="Content\images\product\p9.png" />
+    <Content Include="Content\images\product\product-desc.jpg" />
+    <Content Include="Content\images\product\product-quality.jpg" />
+    <Content Include="Content\images\product\product-thumbnail.png" />
+    <Content Include="Content\images\product\product.png" />
+    <Content Include="Content\images\section\722c0ea5891471ea726978e34046b1ed.png" />
+    <Content Include="Content\images\section\about1.png" />
+    <Content Include="Content\images\section\about2.png" />
+    <Content Include="Content\images\section\about3.png" />
+    <Content Include="Content\images\section\acid.jpg" />
+    <Content Include="Content\images\section\appstore.png" />
+    <Content Include="Content\images\section\blog1.png" />
+    <Content Include="Content\images\section\blog2.png" />
+    <Content Include="Content\images\section\blog3.png" />
+    <Content Include="Content\images\section\blog4.png" />
+    <Content Include="Content\images\section\blog5.png" />
+    <Content Include="Content\images\section\blog6.png" />
+    <Content Include="Content\images\section\brand-series-la.jpg" />
+    <Content Include="Content\images\section\brand-series-mo.jpg" />
+    <Content Include="Content\images\section\brandseries-banner.jpg" />
+    <Content Include="Content\images\section\captcha.png" />
+    <Content Include="Content\images\section\chat-footer.png" />
+    <Content Include="Content\images\section\confirm.png" />
+    <Content Include="Content\images\section\cookpad-footer.png" />
+    <Content Include="Content\images\section\cooper.jpg" />
+    <Content Include="Content\images\section\Cottonseed.jpg" />
+    <Content Include="Content\images\section\dove.png" />
+    <Content Include="Content\images\section\evoo.jpg" />
+    <Content Include="Content\images\section\fb-footer.png" />
+    <Content Include="Content\images\section\food.png" />
+    <Content Include="Content\images\section\footer-line.png" />
+    <Content Include="Content\images\section\footerpattern.png" />
+    <Content Include="Content\images\section\g1.png" />
+    <Content Include="Content\images\section\g2.png" />
+    <Content Include="Content\images\section\g3.png" />
+    <Content Include="Content\images\section\googleplay.png" />
+    <Content Include="Content\images\section\gree-footer.png" />
+    <Content Include="Content\images\section\greenbanner.png" />
+    <Content Include="Content\images\section\index-banner.png" />
+    <Content Include="Content\images\section\insurance.jpg" />
+    <Content Include="Content\images\section\labarre-logo.png" />
+    <Content Include="Content\images\section\labarre-s1.png" />
+    <Content Include="Content\images\section\labarre-s2.png" />
+    <Content Include="Content\images\section\labarrebanner.png" />
+    <Content Include="Content\images\section\labarreolive.png" />
+    <Content Include="Content\images\section\labarrepattern.png" />
+    <Content Include="Content\images\section\labarrepeople.png" />
+    <Content Include="Content\images\section\life1.png" />
+    <Content Include="Content\images\section\life2.png" />
+    <Content Include="Content\images\section\life3.png" />
+    <Content Include="Content\images\section\life4.png" />
+    <Content Include="Content\images\section\life5.png" />
+    <Content Include="Content\images\section\life6.png" />
+    <Content Include="Content\images\section\logo-mount.png" />
+    <Content Include="Content\images\section\logo-set2-01.png" />
+    <Content Include="Content\images\section\logo-set3-01.png" />
+    <Content Include="Content\images\section\main-video.png" />
+    <Content Include="Content\images\section\member-qa.png" />
+    <Content Include="Content\images\section\memer.png" />
+    <Content Include="Content\images\section\mount-logo.png" />
+    <Content Include="Content\images\section\mountbanner.png" />
+    <Content Include="Content\images\section\mountzero-sgs.jpg" />
+    <Content Include="Content\images\section\new1.png" />
+    <Content Include="Content\images\section\new2.png" />
+    <Content Include="Content\images\section\new3.png" />
+    <Content Include="Content\images\section\no-pesticides.jpg" />
+    <Content Include="Content\images\section\non-toxic.jpg" />
+    <Content Include="Content\images\section\order.jpg" />
+    <Content Include="Content\images\section\order.png" />
+    <Content Include="Content\images\section\other1.png" />
+    <Content Include="Content\images\section\other2.png" />
+    <Content Include="Content\images\section\other3.png" />
+    <Content Include="Content\images\section\paypattern.png" />
+    <Content Include="Content\images\section\people.png" />
+    <Content Include="Content\images\section\photo-block.png" />
+    <Content Include="Content\images\section\rosemary-infused-olive-oil-2.png" />
+    <Content Include="Content\images\section\sgs.jpg" />
+    <Content Include="Content\images\section\story.png" />
+    <Content Include="Content\images\section\tfoodies-footer.png" />
+    <Content Include="Content\images\section\tree.png" />
+    <Content Include="Content\images\section\video1.png" />
+    <Content Include="Content\images\section\video2.png" />
+    <Content Include="Content\images\section\video3.png" />
+    <Content Include="Content\images\section\youtube-footer.png" />
+    <Content Include="Content\images\section\zero.png" />
+    <Content Include="Content\images\section\zero2.png" />
+    <Content Include="Content\images\section\zero3.jpg" />
+    <Content Include="Content\images\section\zeropattern.png" />
+    <Content Include="Content\images\section\zeropeople.png" />
+    <Content Include="Content\images\sprite.png" />
+    <Content Include="Content\images\sprite\addcart.png" />
+    <Content Include="Content\images\sprite\arrow_select.png" />
+    <Content Include="Content\images\sprite\blogshare.png" />
+    <Content Include="Content\images\sprite\cart.png" />
+    <Content Include="Content\images\sprite\cartgray.png" />
+    <Content Include="Content\images\sprite\cartgreen.png" />
+    <Content Include="Content\images\sprite\clock.png" />
+    <Content Include="Content\images\sprite\delete.png" />
+    <Content Include="Content\images\sprite\deletehover.png" />
+    <Content Include="Content\images\sprite\facebook.png" />
+    <Content Include="Content\images\sprite\icon_search.png" />
+    <Content Include="Content\images\sprite\instagram.png" />
+    <Content Include="Content\images\sprite\love.png" />
+    <Content Include="Content\images\sprite\member.png" />
+    <Content Include="Content\images\sprite\memberw.png" />
+    <Content Include="Content\images\sprite\peopleicn.png" />
+    <Content Include="Content\images\sprite\play.png" />
+    <Content Include="Content\images\sprite\print.png" />
+    <Content Include="Content\images\sprite\refresh.png" />
+    <Content Include="Content\images\sprite\search.png" />
+    <Content Include="Content\images\sprite\share-link.png" />
+    <Content Include="Content\images\sprite\youtube.png" />
+    <Content Include="Content\PagedList.css" />
+    <Content Include="Content\styles\jquery-confirm.min.css" />
+    <Content Include="Content\styles\PagedList.css" />
+    <Content Include="Content\styles\main.css" />
+    <Content Include="Global.asax" />
+    <None Include="packages.config" />
+    <Content Include="Scripts\analytics.js" />
+    <Content Include="Scripts\countdown\jquery.countdown-zh-TW.js" />
+    <Content Include="Scripts\countdown\jquery.countdown.min.js" />
+    <Content Include="Scripts\countdown\jquery.plugin.min.js" />
+    <Content Include="Scripts\ga-ecommerce.js" />
+    <None Include="Properties\PublishProfiles\tfoodies - Web Deploy.pubxml" />
+    <None Include="Scripts\jquery-3.1.1.intellisense.js" />
+    <Content Include="Scripts\jquery-3.1.1.js" />
+    <Content Include="Scripts\jquery-3.1.1.min.js" />
+    <Content Include="Scripts\jquery-3.1.1.slim.js" />
+    <Content Include="Scripts\jquery-3.1.1.slim.min.js" />
+    <Content Include="Scripts\jquery-confirm.min.js" />
+    <None Include="Scripts\jquery.validate-vsdoc.js" />
+    <Content Include="Scripts\jquery.validate.js" />
+    <Content Include="Scripts\jquery.validate.min.js" />
+    <Content Include="Scripts\main.js" />
+    <Content Include="Scripts\plugins.js" />
+    <Content Include="Scripts\vendor.js" />
+    <Content Include="Web.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="App_Start\RouteConfig.cs" />
+    <Compile Include="Commons\Cart.cs" />
+    <Compile Include="Commons\General.cs" />
+    <Compile Include="Controllers\AjaxController.cs" />
+    <Compile Include="Controllers\BaseController.cs" />
+    <Compile Include="Controllers\CaptchaController.cs" />
+    <Compile Include="Controllers\GroupMsController.cs" />
+    <Compile Include="Controllers\IncomeMsController.cs" />
+    <Compile Include="Controllers\MainMsController.cs" />
+    <Compile Include="Controllers\MemberMsController.cs" />
+    <Compile Include="Controllers\PageMsController.cs" />
+    <Compile Include="Controllers\PreMsController.cs" />
+    <Compile Include="Filters\CheckSessionAttribute.cs" />
+    <Compile Include="Filters\CheckShopComAttribute.cs" />
+    <Compile Include="Filters\CheckShoppingCartItemAttribute.cs" />
+    <Compile Include="Global.asax.cs">
+      <DependentUpon>Global.asax</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\web.config" />
+    <Content Include="Views\_ViewStart.cshtml" />
+    <Content Include="Views\Shared\_Layout.cshtml" />
+    <Content Include="Views\Shared\_Header.cshtml" />
+    <Content Include="Views\Shared\_Footer.cshtml" />
+    <Content Include="Views\Shared\_Scripts.cshtml" />
+    <Content Include="Views\Shared\_Styles.cshtml" />
+    <Content Include="Views\Shared\_SubMenu.cshtml" />
+    <Content Include="Views\MainMs\Index.cshtml" />
+    <Content Include="Views\MainMs\Products.cshtml" />
+    <Content Include="Views\MainMs\Recipes.cshtml" />
+    <Content Include="Views\MainMs\Issues.cshtml" />
+    <Content Include="Views\MainMs\About.cshtml" />
+    <Content Include="Views\MainMs\Login.cshtml" />
+    <Content Include="Views\MainMs\Forget.cshtml" />
+    <Content Include="Views\MainMs\RecipeDetail.cshtml" />
+    <Content Include="Views\MainMs\ProductDetail.cshtml" />
+    <Content Include="Views\MainMs\IssueDetail.cshtml" />
+    <Content Include="Views\Shared\_PartialProduct.cshtml" />
+    <Content Include="Views\Shared\_PartialCartItem.cshtml" />
+    <Content Include="Views\MainMs\ShoppingCart.cshtml" />
+    <Content Include="Views\MainMs\ShoppingProfile.cshtml" />
+    <Content Include="Views\MemberMs\EditProfile.cshtml" />
+    <Content Include="Views\MainMs\ShoppingSuccess.cshtml" />
+    <Content Include="Views\MemberMs\Orders.cshtml" />
+    <Content Include="Views\MemberMs\Mylists.cshtml" />
+    <Content Include="Views\MemberMs\OrderDetail.cshtml" />
+    <Content Include="Views\MainMs\Brand.cshtml" />
+    <Content Include="Views\Shared\_Addthis.cshtml" />
+    <Content Include="Views\PageMs\Contact.cshtml" />
+    <Content Include="Views\PageMs\Terms.cshtml" />
+    <Content Include="Views\PageMs\Policy.cshtml" />
+    <Content Include="Views\PageMs\Disclaimer.cshtml" />
+    <Content Include="Views\PageMs\Howtobuy.cshtml" />
+    <Content Include="Views\MemberMs\EditPassword.cshtml" />
+    <Content Include="Views\PreMs\Index.cshtml" />
+    <Content Include="Views\GroupMs\Index.cshtml" />
+    <Content Include="Views\GroupMs\Profile.cshtml" />
+    <Content Include="Views\Shared\_PartialProductList.cshtml" />
+    <Content Include="Views\MainMs\News.cshtml" />
+    <Content Include="Views\MainMs\NewsDetail.cshtml" />
+    <Content Include="Views\MainMs\Blogs.cshtml" />
+    <Content Include="Views\MainMs\GreenIssues.cshtml" />
+    <Content Include="Views\MainMs\Reports.cshtml" />
+    <Content Include="Views\MainMs\Events.cshtml" />
+    <Content Include="Views\MainMs\EventsDetail.cshtml" />
+    <Content Include="Views\MainMs\Knowledges.cshtml" />
+    <Content Include="Views\MainMs\KnowledgeDetail.cshtml" />
+    <Content Include="Views\IncomeMs\Index.cshtml" />
+    <Content Include="Scripts\jquery-3.1.1.slim.min.map" />
+    <Content Include="Scripts\jquery-3.1.1.min.map" />
+    <None Include="Web.Debug.config">
+      <DependentUpon>Web.config</DependentUpon>
+    </None>
+    <None Include="Web.Release.config">
+      <DependentUpon>Web.config</DependentUpon>
+    </None>
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\tfoodies.Libs\tfoodies.Libs.csproj">
+      <Project>{80bc0815-ea17-4b39-98d0-705ef9dc6f3e}</Project>
+      <Name>tfoodies.Libs</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\tfoodies.Models\tfoodies.Models.csproj">
+      <Project>{3dd1e787-d2ec-43a1-867e-f8ebe76d7ab2}</Project>
+      <Name>tfoodies.Models</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\tfoodies.Service\tfoodies.Service.csproj">
+      <Project>{1ae44478-5372-4063-94e5-ce1ea1d248bd}</Project>
+      <Name>tfoodies.Service</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+  </PropertyGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(VSToolsPath)\WebApplications\Microsoft.WebApplication.targets" Condition="'$(VSToolsPath)' != ''" />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v10.0\WebApplications\Microsoft.WebApplication.targets" Condition="false" />
+  <ProjectExtensions>
+    <VisualStudio>
+      <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}">
+        <WebProjectProperties>
+          <UseIIS>True</UseIIS>
+          <AutoAssignPort>True</AutoAssignPort>
+          <DevelopmentServerPort>32869</DevelopmentServerPort>
+          <DevelopmentServerVPath>/</DevelopmentServerVPath>
+          <IISUrl>http://localhost:32869/</IISUrl>
+          <NTLMAuthentication>False</NTLMAuthentication>
+          <UseCustomServer>False</UseCustomServer>
+          <CustomServerUrl>
+          </CustomServerUrl>
+          <SaveServerSettingsInUserFile>False</SaveServerSettingsInUserFile>
+        </WebProjectProperties>
+      </FlavorProperties>
+    </VisualStudio>
+  </ProjectExtensions>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>此專案參考這部電腦上所缺少的 NuGet 套件。請啟用 NuGet 套件還原，以下載該套件。如需詳細資訊，請參閱 http://go.microsoft.com/fwlink/?LinkID=322105。缺少的檔案是 {0}。</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.4.4\build\EntityFramework.props'))" />
+    <Error Condition="!Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.4.4\build\EntityFramework.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Azure.DocumentDB.2.18.0\build\Microsoft.Azure.DocumentDB.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Azure.DocumentDB.2.18.0\build\Microsoft.Azure.DocumentDB.targets'))" />
+    <Error Condition="!Exists('..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets'))" />
+  </Target>
+  <Import Project="..\packages\EntityFramework.6.4.4\build\EntityFramework.targets" Condition="Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.targets')" />
+  <Import Project="..\packages\Microsoft.Azure.DocumentDB.2.18.0\build\Microsoft.Azure.DocumentDB.targets" Condition="Exists('..\packages\Microsoft.Azure.DocumentDB.2.18.0\build\Microsoft.Azure.DocumentDB.targets')" />
+  <Import Project="..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets" Condition="Exists('..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets')" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

@@ -1,0 +1,44 @@
+﻿@{
+    var eventsdatas = (IPagedList<Events>)ViewBag.Events;
+    int c = 0;
+}
+
+<main id="main">
+    <section class="allpadding clr tallsection">
+        <div class="restrict-wide">
+            <div class="centered">
+                <h1>活動花絮</h1>
+                <div class="space">
+                    <div class="content-wide">
+                        <div class="darkgray">食在呼致力於將最天然安心的食材從產地直送餐桌，帶給大家天然美味的料理。我們有優秀的義大利國立品油師和專業的團隊，為您舉辦健康油品課程或餐會活動，可依需求彈性調整活動或料理。歡迎公司團體或私人包班來電詢問。</div>
+                    </div>
+                    <div class="main">活動專線：04-24366659</div>
+                </div>
+            </div>
+            <div class="direct-line"> </div>
+            <div class="three-column clr page">
+                @foreach (Events entity in eventsdatas)
+                {
+                    if (c != 0 && c % 3 == 0) {@Html.Raw("</div><div class=\"three-column clr page\">") }
+                    <a href="@Url.Action("EventsDetail", "MainMs", new { eventid = entity.eventid })" class="blog-wrap news-blog-wrap">
+                        <div class="article-single centered">
+                            <div class="descript left">
+                                @entity.eventdate.ToString("yyyy-MM-dd")
+                                <div class="article-pic"><img src="@(ViewBag.BlobUrl + entity.photo)" alt="@entity.title"></div>
+                            </div>
+                            <div class="article-title">@entity.title</div>
+                            <div class="article-desc">@entity.summary</div>
+                            <div class="left more">
+                                <div href="@Url.Action("EventsDetail", "MainMs", new { eventid = entity.eventid })" class="outline-btn">More</div>
+                            </div>
+                        </div>
+                    </a>
+                    c++;
+                }
+            </div>
+        </div>
+    </section>
+    <div class="centered more">
+        @Html.PagedListPager(list: eventsdatas, generatePageUrl: page => Url.Action("Events", new { p = page }))
+    </div>
+</main>

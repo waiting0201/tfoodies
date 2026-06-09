@@ -1,0 +1,199 @@
+﻿@{
+    var data = ViewBag.Products as IPagedList<Products>;
+    IEnumerable<Producttypes> producttypes = (IEnumerable<Producttypes>)ViewBag.Producttypes;
+    IEnumerable<Brands> brands = (IEnumerable<Brands>)ViewBag.Brands;
+    int x = 0;
+}
+
+<!-- MAIN CONTENT -->
+<div id="content">
+
+    <!-- widget grid -->
+    <section id="widget-grid" class="">
+        <!-- row -->
+        <div class="row">
+            <!-- NEW WIDGET START -->
+            <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                <div class="well padding-10">
+
+                    <!-- widget content -->
+                    <div class="widget-body">
+
+                        @using (Html.BeginForm("Products", "ProductMs", new { p = ViewBag.pageNumber }, FormMethod.Post, new { @id = "productform" }))
+                        {
+                            <div class="widget-body-toolbar">
+
+                                <div class="row">
+
+                                    <div class="form-inline">
+                                        <div class="col-sm-10">
+                                            <select name="producttypeid" class="form-control">
+                                                <option value="">請選擇分類</option>
+                                                @foreach (Producttypes producttype in producttypes)
+                                                {
+                                                    <option value="@producttype.producttypeid" @(ViewBag.producttypeid == producttype.producttypeid ? "selected" : "")>@producttype.title</option>
+                                                }
+                                            </select>
+                                            <select name="brandid" class="form-control">
+                                                <option value="">請選擇品牌</option>
+                                                @foreach (Brands brand in brands)
+                                                {
+                                                    <option value="@brand.brandid" @(ViewBag.brandid == brand.brandid ? "selected" : "")>@brand.title</option>
+                                                }
+                                            </select>
+                                            <select name="isdisabled" class="form-control">
+                                                <option value="">請選擇</option>
+                                                <option value="true" @(ViewBag.isdisabled == true ? "selected" : "")>下架</option>
+                                                <option value="false" @(ViewBag.isdisabled == false ? "selected" : "")>上架</option>
+                                            </select>
+                                            <input type="text" name="k" class="form-control" value="@ViewBag.k" />
+                                            <button class="btn btn-primary btn-labeled" type="submit"> <span class="btn-label"><i class="fa fa-refresh"></i></span>篩選</button>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        }
+
+                        @using (Html.BeginForm("SortProducts", "ProductMs", new { p = ViewBag.pageNumber }, FormMethod.Post, new { @id = "form" }))
+                        {
+                            <div class="widget-body-toolbar">
+
+                                <div class="row">
+
+                                    <div class="form-inline">
+                                        <div class="col-sm-10">
+                                            <button class="btn btn-info btn-labeled" type="submit"> <span class="btn-label"><i class="fa fa-refresh"></i></span>儲存排序</button>
+                                            <a class="btn btn-success btn-labeled" href="@Url.Action("AddProducts", "ProductMs", new { p = ViewBag.pageNumber })"> <span class="btn-label"><i class="fa fa-plus"></i></span>新增產品 </a>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            if (Html.ValidationSummary(true) != null)
+                            {
+                                <div class="alert alert-danger alert-block fade in">
+                                    <button class="close" data-dismiss="alert">
+                                        ×
+                                    </button>
+                                    <i class="fa-fw fa fa-info"></i>
+                                    @Html.ValidationSummary(true)
+                                </div>
+                            }
+
+                            <div class="table-responsive">
+
+                                <table class="table table-hover table-bordered table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th width="6%" class="text-center">排序</th>
+                                            <th width="7%" class="text-center">分類</th>
+                                            <th width="8%" class="text-center">品牌</th>
+                                            <th width="6%">產品編號</th>
+                                            <th>標題</th>
+                                            <th width="7%" class="text-center">容量</th>
+                                            <th width="6%" class="text-center">定價</th>
+                                            <th width="6%" class="text-center">售價</th>
+                                            <th width="6%" class="text-center">上架數</th>
+                                            <th width="5%" class="text-center">熱銷品</th>
+                                            <th width="5%" class="text-center">新品</th>
+                                            <th width="5%" class="text-center">下架</th>
+                                            <th width="5%" class="text-center">產品圖</th>
+                                            <th width="5%" class="text-center">編輯</th>
+                                            <th width="5%" class="text-center">刪除</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (Products entity in data)
+                                        {
+                                            <tr>
+                                                <td class="text-center">
+                                                    <label class="input form-group">
+                                                        <input type="text" name="EntityLists[@x].sort" data-bv-notempty="true" data-bv-message="" class="text-center" value="@entity.sort">
+                                                        <input type="hidden" name="EntityLists[@x].productid" value="@entity.productid">
+                                                    </label>
+                                                </td>
+                                                <td class="text-center">@entity.Producttypes.title</td>
+                                                <td class="text-center">@entity.Brands.title</td>
+                                                <td>@entity.productnum</td>
+                                                <td>@entity.title</td>
+                                                <td class="text-center">@entity.capacity</td>
+                                                <td class="text-center">@entity.fixprice</td>
+                                                <td class="text-center">@entity.price</td>
+                                                <td class="text-center">@entity.added</td>
+                                                <td class="text-center">@(entity.ishot ? "是" : "否")</td>
+                                                <td class="text-center">@(entity.isnew ? "是" : "否")</td>
+                                                <td class="text-center">
+                                                    @if (entity.isdisabled)
+                                                    {
+                                                        <span class="label label-danger">是</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="label label-primary">否</span>
+                                                    }
+                                                </td>
+                                                <td class="text-center"><a href="@Url.Action("Productphotos", "ProductMs", new { productid = entity.productid, p = ViewBag.pageNumber })" class="btn btn-warning btn-xs"><i class="fa fa-link"></i></a></td>
+                                                <td class="text-center"><a href="@Url.Action("EditProducts", "ProductMs", new { productid = entity.productid, p = ViewBag.pageNumber })" class="btn btn-info btn-xs"><i class="fa fa-edit"></i></a></td>
+                                                <td class="text-center"><a href="#" class="btn btn-danger btn-xs del" data-href="@Url.Action("DeleteProducts", "ProductMs", new { productid = entity.productid, p = ViewBag.pageNumber })" data-toggle="modal" data-target="#confirm-delete"><i class="fa fa-trash-o"></i></a></td>
+                                            </tr>
+                                            x++;
+                                        }
+                                    </tbody>
+                                </table>
+
+                            </div>
+                        }
+                    </div>
+                    <!-- end widget content -->
+
+                    <div class="text-center">
+                        @Html.PagedListPager(list: data, generatePageUrl: page => Url.Action("Products", new { p = page, ViewBag.producttypeid, ViewBag.brandid, ViewBag.isdisabled, ViewBag.k }))
+                    </div>
+
+                </div>
+
+            </article>
+            <!-- WIDGET END -->
+
+        </div>
+        <!-- end row -->
+
+    </section>
+    <!-- end widget grid -->
+
+</div>
+<!-- END MAIN CONTENT -->
+<!-- Modal -->
+<div class="modal fade" id="confirm-delete" tabindex="-1" role="dialog" aria-labelledby="" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                    &times;
+                </button>
+                <h4 class="modal-title" id="myModalLabel">確認</h4>
+            </div>
+            <div class="modal-body">
+                <p>
+                    確定要刪除嗎？
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">
+                    取消
+                </button>
+                <a href="#" class="btn btn-primary btn-ok">
+                    確定
+                </a>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+@section scripts {
+
+}

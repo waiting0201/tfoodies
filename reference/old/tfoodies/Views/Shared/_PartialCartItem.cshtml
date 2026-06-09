@@ -1,0 +1,19 @@
+﻿@model IEnumerable<CartItem>
+
+@foreach(CartItem item in Model)
+{ 
+<div class="buy-item">
+    <div class="buy-pic"><img src="@(ViewBag.BlobUrl + item.Photo)"></div>
+    <div class="buy-info">
+        <p>@(item.Name + item.Capacity)</p>
+        <div class="amount descript">
+            <div class="numb">數量</div>
+            <div class="quantity-wrap">
+                <div class="quantity">
+                    <div class="qtyinput">@item.Quantity</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+}

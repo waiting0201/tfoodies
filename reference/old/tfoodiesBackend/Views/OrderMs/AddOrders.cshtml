@@ -1,0 +1,840 @@
+﻿@model Orders
+@{
+    var citydatas = (IEnumerable<string>)ViewBag.Citys;
+    var memberdatas = (IEnumerable<Members>)ViewBag.Members;
+}
+
+<div id="content">
+
+    <!-- widget grid -->
+    <section id="widget-grid" class="">
+
+        <!-- row -->
+        <div class="row">
+
+            <!-- NEW WIDGET START -->
+            <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                <!-- Widget ID (each widget will need unique ID)-->
+                <div class="jarviswidget" id="wid-id-4" data-widget-editbutton="false" data-widget-colorbutton="false" data-widget-togglebutton="false" data-widget-deletebutton="false" data-widget-fullscreenbutton="false" data-widget-custombutton="false" data-widget-collapsed="false" data-widget-sortable="false">
+                    <header>
+                        <span class="widget-icon"> <i class="fa fa-pencil-square-o"></i> </span>
+                        <h2>新增訂單</h2>
+
+                    </header>
+
+                    <!-- widget div-->
+                    <div>
+
+                        <!-- widget content -->
+                        <div class="widget-body">
+
+                            <form id="form" method="post" class="form-horizontal" action="@Url.Action("AddOrders", "OrderMs", new { p = ViewBag.pageNumber })"
+                                  data-bv-message="This value is not valid"
+                                  data-bv-feedbackicons-valid="glyphicon glyphicon-ok"
+                                  data-bv-feedbackicons-invalid="glyphicon glyphicon-remove"
+                                  data-bv-feedbackicons-validating="glyphicon glyphicon-refresh">
+
+                                @if (Html.ValidationSummary(true) != null)
+                                {
+                                    <div class="alert alert-danger alert-block">
+                                        <h4 class="alert-heading">Error!</h4>
+                                        @Html.ValidationSummary(true)
+                                    </div>
+                                }
+                                
+                                <fieldset>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-1 control-label" for="ordertype">訂單類型</label>
+                                        <div class="col-lg-3">
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.ordertype, 2, new { @checked = "checked" })
+                                                線下單
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.ordertype, 3)
+                                                自用單
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.ordertype, 4)
+                                                預購
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.ordertype, 5)
+                                                公關
+                                            </label>
+                                        </div>
+
+                                        <label class="col-lg-1 control-label" for="warehouseid">出貨倉</label>
+                                        <div class="col-lg-2">
+                                            @Html.DropDownListFor(model => model.warehouseid, null, "--請選擇出貨倉--", new Dictionary<string, object>() { { "class", "form-control" }, { "data-bv-notempty", "true" }, { "data-bv-message", "請選擇出貨倉" } })
+                                            @Html.ValidationMessageFor(model => model.warehouseid)
+                                        </div>
+
+                                        <label class="col-lg-1 control-label" for="logisticid">物流</label>
+                                        <div class="col-lg-2">
+                                            @Html.DropDownListFor(model => model.logisticid, null, "--請選擇物流--", new Dictionary<string, object>() { { "class", "form-control" }, { "data-bv-notempty", "true" }, { "data-bv-message", "請選擇物流" } })
+                                            @Html.ValidationMessageFor(model => model.logisticid)
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-1 control-label" for="paystatus">付款狀態</label>
+                                        <div class="col-lg-3">
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.paystatus, 0, new { @checked = "checked" })
+                                                未付款
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.paystatus, 1, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                已付款
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.paystatus, 2, new Dictionary<string, object>() { { "disabled", "disabled" } })
+                                                退款
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.paystatus, 3)
+                                                免付款
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.paystatus, 4)
+                                                取消
+                                            </label>
+                                        </div>
+
+                                        <label class="col-lg-1 control-label" for="paydate">付款日期</label>
+                                        <div class="col-lg-1">
+                                            @Html.TextBoxFor(model => model.paydate, new Dictionary<string, object>() { { "class", "form-control datepicker" }, { "data-dateformat", "yy-mm-dd" } })
+                                        </div>
+
+                                        <label class="col-lg-1 control-label" for="deliverstatus">出貨狀態</label>
+                                        <div class="col-lg-3">
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.deliverstatus, 0, new { @checked = "checked" })
+                                                未出貨
+                                            </label>
+                                            @*<label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.deliverstatus, 4)
+                                                待出貨
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.deliverstatus, 1)
+                                                已出貨
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.deliverstatus, 2)
+                                                退貨
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.deliverstatus, 3)
+                                                取消
+                                            </label>*@
+                                        </div>
+
+                                        <label class="col-lg-1 control-label" for="deliverdate">出貨日期</label>
+                                        <div class="col-lg-1">
+                                            @Html.TextBoxFor(model => model.deliverdate, new Dictionary<string, object>() { { "class", "form-control datepicker" }, { "data-dateformat", "yy-mm-dd" } })
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-1 control-label">購買人</label>
+                                        <div class="col-lg-2">
+                                            <div class="input-group">
+                                                <input type="hidden" id="memberid" name="memberid" />
+                                                <input class="form-control" id="membername" name="membername" type="text" data-bv-notempty="true" data-bv-message="請選擇購買人" readonly />
+                                                <div class="input-group-btn">
+                                                    <a href="javascript:;" class="btn btn-primary" data-toggle="modal" data-target="#memberModal">
+                                                        <i class="fa fa-reorder"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <label class="col-lg-1 control-label" for="orderdate">訂單日期</label>
+                                        <div class="col-lg-1">
+                                            @Html.TextBoxFor(model => model.orderdate, new Dictionary<string, object>() { { "class", "form-control datepicker" }, { "data-dateformat", "yy-mm-dd" }, { "data-bv-notempty", "true" }, { "data-bv-message", "請選擇訂單日期" } })
+                                        </div>
+
+                                        <label class="col-lg-1 control-label">配送時段</label>
+                                        <div class="col-lg-5">
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.recivertime, 1, new { @checked = "checked" })
+                                                上午9-12時
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.recivertime, 2)
+                                                下午12-17時
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.recivertime, 3)
+                                                晚上17-20時
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.recivertime, 4)
+                                                不指定
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-1 control-label">收件人姓名</label>
+                                        <div class="col-lg-2">
+                                            @Html.TextBoxFor(model => model.recivername, new Dictionary<string, object>() { { "class", "form-control" }, { "maxlength", "20" }, { "data-bv-stringlength-message", "請勿超過20個字元" } })
+                                            <input type="checkbox" id="issame" /> 同購買人
+                                        </div>
+
+                                        <label class="col-lg-1 control-label">收件人電話</label>
+                                        <div class="col-lg-1">
+                                            @Html.TextBoxFor(model => model.recivermobile, new Dictionary<string, object>() { { "class", "form-control" }, { "data-bv-notempty", "true" }, { "data-bv-message", "請輸入收件人電話" }, { "maxlength", "15" }, { "data-bv-stringlength-message", "請勿超過15個字元" } })
+                                        </div>
+
+                                        <label class="col-lg-1 control-label">收件人地址</label>
+                                        <div class="col-lg-6 form-inline">
+                                            <select id="recivercity" name="recivercity" class="form-control selectcity" data-bv-notempty="true" data-bv-message="此為必填欄位">
+                                                <option value="">請選擇縣市</option>
+                                                @foreach (string city in citydatas)
+                                                {
+                                                    <option>@city</option>
+                                                }
+                                            </select>
+                                            <select id="reciverarea" name="reciverarea" class="form-control selectarea" data-bv-notempty="true" data-bv-message="此為必填欄位">
+                                                <option value="">鄉鎮市區</option>
+                                            </select>
+                                            <input type="hidden" id="reciverzipcodeid" name="reciverzipcodeid" value="" />
+                                            @Html.TextBoxFor(model => model.reciveraddress, new Dictionary<string, object>() { { "style", "width:60%" }, { "class", "form-control" } })
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-1 control-label">發票類型</label>
+                                        <div class="col-lg-4">
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.invoicetype, 1, new { @checked = "checked" })
+                                                二聯式
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.invoicetype, 2)
+                                                捐贈
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.invoicetype, 3)
+                                                三聯式
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.invoicetype, 4)
+                                                免開
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.invoicetype, 5)
+                                                POS機
+                                            </label>
+                                        </div>
+
+                                        <label class="col-lg-1 control-label">發票號碼</label>
+                                        <div class="col-lg-1">
+                                            @Html.TextBoxFor(model => model.invoicecode, new Dictionary<string, object>() { { "class", "form-control" } })
+                                        </div>
+
+                                        <label class="col-lg-1 control-label">公司統編</label>
+                                        <div class="col-lg-1">
+                                            @Html.TextBoxFor(model => model.companynumber, new Dictionary<string, object>() { { "class", "form-control" } })
+                                        </div>
+
+                                        <label class="col-lg-1 control-label">公司抬頭</label>
+                                        <div class="col-lg-2">
+                                            @Html.TextBoxFor(model => model.companytitle, new Dictionary<string, object>() { { "class", "form-control" } })
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-1 control-label">付款方式</label>
+                                        <div class="col-lg-3">
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.paytype, 1)
+                                                線上刷卡
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.paytype, 2)
+                                                貨到付款
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.paytype, 3)
+                                                ATM
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.paytype, 4)
+                                                免付款
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.paytype, 5)
+                                                現金
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.paytype, 6)
+                                                電匯
+                                            </label>
+                                            <label class="radio radio-inline">
+                                                @Html.RadioButtonFor(model => model.paytype, 7)
+                                                支票
+                                            </label>
+                                        </div>
+
+                                        <label class="col-lg-1 control-label">運費</label>
+                                        <div class="col-lg-1">
+                                            @Html.TextBoxFor(model => model.freight, new { @class = "form-control", @Value = "0" })
+                                            @Html.ValidationMessageFor(model => model.freight)
+                                        </div>
+
+                                        <label class="col-lg-1 control-label">折扣金額</label>
+                                        <div class="col-lg-1">
+                                            @Html.TextBoxFor(model => model.discount, new { @class = "form-control", @Value = "0" })
+                                        </div>
+
+                                        <label class="col-lg-1 control-label">購買金額</label>
+                                        <div class="col-lg-1">
+                                            @Html.TextBoxFor(model => model.total, new Dictionary<string, object>() { { "class", "form-control" }, { "readonly", "readonly" } })
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-lg-1 control-label">備註</label>
+                                        <div class="col-lg-3">
+                                            @Html.TextAreaFor(model => model.note, 3, 40, new Dictionary<string, object>() { { "class", "form-control" } })
+                                        </div>
+
+                                        <label class="col-lg-1 control-label">提單號碼</label>
+                                        <div class="col-lg-2">
+                                            @Html.TextBoxFor(model => model.trackingnumber, new Dictionary<string, object>() { { "class", "form-control" } })
+                                        </div>
+                                    </div>
+
+                                </fieldset>
+
+                                <fieldset>
+
+                                    <div class="widget-body-toolbar">
+
+                                        <div class="row">
+
+                                            <div class="form-inline">
+                                                <div class="col-sm-12 text-right">
+                                                    <a class="btn btn-success btn-labeled" href="javascript:;" id="addproduct"> <span class="btn-label"><i class="fa fa-plus"></i></span>新增產品 </a>
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                    <div class="table-responsive">
+                                        <table id="dt_basic" class="table table-bordered producttable">
+                                            <thead>
+                                                <tr>
+                                                    <th width="10%">產品編號</th>
+                                                    <th>產品名稱</th>
+                                                    <th class="text-center" width="8%">數量</th>
+                                                    <th class="text-center" width="6%">折扣</th>
+                                                    <th class="text-center" width="7%">單價</th>
+                                                    <th class="text-center" width="7%">小計</th>
+                                                    <th class="text-center" width="5%">刪除</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><input type="text" name="orderdetails[0].productnum" class="form-control productnum" /><input type="hidden" name="orderdetails[0].productid" value="" /><input type="hidden" name="orderdetails[0].isgift" class="isgift" value="0" /></td>
+                                                    <td></td>
+                                                    <td>
+                                                        <div class="input-group">
+                                                            <input type="text" name="orderdetails[0].qty" class="form-control text-center productqty" />
+                                                            <div class="input-group-btn">
+                                                                <a class="btn btn-primary" data-toggle="modal" data-target="#warehousestockModal">...</a>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="input-group">
+                                                            <input type="text" name="orderdetails[0].discount" class="form-control text-center productdiscount" />
+                                                            <span class="input-group-addon">折</span>
+                                                        </div>                                                          
+                                                    </td>
+                                                    <td><input type="text" name="orderdetails[0].price" class="form-control text-center productprice" /><input type="hidden" name="oprice" class="oprice" /></td>
+                                                    <td><input type="text" name="orderdetails[0].subtotal" class="form-control text-center productsubtotal" readonly /></td>
+                                                    <td class="text-center"><a href="javascript:;" class="btn btn-danger btn-xs del"><i class="fa fa-trash-o"></i></a></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                </fieldset>                                    
+                                        
+                                <div class="form-actions">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <a class="btn btn-default" href="@Url.Action("Orders", "OrderMs", new { p = ViewBag.pageNumber })">
+                                                取消
+                                            </a>
+                                            <button class="btn btn-primary" type="submit">
+                                                <i class="fa fa-save"></i>
+                                                確認
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </form>
+                        </div>
+                        <!-- end widget content -->
+
+                    </div>
+                    <!-- end widget div -->
+
+                </div>
+                <!-- end widget -->
+
+            </article>
+            <!-- WIDGET END -->
+
+        </div>
+        <!-- end row -->
+
+    </section>
+    <!-- end widget grid -->
+
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="memberModal" tabindex="-1" role="dialog" aria-labelledby="memberModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                    &times;
+                </button>
+                <h4 class="modal-title" id="memberModalLabel">請選擇會員</h4>
+            </div>
+            <div class="modal-body">
+
+                <div class="row">
+                    
+                    <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                        <!-- Widget ID (each widget will need unique ID)-->
+                        <div class="jarviswidget jarviswidget-color-darken" id="wid-id-1" data-widget-editbutton="false">
+
+                            <header>
+                                <span class="widget-icon"> <i class="fa fa-table"></i> </span>
+                                <h2>會員列表</h2>
+                            </header>
+
+                            <!-- widget div-->
+                            <div>
+
+                                <!-- widget edit box -->
+                                <div class="jarviswidget-editbox">
+                                    <!-- This area used as dropdown edit box -->
+
+                                </div>
+                                <!-- end widget edit box -->
+                                <!-- widget content -->
+                                <div class="widget-body no-padding">
+
+                                    <div class="table-responsive">
+
+                                        <table id="dtmember" class="table table-bordered table-striped table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>姓名</th>
+                                                    <th>手機</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (Members member in memberdatas)
+                                                { 
+                                                    <tr data-memberid="@member.memberid" data-membername="@member.name">
+                                                        <td>@member.name</td>
+                                                        <td>@member.mobile</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+
+                                    </div>
+                                </div>
+                                <!-- end widget content -->
+
+                            </div>
+                            <!-- end widget div -->
+
+                        </div>
+                        <!-- end widget -->
+
+                    </article>
+
+                </div>
+                
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div>
+
+<div class="modal fade" id="warehousestockModal" tabindex="-1" role="dialog" aria-labelledby="warehousestockModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                    &times;
+                </button>
+                <h4 class="modal-title" id="warehousestockModalLabel">請輸入數量</h4>
+            </div>
+            <div class="modal-body">
+
+                <div class="row">
+
+                    <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                        <!-- Widget ID (each widget will need unique ID)-->
+                        <div class="jarviswidget jarviswidget-color-darken" id="wid-id-1" data-widget-editbutton="false">
+
+                            <header>
+                                <span class="widget-icon"> <i class="fa fa-table"></i> </span>
+                                <h2>庫存列表</h2>
+                            </header>
+
+                            <!-- widget div-->
+                            <div>
+
+                                <!-- widget edit box -->
+                                <div class="jarviswidget-editbox">
+                                    <!-- This area used as dropdown edit box -->
+
+                                </div>
+                                <!-- end widget edit box -->
+                                <!-- widget content -->
+                                <div class="widget-body no-padding">
+
+                                    <div class="table-responsive">
+
+                                        <table id="dtwarehousestock" class="table table-bordered table-striped table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>姓名</th>
+                                                    <th>手機</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (Members member in memberdatas)
+                                                {
+                                                    <tr data-memberid="@member.memberid" data-membername="@member.name">
+                                                        <td>@member.name</td>
+                                                        <td>@member.mobile</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+
+                                    </div>
+                                </div>
+                                <!-- end widget content -->
+
+                            </div>
+                            <!-- end widget div -->
+
+                        </div>
+                        <!-- end widget -->
+
+                    </article>
+
+                </div>
+
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div>
+<!-- /.modal -->
+
+@section scripts {
+<script>
+    function recountRow(obj) {
+        var countRow = 0;
+        obj.find('tr').each(function () {
+            $(this).find("input,textarea").each(function () {
+                $(this).attr("name", $(this).attr("name").replace(/\[(\d+)\]/g, "[" + countRow + "]"));
+            });
+            countRow++;
+        });
+    }
+
+    function recountSubTotal(obj) {
+        var subtotal = 0;
+        var qty = obj.find("input.productqty").val();
+        var discount = obj.find("input.productdiscount").val();
+        var price = obj.find("input.productprice").val();
+        var oprice = obj.find("input.oprice").val();
+
+        if (discount != "") {
+            discount = "0." + discount;
+
+            price = oprice;
+            obj.find("input.productprice").val(price);
+            //javascript乘法錯誤 要先乘以10000再除10000
+            subtotal = Math.round(qty * price * 10000 * discount / 10000);
+        } else {
+            subtotal = qty * price;
+        }
+
+        return subtotal;
+    }
+
+    function recountTotal(obj) {
+        var total = 0;
+        var freight = 0;
+        var logisticid = $("#logisticid").val();
+
+        obj.find('tr').each(function () {
+            total += ($(this).find("input.productsubtotal").val() != "") ? parseInt($(this).find("input.productsubtotal").val()) : 0;
+        });
+
+        if (logisticid.toUpperCase() == "C9077EFD-059E-4EEF-AA8A-E43093FA8E0B" || logisticid.toUpperCase() == "39F44992-E65C-4F67-B84C-6CD59F3D38BC") {
+            freight = 0;
+        } else {
+            freight = (total < 1500) ? 180 : 0;
+        }
+
+        $("#freight").val(freight);
+        $("#total").val(parseInt(total));
+    }
+
+    function removeValue(obj) {
+        obj.find("input").val("");
+        obj.find("td:eq(1)").html("");
+    }
+
+    $(function () {
+        var defaultValue = false;
+        var fullIdPath = [];
+
+        $("#issame").click(function (e) {
+            if ($(this).is(':checked')) {
+                var memberid = $("#memberid").val();
+                if (memberid != null && memberid != "") {
+                    $.post("@Url.Action("GetMember", "Ajax")", {
+                        memberid: memberid
+                    }, function (res) {
+                        $("#recivername").val(res.recivername);
+                        $("#recivermobile").val(res.recivermobile);
+                        $("#reciverzipcodeid").val(res.reciverzipcodeid);
+                        $("#reciveraddress").val(res.reciveraddress);
+
+                        defaultValue = true;
+                        fullIdPath[0] = res.recivercity;
+                        fullIdPath[1] = res.reciverzipcodeid;
+                        $('.selectcity').val(fullIdPath[0]).trigger('change');
+                    });
+                } else {
+                    e.preventDefault();
+                    return false;
+                }
+            } else {
+                $("#recivername").val('');
+                $("#recivermobile").val('');
+                $("#reciverzipcodeid").val('');1
+                $("#reciveraddress").val('');
+
+                defaultValue = false;
+                $('.selectcity').val('').trigger('change');
+            }
+        });
+
+        $("#dtmember").dataTable();
+
+        $("#membername, #orderdate").change(function () {
+            $(this).closest('form').bootstrapValidator('revalidateField', $(this).prop('name'));
+        });
+
+        $("#dtmember tbody").on("click", "tr", function () {
+            var tr = $(this);
+            var memberid = tr.data("memberid");
+            var membername = tr.data("membername");
+            $("#memberid").val(memberid);
+            $("#membername").val(membername).trigger("change");
+            $('#memberModal').modal('hide');
+        });
+
+        $("#logisticid").change(function () {
+            var obj = $("#dt_basic tbody");
+
+            recountTotal(obj);
+        });
+
+        $("#warehouseid").change(function () {
+            var obj = $('.producttable tbody');
+
+            //obj.empty();
+            //$("#addproduct").trigger("click");
+
+            //var option = obj.find("input.productnum");
+            //$(this).closest('form').bootstrapValidator({
+                //excluded: ""
+            //});
+        });
+
+        $('#warehousestockModal').on('show.bs.modal', function (e) {
+            //$(this).find('.btn-ok').attr('href', $(e.relatedTarget).data('href'));
+            alert($("#warehouseid").val());
+        });
+
+        $("#companynumber").on("keyup", function () {
+            var obj = $(this);
+            if (obj.val().length == 8) {
+                $.post("@Url.Action("GetCompanyTitle", "Ajax")", {
+                    companynumber: obj.val()
+                }, function (res) {
+                    if (!res) {
+                        $("#companytitle").val("");
+                    } else {
+                        $("#companytitle").val(res.Company_Name);
+                    }
+                });
+            } else {
+                $("#companytitle").val("");
+            }
+        });
+
+        $("#addproduct").click(function () {
+            var obj = $('.producttable tbody');
+            var countRow = obj.find('tr').length;
+
+            var row = '<tr>';
+            row += '<td><input type="text" name="orderdetails[' + countRow + '].productnum" class="form-control productnum" /><input type="hidden" name="orderdetails[' + countRow + '].productid" value="" /><input type="hidden" name="orderdetails[' + countRow + '].isgift" class="isgift" value="0" /></td>';
+            row += '<td></td>';
+            row += '<td>';
+            row += '<div class="input-group">';
+            row += '<input type="text" name="orderdetails[' + countRow + '].qty" class="form-control text-center productqty" />';
+            row += '<div class="input-group-btn">';
+            row += '<a class="btn btn-primary" data-toggle="modal" data-target="#warehousestockModal">...</a>';
+            row += '</div>';
+            row += '</div>';
+            row += '</td>';
+            row += '<td>';
+            row += '<div class="input-group">';
+            row += '<input type="text" name="orderdetails[' + countRow + '].discount" class="form-control text-center productdiscount" />';
+            row += '<span class="input-group-addon">折</span>';
+            row += '</div>';
+            row += '</td>';
+            row += '<td><input type="text" name="orderdetails[' + countRow + '].price" class="form-control text-center productprice" /><input type="hidden" name="oprice" class="oprice" /></td>';
+            row += '<td><input type="text" name="orderdetails[' + countRow + '].subtotal" class="form-control text-center productsubtotal" readonly /></td>';
+            row += '<td class="text-center"><a href="javascript:;" class="btn btn-danger btn-xs del"><i class="fa fa-trash-o"></i></a></td>';
+            row += '</tr>';
+
+            obj.append(row);
+        });
+
+        $('.table').on('click', '.del', function () {
+            var obj = $(this).parent().parent().parent();
+            var countRow = obj.find('tr').length;
+            if (countRow > 0) {
+                var trobj = $(this).parent().parent();
+                var tbobj = trobj.parent();
+                trobj.remove();
+                recountRow(tbobj);
+            }
+            recountTotal(obj);
+        });
+
+        $('.producttable').on('blur', '.productnum', function (e) {
+            var obj = $(this);
+            var procode = obj.val();
+            var trobj = obj.parents("tr");
+            var tbobj = obj.parents("tbody");
+            var isavalible = true;
+
+            //***************判斷產品是否重複**************//
+            //trobj.addClass("currentrow");
+            //tbobj.find("tr").each(function () {
+            //    if (!$(this).hasClass("currentrow")) {
+            //        var v = $(this).find("input.productnum").val();
+            //        if (v == procode) {
+            //            isavalible = false;
+            //            return false;
+            //        }
+            //    }
+            //});
+            //trobj.removeClass("currentrow");
+            //*********************************************//
+
+            if (isavalible && procode != "") {
+                $.post('@Url.Action("GetProductbyProductnum", "Ajax")', {
+                    productnum: procode
+                }, function (res) {
+                    if (res.code == "200") {
+                        trobj.find("td:eq(1)").html(res.title + " " + res.capacity + res.setproduct);
+                        trobj.find("input").each(function () {
+                            if ($(this).attr("name").search(/(productid)/) != -1) $(this).val(res.productid);
+                            if ($(this).attr("name").search(/(price)/) != -1) $(this).val(res.price);
+                            if ($(this).attr("name").search(/(oprice)/) != -1) $(this).val(res.price);
+                            if ($(this).attr("name").search(/(qty)/) != -1) $(this).val(1);
+                            if ($(this).attr("name").search(/(subtotal)/) != -1) $(this).val(recountSubTotal(trobj));
+                        });
+                        recountTotal(tbobj);
+                    } else {
+                        alert("查無此產品!");
+                        removeValue(trobj);
+                        recountTotal(tbobj);
+                        return;
+                    }
+                });
+            } else {
+                alert("產品不可以重複加入!");
+                removeValue(trobj);
+                recountTotal(tbobj);
+                return;
+            }
+        });
+
+        $('.producttable').on('keyup', '.productqty, .productdiscount, .productprice', function () {
+            var obj = $(this);
+            var trobj = obj.parents("tr");
+            var tbobj = obj.parents("tbody");
+            var tdtitle = trobj.find("td:eq(1)");
+            var htmltitle = tdtitle.html().replace(" (贈品)", "");
+
+            if (obj.attr("class").search(/(productprice)/) != -1) {
+                if (obj.val() == 0) {
+                    tdtitle.html(htmltitle + " (贈品)");
+                    trobj.find("input.isgift").val(1);
+                } else {
+                    tdtitle.html(htmltitle);
+                    trobj.find("input.isgift").val(0);
+                }
+            }
+
+            trobj.find("input.productsubtotal").val(recountSubTotal(trobj));
+            recountTotal(tbobj);
+        });
+
+        $(".selectcity").change(function () {
+            var obj = $(this);
+            var parentobj = obj.parent().parent();
+            var targetobj = parentobj.find(".selectarea");
+            $.post("@Url.Action("GetZipcodeByCity", "Ajax")", {
+                'city': $(this).val()
+            }, function (res) {
+                if (defaultValue) {
+                    targetobj.find('option').remove().end().append(res).val(fullIdPath[1]).trigger('change');
+                } else {
+                    targetobj.find('option').remove().end().append(res).trigger('change');
+                }
+            });
+        });
+
+        $('.selectarea').change(function () {
+            var obj = $(this);
+            $("#reciverzipcodeid").val(obj.val());
+            //obj.next("input[type='hidden']").val(obj.val());
+        });
+    });
+</script>
+}

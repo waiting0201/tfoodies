@@ -1,0 +1,31 @@
+# .NET
+bin/
+obj/
+publish/
+*.user
+[Dd]ebug/
+[Rr]elease/
+
+# Bicep build output
+infra/*.json
+
+# Node / frontends
+node_modules/
+web/**/dist/
+web/store/.output/
+web/store/.nuxt/
+web/store/.data/
+web/visual-regression/test-results/
+web/visual-regression/playwright-report/
+
+# Env / secrets (NEVER commit)
+*.local.settings.json
+src/**/local.settings.json
+.env
+.env.*
+*.publishsettings
+
+# OS / editor
+.DS_Store
+.vs/
+.idea/

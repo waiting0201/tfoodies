@@ -1,0 +1,346 @@
+﻿<script src="~/scripts/vendor.js"></script>
+<script src="~/scripts/plugins.js"></script>
+<script src="~/Scripts/jquery.validate.min.js"></script>
+<script src="~/Scripts/jquery-confirm.min.js"></script>
+@*<script src="~/Scripts/analytics.js"></script>*@
+<script src="~/Scripts/ga-ecommerce.js"></script>
+<script src="~/scripts/main.js"></script>
+<script>
+    $(function () {
+        $(document).on('keydown', 'input.qty, input.checkqty', function (e) {
+            // Allow: backspace, delete
+            if ($.inArray(e.keyCode, [46, 8]) !== -1 ||
+                // Allow: Ctrl+A, Command+A
+			   (e.keyCode == 65 && (e.ctrlKey === true || e.metaKey === true)) ||
+                // Allow: home, end, left, right, down, up
+			   (e.keyCode >= 35 && e.keyCode <= 40)) {
+                // let it happen, don't do anything
+                return;
+            }
+            // Ensure that it is a number and stop the keypress
+            if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+                e.preventDefault();
+            }
+        });
+
+        $(".minus").click(function () {
+            var obj = $(this).parent().parent();
+            var t = obj.find("#qty"), i = parseInt(t.val(), 10);
+            i - 1 > 0 && t.val(i - 1);
+        });
+
+        $(".plus").click(function () {
+            var obj = $(this).parent().parent();
+            var t = obj.find("#qty"), i = parseInt(t.val(), 10);
+            i + 1 <= 99 && t.val(i + 1);
+        });
+
+        $(".buybtn").click(function () {
+            var obj = $(this);
+            var objqty = $("#qty");
+            var qty = 1;
+
+            if (objqty.length != 0) {
+                var i = parseInt(objqty.val(), 10);
+                qty = ((i != "" && i != 0) ? i : 1);
+            }
+
+            $.post("@Url.Action("AddToCart", "Ajax")", {
+                productid: obj.data("productid"),
+                qty: qty
+            }, function (result) {
+                location.href = "@Url.Action("ShoppingCart", "MainMs")";
+            });
+        });
+
+        $(".mylistbtn").one('click', function () {
+            var obj = $(this);
+
+            $.post("@Url.Action("AddToMylist", "Ajax")", {
+                productid: obj.data("productid")
+            }, function (res) {
+                if (res.code == "201") {
+                    $.alert({
+                        title: '提示訊息',
+                        content: '您尚未登入！',
+                        boxWidth: '25%',
+                        useBootstrap: false,
+                        type: 'red',
+                    });
+                    return false;
+                } else {
+                    $.alert({
+                        title: '提示訊息',
+                        content: '成功加入追蹤清單！',
+                        boxWidth: '25%',
+                        useBootstrap: false,
+                        type: 'green',
+                    });
+                    return false;
+                }
+            });
+        });
+
+        $(".buybtn").off('click').on('click', function () {
+            var qty = $("#qty").val();
+            var productid = $(this).data("productid");
+            var title = $(this).data("title");
+
+            $.post("@Url.Action("AddToCart", "Ajax")", {
+                productid: productid,
+                qty: qty
+            }, function (result) {
+                if (result.code == "220") {
+                    $.alert({
+                        title: '提示訊息',
+                        content: '商品庫存量剩下 (' + result.message + ') ！',
+                        boxWidth: '30%',
+                        useBootstrap: false,
+                        type: 'red',
+                    });
+                    obj.prop('disabled', false);
+                    return false;
+                } else {
+                    gtag.add_to_cart(productid, title, { quantity : qty });
+
+                    location.href = "@Url.Action("ShoppingCart", "MainMs")";
+                    return false;
+                }
+            });
+        });
+
+        $(document).off('click').on('click', '.js-add-cart', function () {
+            var obj = $(this);
+            var objqty = $("#qty");
+            var qty = 1;
+
+            obj.prop('disabled', true);
+
+            if (objqty.length != 0) {
+                var i = parseInt(objqty.val(), 10);
+                qty = ((i != "" && i != 0) ? i : 1);
+            }
+
+            $.post("@Url.Action("AddToCart", "Ajax")", {
+                productid: obj.data("productid"),
+                qty: qty
+            }, function (result) {
+                if (result.code == "220") {
+                    $.alert({
+                        title: '提示訊息',
+                        content: '商品庫存量剩下 ( ' + result.message + ' ) ！',
+                        boxWidth: '30%',
+                        useBootstrap: false,
+                        type: 'red',
+                    });
+                    obj.prop('disabled', false);
+                    return false;
+                } else {
+                    var addsmall = $(".addsmall").html();
+                    var total = parseInt(addsmall) + parseInt(qty);
+
+                    $(".buy-item-wrap").html(result);
+                    $(".addnumber").html("<div class=\"addsmall\">" + total + "</div>").show();
+                    //$.alert({
+                    //    title: '提示訊息',
+                    //    content: '商品成功加入購物車！',
+                    //    boxWidth: '30%',
+                    //    useBootstrap: false,
+                    //    type: 'green',
+                    //});
+                    $(".cart-content").css("display", "block");
+                    setTimeout(function () {
+                        $(".cart-content").css("display", "none");
+                    }, 3500);
+                    obj.prop('disabled', false);
+
+                    gtag.add_to_cart(obj.data("productid"), obj.data("title"), { quantity: qty });
+                    return false;
+                }
+            });
+        });
+
+        $(".js-remove-cart").click(function () {
+            var obj = $(this);
+            var rowid = obj.data("rowid");
+
+            $.post("@Url.Action("RemoveToCart", "Ajax")", {
+                rowid: rowid
+            }, function (result) {
+                if (result.code == "200") {
+                    location.reload();
+                }
+            });
+        });
+
+        $(".sminus").click(function (e) {
+            var obj = $(this), rowid = obj.data("rowid");
+            var parentobj = obj.parents(".quantity"), added = parentobj.data("added");
+            var t = parentobj.find(".checkqty"), i = parseInt(t.val(), 10);
+
+            var qty = i - 1;
+
+            if (qty != '' && qty != 0 && qty > 0) {
+                $.post("@Url.Action("UpdateToCart", "Ajax")", {
+                    rowid: rowid,
+                    qty: qty
+                }, function (result) {
+                    if (result.code == "200") {
+                        t.val(qty);
+
+                        obj.parents(".td-qty").next().html("NT$ " + result.subtotal);
+                        obj.parents("table").find("tr:nth-last-child(4)").find(".total").html("NT$ " + result.totalprice);
+                        obj.parents("table").find("tr:nth-last-child(3)").find("td:eq(2)").html("- NT$ " + result.discountprice);
+                        obj.parents("table").find("tr:nth-last-child(2)").find(".total").html("NT$ " + result.freightprice);
+                        obj.parents("table").find("tr:nth-last-child(1)").find("td:eq(2)").html("NT$ " + result.amountprice);
+                    } else {
+                        e.preventDefault();
+
+                        $.alert({
+                            title: '提示訊息',
+                            content: result.message,
+                            boxWidth: '30%',
+                            useBootstrap: false,
+                            type: 'red',
+                        });
+                        return false;
+                    }
+                });
+            } else {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        $(".splus").click(function (e) {
+            var obj = $(this), rowid = obj.data("rowid");
+            var parentobj = obj.parents(".quantity"), added = parentobj.data("added");
+            var t = parentobj.find(".checkqty"), i = parseInt(t.val(), 10);
+
+            var qty = i + 1;
+
+            if (qty != '' && qty != 0 && added >= qty && qty <= 99) {
+                $.post("@Url.Action("UpdateToCart", "Ajax")", {
+                    rowid: rowid,
+                    qty: qty
+                }, function (result) {
+                    if (result.code == "200") {
+                        t.val(qty);
+
+                        obj.parents(".td-qty").next().html("NT$ " + result.subtotal);
+                        obj.parents("table").find("tr:nth-last-child(4)").find(".total").html("NT$ " + result.totalprice);
+                        obj.parents("table").find("tr:nth-last-child(3)").find("td:eq(2)").html("- NT$ " + result.discountprice);
+                        obj.parents("table").find("tr:nth-last-child(2)").find(".total").html("NT$ " + result.freightprice);
+                        obj.parents("table").find("tr:nth-last-child(1)").find("td:eq(2)").html("NT$ " + result.amountprice);
+                    } else {
+                        e.preventDefault();
+
+                        $.alert({
+                            title: '提示訊息',
+                            content: result.message,
+                            boxWidth: '30%',
+                            useBootstrap: false,
+                            type: 'red',
+                        });
+                        return false;
+                    }
+                });
+            } else {
+                e.preventDefault();
+
+                $.alert({
+                    title: '提示訊息',
+                    content: '庫存不足，請聯絡管理員！',
+                    boxWidth: '30%',
+                    useBootstrap: false,
+                    type: 'red',
+                });
+                return false;
+            }
+        });
+
+        $(".paycheck").click(function () {
+            $.post("@Url.Action("CheckShoppingCartItem", "Ajax")", function (result) {
+                if (result.code == "201") {
+                    $.alert({
+                        title: '提示訊息',
+                        content: '您的購物車中無任何商品！',
+                        boxWidth: '25%',
+                        useBootstrap: false,
+                        type: 'red',
+                    });
+                    return false;
+                } else {
+                    @if (Session["IsLogin"] != null && (bool)Session["IsLogin"])
+                    {
+                        <text>
+                            location.href = "@Url.Action("ShoppingCart", "MainMs")";
+                        </text>
+                    }else{
+                        <text>
+                            location.href = "@Url.Action("Login", "MainMs")";
+                        </text>
+                    }
+                }
+            });
+        });
+
+        $(".popup-contact").click(function () {
+            var obj = $(this);
+            $("#noticeproductid").val(obj.data("productid"));
+
+            $.magnificPopup.open({
+                items: {
+                    src: '#checkOutofnotice',
+                    type: 'inline'
+                },
+                midClick: true,
+                showCloseBtn: false
+            });
+            return false;
+        });
+
+        $("#btnOutofnotice").click(function () {
+            var curr = $(this);
+            var obj = $('#outofnoticeform');
+            curr.prop("disabled", true);
+
+            if (obj.valid()) {
+                $.post("@Url.Action("PostOutofnotice", "Ajax")", obj.serialize(), function (res) {
+                    if (res.code == "200") {
+                        $.magnificPopup.close();
+
+                        $.alert({
+                            title: '提示訊息',
+                            content: res.message,
+                            boxWidth: '25%',
+                            useBootstrap: false,
+                            type: 'green',
+                        });
+                        curr.prop("disabled", false);
+                        return false;
+                    } else {
+                        $.alert({
+                            title: '提示訊息',
+                            content: res.message,
+                            boxWidth: '25%',
+                            useBootstrap: false,
+                            type: 'red',
+                        });
+                        curr.prop("disabled", false);
+                        return false;
+                    }
+                });
+            }
+        });
+
+        $("#refreshcaptcha").click(function () {
+            $("#captcha").attr("src", "@Url.Action("VerificationCode", "Captcha")?r=" + (new Date()).getTime());
+        });
+
+        $(document).on('click', '.close_popup', function (e) {
+            e.preventDefault();
+            $.magnificPopup.close();
+        });
+    });
+</script>

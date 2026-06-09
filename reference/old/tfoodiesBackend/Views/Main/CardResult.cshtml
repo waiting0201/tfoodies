@@ -1,0 +1,31 @@
+﻿@model Orders
+
+<!-- MAIN CONTENT -->
+<div id="content">
+
+    <!-- row -->
+    <div class="row">
+
+        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="text-center error-box">
+                        <h2 class="font-xl"><strong>@ViewBag.OrderResult</strong></h2>
+                        <br />
+                        <ul class="error-search text-left font-md">
+                            <li><a href="@Url.Action("EditOrders", "OrderMs", new { entityid = Model.orderid, p = 1 })"><small>返回訂單 <i class="fa fa-arrow-right"></i></small></a></li>
+                        </ul>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+    <!-- end row -->
+
+</div>
+<!-- END MAIN CONTENT -->

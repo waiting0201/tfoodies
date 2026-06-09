@@ -1,0 +1,103 @@
+﻿@{
+    IEnumerable<ReportItem> data = (IEnumerable<ReportItem>)ViewBag.ReportItems;
+}
+
+<!-- MAIN CONTENT -->
+<div id="content">
+
+    <!-- widget grid -->
+    <section id="widget-grid" class="">
+        <!-- row -->
+        <div class="row">
+            <!-- NEW WIDGET START -->
+            <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                <div class="well padding-10">
+
+                    <!-- widget content -->
+                    <div class="widget-body">
+
+                        <form id="form" method="post" action="@Url.Action("Salereports", "ReportMs")">
+
+                            <div class="widget-body-toolbar">
+
+                                <div class="row">
+
+                                    <div class="form-inline">
+
+                                        <div class="col-sm-10">
+
+                                            <input class="form-control datetpicker" name="ordermonth" placeholder="依訂單月份" type="text">
+                                            <button class="btn btn-primary" type="submit">查詢</button>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </form>
+
+                        @if (Html.ValidationSummary(true) != null)
+                        {
+                            <div class="alert alert-danger alert-block fade in">
+                                <button class="close" data-dismiss="alert">
+                                    ×
+                                </button>
+                                <i class="fa-fw fa fa-info"></i>
+                                @Html.ValidationSummary(true)
+                            </div>
+                        }
+
+                        <div class="table-responsive">
+
+                            <table class="table table-hover table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>產品</th>
+                                        <th width="12%" class="text-center">數量</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (ReportItem item in data)
+                                    {
+                                    <tr>
+                                        <td>@item.name</td>
+                                        <td class="text-center">@item.amount</td>
+                                    </tr>
+                                    }
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+                    <!-- end widget content -->
+
+                </div>
+
+            </article>
+            <!-- WIDGET END -->
+
+        </div>
+        <!-- end row -->
+
+    </section>
+    <!-- end widget grid -->
+
+</div>
+<!-- END MAIN CONTENT -->
+
+@section scripts {
+    <script>
+        $(function () {
+            $('.datetpicker').datetimepicker({
+                viewMode: 'years',
+                format: 'YYYY-MM'
+            });
+        });
+    </script>
+}

@@ -1,0 +1,65 @@
+﻿@{
+    var branddatas = (IEnumerable<Brands>)ViewBag.Brands;
+}
+
+<div class="sb-slidebar sb-left sb-style-push">
+    <div class="slide-logo">
+        <a href="@Url.Action("Index", "MainMs")"><img src="~/content/images/common/logo-main.png"></a>
+    </div>
+    <div id="slide-search">
+        @*<div class="search-column">
+            <div class="searchall">
+                <div class="controlgroup"><label for="searchall"></label><input type="text" name="search" value="" class="search-form"></div>
+                <a href="javascript:;"
+                   class="search-icon"></a>
+            </div>
+        </div>*@
+        <ul>
+            <li><a href="@Url.Action("Products", "MainMs")" title="所有商品">所有商品</a></li>
+            <li>
+                <a href="javascript:;" class="slide-brand">品牌系列</a>
+                <ul class="slide-brand-series">
+                    @foreach (Brands brand in branddatas)
+                    {
+                        <li><a href="@Url.Action("Brand", "MainMs", new { brandtitle = brand.title })" title="@brand.title">@brand.title</a></li>
+                    }
+                </ul>
+            </li>
+            <li>
+                <a href="javascript:;" class="slide-news">最新消息</a>
+                <ul class="slide-news-series">
+                    <li><a href="@Url.Action("News", "MainMs")" title="最新消息">最新消息</a></li>
+                    <li><a href="@Url.Action("Events", "MainMs")" title="活動花絮">活動花絮</a></li>
+                </ul>
+            </li>
+            <li><a href="@Url.Action("Reports", "MainMs")" title="檢驗報告">檢驗報告</a></li>
+            <li><a href="@Url.Action("Recipes", "MainMs")" title="美味料理">美味料理</a></li>
+            <li><a href="@Url.Action("Issues", "MainMs")" title="綠誌">綠誌</a></li>
+            <li><a href="@Url.Action("Knowledges", "MainMs")" title="小知識">小知識</a></li>
+            <li><a href="@Url.Action("Blogs", "MainMs")" title="部落客分享">部落客分享</a></li>
+            <li><a href="@Url.Action("About", "MainMs")" title="關於我們">關於我們</a></li>
+        </ul>
+        @*<div class="slide-language">
+            <ul>
+                <li class="main">語言選擇</li>
+                <li><a href="javascript:;">中文</a></li>
+                <li><a href="javascript:;">ENGLISH	</a></li>
+            </ul>
+        </div>*@
+        <div class="slide-social">
+            @if (Session["IsLogin"] != null && (bool)Session["IsLogin"])
+            {
+            <div class="centered">
+                <a href="@Url.Action("Logout", "MemberMs")" class="logout">
+                    <div class="small white">登出</div>
+                </a>
+            </div>
+            }
+            <div class="social-link">
+                <a href="https://www.facebook.com/trulyfoodies/" class="social-icon" rel="nofollow"><img src="~/content/images/common/facebook.png"></a>
+                <a href="https://www.instagram.com/tfoodies/" class="social-icon" rel="nofollow"><img src="~/content/images/common/instagram.png"></a>
+                <a href="https://www.youtube.com/channel/UCACS-XffRxWsTb-a8uCWA4Q" class="social-icon" rel="nofollow"><img src="~/content/images/common/youtube.png"></a>
+            </div>
+        </div>
+    </div>
+</div>

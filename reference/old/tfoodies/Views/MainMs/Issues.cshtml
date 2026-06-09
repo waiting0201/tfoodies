@@ -1,0 +1,76 @@
+﻿@{
+    var issuedatas = (IPagedList<Issues>)ViewBag.Issues;
+}
+
+<main id="main">
+    <section class="gray-bg searchsection">
+        <div class="restrict allpadding">
+            <div class="search-column recipe-search">
+                @*<div class="language-wrap">
+                    <div class="slide-select">
+                        <div class="slidedown-search">找美味料理</div>
+                        <div class="slidecontent-search"><a href="javascript:;">找美味料理</a><a href="javascript:;">找健康生活</a></div>
+                    </div>
+                </div>*@
+                <div class="searchall recipe-input">
+                    <form id="searchform" method="get" action="@Url.Action("Issues", "MainMs", new { p = ViewBag.pageNumber })">
+                        <div class="controlgroup"><label for="searchall"></label><input type="text" name="k" placeholder="搜尋綠誌" id="recipe-input" class="recipe-input"></div>
+                        <a href="javascript:;" class="search-icon"></a>
+                    </form>    
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="allpadding clr section">
+        @*<div class="restrict-wide allpadding">
+            <div class="clr">
+                <div class="pull-left">
+                    <a class="back" href="@Url.Action("GreenIssues", "MainMs")">
+                        <div class="inline">&#60;</div>
+                        <div class="inline">返回綠誌</div>
+                    </a>
+                </div>
+            </div>
+        </div>*@
+        <div class="restrict-wide">
+            <div class="centered">
+                <h1>綠誌</h1>
+            </div>
+            <div class="direct-line"></div>
+            <div class="three-column clr">
+                @foreach (Issues issue in issuedatas)
+                { 
+                <a href="@Url.Action("IssueDetail", "MainMs", new { issuetitle = issue.title, p = ViewBag.pageNumber })" class="blog-wrap">
+                    <div class="article-single centered">
+                        <div class="article-pic"><img src="@(ViewBag.BlobUrl + issue.photo)" alt="@issue.title"></div>
+                        <div class="article-title">@issue.title</div>
+                    </div>
+                </a>
+                }
+            </div>
+        </div>
+    </section>
+    <div class="centered more">
+        @Html.PagedListPager(list: issuedatas, generatePageUrl: page => Url.Action("Issues", new { p = page }))
+    </div>
+</main>
+@section scripts {
+    <script>
+        $(function () {
+            $(".recipe-input").keypress(function (e) {
+                var code = (e.keyCode ? e.keyCode : e.which);
+                if (code == 13) {
+                    $(".search-icon").trigger("click");
+                }
+            });
+
+            $(".search-icon").on('click', function () {
+                var k = $("#recipe-input").val();
+
+                if (k != "") {
+                    $("#searchform").submit();
+                }
+            });
+        });
+    </script>
+}

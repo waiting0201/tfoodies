@@ -1,0 +1,11 @@
+﻿@{
+    string url = (string)ViewData["url"];
+    string title = (string)ViewData["title"];
+}
+
+<a href="@string.Format("http://www.facebook.com/share.php?u={0}", url, title)" target="_blank"><img src="https://cache.addthiscdn.com/icons/v3/thumbs/32x32/facebook.png" border="0" alt="Facebook"></a>
+<a href="@string.Format("http://line.me/R/msg/text/?{1}%0D%0A{0}", url, title)" target="_blank"><img src="https://cache.addthiscdn.com/icons/v3/thumbs/32x32/lineme.png" border="0" alt="LINE"></a>
+@*<a href="https://api.addthis.com/oexchange/0.8/forward/print/offer?url=http://www.google.com.tw&amp;pubid=ra-57be4b77d88bd748&amp;ct=1&amp;title=abc&amp;pco=tbxnj-1.0"
+   target="_blank"><img src="https://cache.addthiscdn.com/icons/v3/thumbs/32x32/print.png" border="0" alt="Print"></a>
+<a href="https://www.addthis.com/bookmark.php?source=tbx32nj-1.0&amp;v=300&amp;url=http://www.google.com.tw&amp;pubid=ra-57be4b77d88bd748&amp;ct=1&amp;title=abc&amp;pco=tbxnj-1.0"
+   target="_blank"><img src="https://cache.addthiscdn.com/icons/v3/thumbs/32x32/addthis.png" border="0" alt="Addthis"></a>*@

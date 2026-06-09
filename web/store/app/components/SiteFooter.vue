@@ -1,0 +1,112 @@
+<script setup lang="ts">
+// Verbatim port of reference/old/tfoodies/Views/Shared/_Footer.cshtml (footer + copyright + 到貨通知 popup).
+// Class names preserved 1:1 for legacy main.css.
+</script>
+
+<template>
+  <footer id="footer">
+    <div class="restrict-wide">
+      <div class="footertitle"><img src="/content/images/section/tfoodies-footer.png"></div>
+      <ul class="foodiesword">
+        <li>
+          <a href="https://www.youtube.com/channel/UCACS-XffRxWsTb-a8uCWA4Q" class="circle" target="_blank" rel="nofollow"><img src="/content/images/section/youtube-footer.png"></a>
+          <a href="https://www.youtube.com/channel/UCACS-XffRxWsTb-a8uCWA4Q" class="social-icon" target="_blank" rel="nofollow"><img src="/content/images/common/youtube.png"></a>
+          <a href="https://www.youtube.com/channel/UCACS-XffRxWsTb-a8uCWA4Q" class="inline main" target="_blank" rel="nofollow">Youtube</a>
+          <div class="small-content">更多好吃的健康料理教學！</div>
+        </li>
+        <li>
+          <a href="https://cookpad.com/tw/%E4%BD%BF%E7%94%A8%E8%80%85/13374389" class="circle" target="_blank" rel="nofollow"><img src="/content/images/section/cookpad-footer.png"></a>
+          <a href="https://cookpad.com/tw/%E4%BD%BF%E7%94%A8%E8%80%85/13374389" class="social-icon" target="_blank" rel="nofollow"><img src="/content/images/common/green.png"></a>
+          <a href="https://cookpad.com/tw/%E4%BD%BF%E7%94%A8%E8%80%85/13374389" class="inline main" target="_blank" rel="nofollow">Cookpad</a>
+          <div class="small-content">鎖定我們的健康食譜！</div>
+        </li>
+        <li>
+          <a href="https://www.instagram.com/tfoodies/" class="circle" target="_blank" rel="nofollow"><img src="/content/images/section/722c0ea5891471ea726978e34046b1ed.png"></a>
+          <a href="https://www.instagram.com/tfoodies/" class="social-icon" target="_blank" rel="nofollow"><img src="/content/images/common/instagram.png"></a>
+          <a href="https://www.instagram.com/tfoodies/" class="inline main" target="_blank" rel="nofollow">Instagram</a>
+          <div class="small-content">跟著我們的 IG 快速煮出美味！</div>
+        </li>
+        <li>
+          <a href="https://www.facebook.com/trulyfoodies/" class="circle" target="_blank" rel="nofollow"><img src="/content/images/section/fb-footer.png"></a>
+          <a href="https://www.facebook.com/trulyfoodies/" class="social-icon" target="_blank" rel="nofollow"><img src="/content/images/common/facebook.png"></a>
+          <a href="https://www.facebook.com/trulyfoodies/" class="inline main" target="_blank" rel="nofollow">Facebook</a>
+          <div class="small-content">Follow 食在呼尋找最真實的真食！</div>
+        </li>
+        <li>
+          <a href="https://line.me/R/ti/p/%40kqc0569s" class="circle"><img src="/content/images/section/footer-line.png"></a>
+          <a href="https://line.me/R/ti/p/%40kqc0569s" class="social-icon"><img src="/content/images/common/chat.png"></a>
+          <a href="https://line.me/R/ti/p/%40kqc0569s" class="inline main">Line@</a>
+          <div class="small-content">加入Line@:kqc0569s鎖定更多優惠與活動！</div>
+        </li>
+      </ul>
+    </div>
+  </footer>
+  <div id="copyright">
+    <div class="restrict-wide">
+      <div class="copyright-wrapper">
+        <div class="pull-left">
+          <div class="left">
+            <div class="small copyright">© 2018 COPYRIGHTS BY TFOODIES INT CO., LTD. ALL RIGHTS RESERVED.</div>
+            <div class="small copyright inline"></div>
+          </div>
+        </div>
+        <div class="pull-right">
+          <div class="right">
+            <ul class="copyright small">
+              <li><a href="/PageMs/Contact">聯絡食在呼</a></li>
+              <li><a href="/PageMs/Howtobuy">購物說明</a></li>
+              <li><a href="/PageMs/Terms">網站使用條款</a></li>
+              <li><a href="/PageMs/Policy">隱私權政策</a></li>
+              <li><a href="/PageMs/Disclaimer">免責聲明</a></li>
+            </ul>
+            <ul class="copyright small">
+              <li> <a href="javascript:;">(04)24366659</a> </li>
+              <li> <a href="javascript:;">hi@tfoodies.com</a> </li>
+              <li> <a href="javascript:;">聯絡時間：周一至周五 9:00~18:00</a> </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="checkOutofnotice" class="contact-popup mfp-hide">
+    <form id="outofnoticeform">
+      <input type="hidden" id="noticeproductid" name="productid" />
+      <input type="hidden" id="noticememberid" name="memberid" />
+      <div class="formstyle">
+        <h3>到貨通知</h3>
+        <div class="information">
+          <div class="controlgroup">
+            <div class="controls">
+              <div class="status"><label for="name"><span class="must">*</span>姓名</label></div>
+              <div class="vertify"><input type="text" id="noticename" class="input" name="name" data-rule-required="true" data-msg-required="此為必填欄位"></div>
+            </div>
+          </div>
+          <div class="controlgroup">
+            <div class="controls">
+              <div class="status"><label for="email"><span class="must">* </span>電子郵件</label></div>
+              <div class="vertify"><input type="text" id="noticeemail" class="input" name="email" data-rule-email="true" data-msg-email="Email格式錯誤" data-rule-required="true" data-msg-required="此為必填欄位" data-rule-maxlength="150" data-msg-maxlength="請勿超過150個字元"></div>
+            </div>
+          </div>
+          <div class="controlgroup">
+            <div class="controls">
+              <div class="status"><label for="mobile"><span class="must">* </span>電話</label></div>
+              <div class="vertify"><input type="text" id="noticemobile" class="input" name="mobile" data-rule-required="true" data-msg-required="此為必填欄位" data-rule-maxlength="15" data-msg-maxlength="請勿超過15個字元"></div>
+            </div>
+          </div>
+          <div class="controlgroup">
+            <div class="credit-captcha">
+              <label for="captcha"></label><input type="text" name="inputcode" placeholder="驗證碼" class="input captcha" data-rule-required="true" data-msg-required="此為必填欄位">
+              <div class="captcha"><img id="captcha" :src="'/api/store/captcha'"></div>
+              <div class="inline"></div>
+              <div class="refresh"></div><a href="javascript:;" class="descript inline" id="refreshcaptcha">換一組驗證碼</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="choose-wrap">
+        <div class="choose-right"><button type="button" id="btnOutofnotice" class="btn basic">送出</button></div>
+      </div>
+    </form>
+  </div>
+</template>

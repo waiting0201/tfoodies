@@ -1,0 +1,243 @@
+﻿@model Orders
+
+<main id="main">
+    <section>
+        <div class="member-banner"><img src="~/content/images/section/order.jpg"></div>
+    </section>
+    <section class="tallsection">
+        <div class="restrict-tiny">
+            <h1 class="left">訂單編號：@Model.ordercode</h1>
+        </div>
+        <div class="restrict-tiny allpadding centered shopflow">
+            <div class="formstyle">
+                <h2 class="left">收件人資訊</h2>
+                <div class="information">
+                    <div class="controlgroup">
+                        <div class="controls">
+                            <div class="status"><label>姓名</label></div>
+                            <div class="vertify">@Model.recivername</div>
+                        </div>
+                    </div>
+                    <div class="controlgroup">
+                        <div class="controls">
+                            <div class="status"><label>手機號碼</label></div>
+                            <div class="vertify">@Model.recivermobile</div>
+                        </div>
+                    </div>
+                    <div class="controlgroup">
+                        <div class="controls">
+                            <div class="status"><label>收件地址</label></div>
+                            <div class="vertify">@Model.Zipcodes.city @Model.Zipcodes.area @Model.reciveraddress</div>
+                        </div>
+                    </div>
+                    @*<div class="controlgroup">
+                        <div class="controls">
+                            <div class="status"><label>配送時段</label></div>
+                            <div class="vertify">@Enum.GetName(typeof(EnumReciverTime), Model.recivertime)</div>
+                        </div>
+                    </div>*@
+                </div>
+            </div>
+            <div class="formstyle">
+                <h2 class="left">訂單資訊</h2>
+                <div class="information">
+                    <div class="controlgroup">
+                        <div class="controls">
+                            <div class="status"><label>訂購日期</label></div>
+                            <div class="vertify">@Model.orderdate.ToString("yyyy-MM-dd")</div>
+                        </div>
+                    </div>
+                    <div class="controlgroup">
+                        <div class="controls">
+                            <div class="status"><label>付款方式</label></div>
+                            <div class="vertify">@Enum.GetName(typeof(EnumPayType), Model.paytype)</div>
+                        </div>
+                    </div>
+                    <div class="controlgroup">
+                        <div class="controls">
+                            <div class="status"><label>付款狀態</label></div>
+                            <div class="vertify">@Enum.GetName(typeof(EnumPayStatus), Model.paystatus)</div>
+                        </div>
+                    </div>
+                    <div class="controlgroup">
+                        <div class="controls">
+                            <div class="status"><label>付款日期</label></div>
+                            <div class="vertify">@(Model.paydate != null ? Convert.ToDateTime(Model.paydate).ToString("yyyy-MM-dd") : "-")</div>
+                        </div>
+                    </div>
+                    <div class="controlgroup">
+                        <div class="controls">
+                            <div class="status"><label>出貨狀態</label></div>
+                            <div class="vertify">@Enum.GetName(typeof(EnumDeliverStatus), Model.deliverstatus)</div>
+                        </div>
+                    </div>
+                    <div class="controlgroup">
+                        <div class="controls">
+                            <div class="status"><label>出貨日期</label></div>
+                            <div class="vertify">@(Model.deliverdate != null ? Convert.ToDateTime(Model.deliverdate).ToString("yyyy-MM-dd") : "-")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="formstyle">
+                <h3>商品明細</h3>
+            </div>
+            <table class="tablescroll">
+                <tr>
+                    <th></th>
+                    <th>商品名稱</th>
+                    <th>單價</th>
+                    <th>數量</th>
+                    <th>小計</th>
+                </tr>
+                @foreach (Orderdetails entity in Model.Orderdetails)
+                {
+                    <tr>
+                        <td class="cart-thumb"><img src="@(ViewBag.BlobUrl + entity.Products.photo)"></td>
+                        <td class="td-product darkgray">@entity.Products.title @entity.Products.capacity @(entity.isgift == 1 ? "(贈品)" : "")</td>
+                        <td>NT. @entity.price.ToString("#,0")</td>
+                        <td>@entity.qty</td>
+                        <td class="darkgray">NT. @entity.subtotal.ToString("#,0")</td>
+                    </tr>
+                }
+                <tr>
+                    <td class="discount border-none"></td>
+                    <td class="discount border-none left"></td>
+                    <td class="descript darkgray border-none">總金額</td>
+                    <td colspan="2" class="border-none">NT. @Model.total.ToString("#,0")</td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td class="left"></td>
+                    <td>額外折扣</td>
+                    <td colspan="2">- NT. @Convert.ToInt32(Model.discount).ToString("#,0")</td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td class="left"></td>
+                    <td>運費</td>
+                    <td colspan="2">NT. @Model.freight.ToString("#,0")</td>
+                </tr>
+                <tr class="td-main">
+                    <td></td>
+                    <td></td>
+                    <td>總計</td>
+                    <td colspan="2">NT. @Convert.ToInt32(Model.total + Model.freight - Model.discount).ToString("#,0")</td>
+                </tr>
+            </table>
+            @if (Model.paystatus == (int)EnumPayStatus.未付款)
+            {
+                if (Model.paytype == (int)EnumPayType.ATM轉帳付款)
+                {
+                    <div class="formstyle">
+                        <h3>匯款資訊</h3>
+                        <div class="information">
+                            <div class="controlgroup">
+                                <div class="controls">
+                                    <div class="status"><label>轉帳銀行</label></div>
+                                    <div class="vertify">007 第一銀行</div>
+                                </div>
+                            </div>
+                            <div class="controlgroup">
+                                <div class="controls">
+                                    <div class="status"><label>匯款帳號</label></div>
+                                    <div class="vertify">@Model.codeatm</div>
+                                </div>
+                            </div>
+                            <div class="controlgroup">
+                                <div class="controls">
+                                    <div class="status"><label>繳款截止日</label></div>
+                                    <div class="vertify yellow">@Convert.ToDateTime(Model.expirepaydate).ToString("yyyy-MM-dd")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @*<div class="space">
+                    <h2>更換付款方式</h2>
+                    <div class="information">
+                        <div class="tablescroll">
+                            <table>
+                                <tr>
+                                    <td><a href="javascript:;" id="btnCreditCard" class="td-product main">付款</a></td>
+                                    <td class="left">信用卡線上刷卡</td>
+                                    <td class="small left">信用卡宅配到府，將酌收 150 元物流費。信用卡線上刷卡包含Visa、MasterCard、JCB。</td>
+                                </tr>
+                                <tr>
+                                    <td><a href="javascript:;" id="btnDeliverPay" class="td-product main">付款</a></td>
+                                    <td class="left">宅配貨到付款</td>
+                                    <td class="small left">宅配貨到付款，將酌收 150 元運費。若單筆購物滿 1000 元，即享有免運費優惠。</td>
+                                </tr>
+                                @if(Model.paytype != (int)EnumPayType.ATM轉帳付款)
+                                { 
+                                    <tr>
+                                        <td><a href="javascript:;" id="btnATM" class="td-product main">付款</a></td>
+                                        <td class="left">ATM轉帳付款</td>
+                                        <td class="small left">依據訂單內指定帳號轉帳付款宅配到府，將酌收 150 元運費。</td>
+                                    </tr>
+                                }
+                            </table>
+                        </div>
+                    </div>
+                </div>*@
+            }
+            
+            <div class="formstyle">
+                <h3>備註欄</h3>
+                <p class="darkgray">@Model.remark</p>
+            </div>
+
+            <div class="centered more"><a href="@Url.Action("Orders", "MemberMs")" class="outline-btn">回上一頁</a></div>
+        </div>
+    </section>
+    <section id="checkInline" class="allpadding clr section mfp-hide">
+        <div class="restrict-tiny">
+            <div class="confirm-wrapper center">
+                <div class="confirm-contain">
+                    <img src="~/content/images/section/confirm.png">
+                    <p>點擊「確認」按鈕，系統將導入信用卡刷卡頁面！</p>
+                    <form id="cardForm" method="post" action="https://www.focas.fisc.com.tw/FOCAS_WEBPOS/online/">
+                        <input type="hidden" name="merID" value="45889852" />
+                        <input type="hidden" name="MerchantID" value="007458898529001" />
+                        <input type="hidden" name="TerminalID" value="90010001" />
+                        <input type="hidden" name="lidm" id="lidm" value="@Model.ordercode" />
+                        <input type="hidden" name="purchAmt" value="@(Model.freight + Model.total - Model.discount)" />
+                        <input type="hidden" name="AuthResURL" value="https://www.tfoodies.com/MemberMs/PayResult" />
+                        <input type="hidden" name="enCodeType" value="UTF-8" />
+                        <input type="hidden" name="PayType" value="0" />
+                        <input type="hidden" name="AutoCap" value="1" />
+                        <div class="choose-wrap">
+                            <div class="choose-left"><a href="javascript:;" class="btn outline-btn close_popup">取消</a></div>
+                            <div class="choose-right"><a href="javascript:;" class="btn basic" id="btnCardSubmit">確認</a></div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+@section scripts {
+    <script>
+        $(function () {
+            $('#btnCreditCard').on('click', function () {
+                $.magnificPopup.open({
+                    items: {
+                        src: '#checkInline',
+                        type: 'inline'
+                    },
+                    midClick: true,
+                    showCloseBtn: false
+                });
+                return false;
+            });
+
+            $("#btnCardSubmit").on('click', function () {
+                var curr = $(this);
+                curr.prop("disabled", true);
+
+                $('#cardForm').submit();
+            });
+        });
+    </script>
+}
