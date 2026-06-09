@@ -26,10 +26,12 @@ jobs:
       - run: dotnet test TFoodies.sln --configuration Release
       - name: Publish Functions
         run: dotnet publish ${{ env.FUNCTIONS_PROJECT }} -c Release -o ./publish
+      - name: Zip publish output
+        run: cd ./publish && zip -r ../publish.zip .
       - uses: actions/upload-artifact@v4
         with:
           name: functions
-          path: ./publish
+          path: ./publish.zip
 
   deploy:
     if: github.ref == 'refs/heads/main'
@@ -39,15 +41,15 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: functions
-          path: ./publish
+          path: .
       - uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - uses: Azure/functions-action@v1
-        with:
-          app-name: ${{ vars.FUNCTION_APP_NAME }}
-          package: ./publish
-          scm-do-build-during-deployment: false
-          enable-oryx-build: false
+      - name: Deploy to Flex Consumption
+        run: |
+          az functionapp deployment source config-zip \
+            -g ${{ vars.RESOURCE_GROUP }} \
+            -n ${{ vars.FUNCTION_APP_NAME }} \
+            --src ./publish.zip
