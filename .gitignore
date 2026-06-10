@@ -29,3 +29,6 @@ src/**/local.settings.json
 .DS_Store
 .vs/
 .idea/
+
+# Azurite 本機儲存模擬器資料
+.azurite/
