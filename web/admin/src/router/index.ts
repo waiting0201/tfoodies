@@ -202,6 +202,17 @@ const routes: RouteRecordRaw[] = [
         name: 'income-new',
         component: () => import('../views/accounting/IncomeFormView.vue'),
       },
+      // Statements（會計報表管理 — 損益表 / 資產負債表）
+      {
+        path: 'admin/income-statement',
+        name: 'income-statement',
+        component: () => import('../views/statements/IncomeStatementView.vue'),
+      },
+      {
+        path: 'admin/balance-sheet',
+        name: 'balance-sheet',
+        component: () => import('../views/statements/BalanceSheetView.vue'),
+      },
       // Returns
       {
         path: 'admin/returns',

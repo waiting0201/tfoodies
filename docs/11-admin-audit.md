@@ -19,7 +19,7 @@
 | 會員管理 | 4 | 2 | 2 |
 | 報表管理 | 2 | 1 | 1 |
 | 系統設定 | 1 | 1 | 2 |
-| 損益表   | 0 | 0 | 1 |
+| 會計報表管理 | 2 子模組全數完成 | 0 | 0 |
 | 設計規範 | 1 | - | 5 |
 
 ---
@@ -153,7 +153,36 @@
 - 入帳：`GET /admin/incomes/{id}`、`PUT /admin/incomes/{id}`、`GET .../billable-members|billable-invoices`
 
 ### ❌ 仍缺少
-- 損益表（`Incomestatements`）/ 資產負債表（`Balancesheet`）— 屬 `StatementMs`(會計報表管理) 模組，非本模組
+- （無）損益表 / 資產負債表已於 `StatementMs` 模組完成，見下節。
+
+---
+
+## 會計報表管理（StatementMsController）
+
+> **2026-06-10 全新實作**：舊系統 `StatementMsController` 僅一個空白的損益表篩選表單（起訖日期），
+> 無任何計算邏輯；資產負債表完全未實作。新系統依現有交易資料重建兩張報表，新增獨立
+> `StatementAdminController`（Lim 模組鍵 `StatementMs`，唯讀），並接上側欄。
+
+| 子模組 | Lim Key | SPA 路徑 | 頁面 | 狀態 |
+|---|---|---|---|---|
+| 損益表 | Incomestatements | `/admin/income-statement` | `IncomeStatementView` | ✅ 日期區間查詢 |
+| 資產負債表 | Balancesheet | `/admin/balance-sheet` | `BalanceSheetView` | ✅ 基準日快照 |
+
+### 後端端點（StatementAdminController）
+- `GET /admin/statements/income-statement?startDate=&endDate=`
+  - 營業收入：`Invoicedetails.price`（**未稅淨額**）依會計科目彙總，篩 `Invoices.requestdate`
+  - 銷貨退回：`Returndetails.price` 依會計科目彙總，篩 `Returns.returndate`
+  - 營業支出：`Expendituredetails.price` 依會計科目彙總，篩 `Expenditures.expendituredate`
+  - 本期損益 = 營業收入 − 銷貨退回 − 營業支出
+- `GET /admin/statements/balance-sheet?asOf=`（**推導式**，現行 schema 無資產/負債/權益科目）
+  - 現金及約當現金 = 累計收款(`Incomes`) − 累計付款(`Outcomes`) − 累計退款(`Refounds`)
+  - 應收帳款 = 未收款(`Invoices.incomeid IS NULL`)請款單之含稅總額
+  - 期末存貨（現值）= Σ `Warehousestocks.quantity_left` × `Purchasedetails.unitprice`
+  - 應付帳款 = 截至 asOf 應付憑單金額 − 已付款金額
+  - 業主權益（淨值）= 資產總額 − 負債總額（差額平衡項）
+
+### ⚠️ 已知限制
+- 資產負債表為交易資料推導，非真正複式會計總帳；存貨採「現值快照」（`quantity_left` 會隨時間異動，無法回溯歷史庫存）。若日後導入正式資產/負債科目表，應改為依科目餘額產生。
 
 ---
 
@@ -258,5 +287,5 @@
 19. 部落格連結管理
 20. FAQ 問答管理（Questions 實體）
 21. 申報管理
-22. 損益表
+22. ✅ 會計報表管理（2026-06-10）— 損益表 + 資產負債表（推導式），`StatementAdminController` + 2 獨立頁接側欄
 23. 匯率管理

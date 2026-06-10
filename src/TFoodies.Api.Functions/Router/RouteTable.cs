@@ -225,6 +225,10 @@ public class RouteTable
         Register<AccountingAdminController>("PUT",    @"admin/incomes/(?<id>[^/]+)$",                     (c, ctx) => c.UpdateIncome(ctx));
         Register<AccountingAdminController>("DELETE", @"admin/incomes/(?<id>[^/]+)$",                     (c, ctx) => c.DeleteIncome(ctx));
 
+        // ── Admin Statements（會計報表管理 StatementMs） ──────────────────────
+        Register<StatementAdminController>("GET",    "admin/statements/income-statement",                (c, ctx) => c.IncomeStatement(ctx));
+        Register<StatementAdminController>("GET",    "admin/statements/balance-sheet",                   (c, ctx) => c.BalanceSheet(ctx));
+
         // ── Admin Tags ──────────────────────────────────────────────────────────
         Register<ProductAdminController>("GET",    "admin/tags",                                          (c, ctx) => c.ListTags(ctx));
         Register<ProductAdminController>("POST",   "admin/tags",                                          (c, ctx) => c.CreateTag(ctx));

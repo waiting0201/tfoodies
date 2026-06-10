@@ -54,6 +54,9 @@ const ROUTES: Record<string, string> = {
   Refounds: '/admin/refounds',
   Invoices: '/admin/ar-invoices',
   Incomes: '/admin/incomes',
+  // StatementMs（會計報表管理）
+  Incomestatements: '/admin/income-statement',
+  Balancesheet: '/admin/balance-sheet',
   // InventoryMs（庫存管理）
   Warehouses: '/admin/warehouses',
   Stocks: '/admin/inventory',
