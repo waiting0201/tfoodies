@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { apiFetch, ApiError } from '../../lib/apiClient'
+import { apiFetch, apiDownload, ApiError } from '../../lib/apiClient'
 
 interface Order {
   orderId: string
@@ -154,6 +154,47 @@ async function handlePay(code: string) {
   await patchOrder(code, 'pay')
 }
 
+// ── 匯出 / 揀貨單 ──────────────────────────────────────────────────────
+const selectedIds = ref<Set<string>>(new Set())
+
+function toggleSelect(orderId: string) {
+  const next = new Set(selectedIds.value)
+  if (next.has(orderId)) next.delete(orderId)
+  else next.add(orderId)
+  selectedIds.value = next
+}
+
+function currentFilterQuery(): string {
+  const params = new URLSearchParams()
+  if (filters.keyword) params.set('keyword', filters.keyword)
+  if (filters.deliverStatus >= 0) params.set('deliverStatus', String(filters.deliverStatus))
+  if (filters.payStatus >= 0) params.set('payStatus', String(filters.payStatus))
+  if (filters.dateFrom) params.set('dateFrom', filters.dateFrom)
+  if (filters.dateTo) params.set('dateTo', filters.dateTo)
+  return params.toString()
+}
+
+async function exportExcel(category: 'tfoodies' | 'shopcom') {
+  error.value = ''
+  try {
+    const q = currentFilterQuery()
+    await apiDownload(`/admin/orders/export?category=${category}&${q}`, `${category}_export.xlsx`)
+  } catch (e) {
+    error.value = (e as ApiError).problem?.detail ?? (e as Error).message ?? '匯出失敗'
+  }
+}
+
+async function exportPicking() {
+  error.value = ''
+  if (selectedIds.value.size === 0) { error.value = '請先勾選要揀貨的訂單'; return }
+  try {
+    const ids = Array.from(selectedIds.value).join(',')
+    await apiDownload(`/admin/orders/picking?orderIds=${encodeURIComponent(ids)}`, 'shipment.xlsx')
+  } catch (e) {
+    error.value = (e as ApiError).problem?.detail ?? (e as Error).message ?? '匯出失敗'
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -162,9 +203,18 @@ onMounted(load)
     <!-- Page header -->
     <div class="orders__header">
       <h1 class="orders__title">訂單管理</h1>
-      <RouterLink to="/admin/orders/new" class="orders__btn orders__btn--primary">
-        + 新增訂單
-      </RouterLink>
+      <div class="orders__header-actions">
+        <button class="orders__btn orders__btn--secondary" @click="exportExcel('tfoodies')">匯出 Excel</button>
+        <button class="orders__btn orders__btn--secondary" @click="exportExcel('shopcom')">美安報表</button>
+        <button
+          v-if="filters.deliverStatus === 4"
+          class="orders__btn orders__btn--secondary"
+          @click="exportPicking"
+        >匯出揀貨單{{ selectedIds.size ? `（${selectedIds.size}）` : '' }}</button>
+        <RouterLink to="/admin/orders/new" class="orders__btn orders__btn--primary">
+          + 新增訂單
+        </RouterLink>
+      </div>
     </div>
 
     <!-- Status tabs -->
@@ -221,6 +271,7 @@ onMounted(load)
           <table class="orders__table">
             <thead>
               <tr>
+                <th v-if="filters.deliverStatus === 4" style="width:32px"></th>
                 <th>訂單編號</th>
                 <th>訂單日期</th>
                 <th>會員</th>
@@ -234,6 +285,9 @@ onMounted(load)
             </thead>
             <tbody>
               <tr v-for="o in data.items" :key="o.code" class="orders__row">
+                <td v-if="filters.deliverStatus === 4">
+                  <input type="checkbox" :checked="selectedIds.has(o.orderId)" @change="toggleSelect(o.orderId)" />
+                </td>
                 <td>
                   <button class="orders__link" @click="goToOrder(o.code)">{{ o.code }}</button>
                 </td>
@@ -292,7 +346,7 @@ onMounted(load)
                 </td>
               </tr>
               <tr v-if="data.items.length === 0">
-                <td colspan="9" class="orders__empty">無訂單資料</td>
+                <td :colspan="filters.deliverStatus === 4 ? 10 : 9" class="orders__empty">無訂單資料</td>
               </tr>
             </tbody>
           </table>
@@ -317,6 +371,12 @@ onMounted(load)
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1.25rem;
+}
+
+.orders__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .orders__title {

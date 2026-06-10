@@ -38,6 +38,22 @@ const routes: RouteRecordRaw[] = [
         name: 'order-detail',
         component: () => import('../views/orders/OrderDetailView.vue'),
       },
+      // OrderMs 子模組：物流商 / 缺貨通知 / 報關
+      {
+        path: 'admin/logistics',
+        name: 'logistics',
+        component: () => import('../views/orders/LogisticsView.vue'),
+      },
+      {
+        path: 'admin/outofnotices',
+        name: 'outofnotices',
+        component: () => import('../views/orders/OutofnoticesView.vue'),
+      },
+      {
+        path: 'admin/declarations',
+        name: 'declarations',
+        component: () => import('../views/orders/DeclarationsView.vue'),
+      },
       // Products
       {
         path: 'admin/products',
@@ -55,9 +71,29 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../views/products/ProductFormView.vue'),
       },
       {
+        path: 'admin/products/:id/photos',
+        name: 'product-photos',
+        component: () => import('../views/products/ProductPhotosView.vue'),
+      },
+      {
         path: 'admin/brands',
         name: 'brands',
         component: () => import('../views/products/BrandsView.vue'),
+      },
+      {
+        path: 'admin/brands/new',
+        name: 'brand-new',
+        component: () => import('../views/products/BrandFormView.vue'),
+      },
+      {
+        path: 'admin/brands/:id/edit',
+        name: 'brand-edit',
+        component: () => import('../views/products/BrandFormView.vue'),
+      },
+      {
+        path: 'admin/brands/:id/photos',
+        name: 'brand-photos',
+        component: () => import('../views/products/BrandPhotosView.vue'),
       },
       {
         path: 'admin/producttypes',
@@ -75,6 +111,9 @@ const routes: RouteRecordRaw[] = [
         name: 'members',
         component: () => import('../views/members/MembersView.vue'),
       },
+      // SMS 簡訊維護
+      { path: 'admin/sms', name: 'sms', component: () => import('../views/sms/SmsView.vue') },
+      { path: 'admin/sms/:id/recipients', name: 'sms-recipients', component: () => import('../views/sms/SmsRecipientsView.vue') },
       // Inventory
       {
         path: 'admin/inventory',
@@ -113,6 +152,16 @@ const routes: RouteRecordRaw[] = [
         path: 'admin/returns',
         name: 'returns',
         component: () => import('../views/returns/ReturnsView.vue'),
+      },
+      {
+        path: 'admin/returns/new',
+        name: 'return-new',
+        component: () => import('../views/returns/ReturnFormView.vue'),
+      },
+      {
+        path: 'admin/returns/:id/edit',
+        name: 'return-edit',
+        component: () => import('../views/returns/ReturnFormView.vue'),
       },
       // CMS (legacy, kept for backward compat)
       {

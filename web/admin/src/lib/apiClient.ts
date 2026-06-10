@@ -49,3 +49,35 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 
   return (res.status === 204 ? undefined : await res.json()) as T
 }
+
+/**
+ * 下載檔案（Excel 匯出等）。帶上 JWT，將回應以 Blob 觸發瀏覽器下載。
+ * 伺服器若回傳 JSON 錯誤，會解析為 ApiError。
+ */
+export async function apiDownload(path: string, fallbackName = 'download'): Promise<void> {
+  const token = accessTokenProvider()
+  const headers = new Headers()
+  if (token) headers.set('Authorization', `Bearer ${token}`)
+
+  const res = await fetch(`${API_BASE}${path}`, { headers, credentials: 'include' })
+  if (!res.ok) {
+    let problem: ProblemDetails = { status: res.status, title: res.statusText }
+    try { problem = { ...problem, ...(await res.json()) } } catch { /* non-JSON */ }
+    throw new ApiError(res.status, problem)
+  }
+
+  // 從 Content-Disposition 取檔名（後端會帶），否則用 fallback。
+  const cd = res.headers.get('Content-Disposition') ?? ''
+  const match = /filename\*?=(?:UTF-8'')?["']?([^"';]+)/i.exec(cd)
+  const fileName = match ? decodeURIComponent(match[1]) : fallbackName
+
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = fileName
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}

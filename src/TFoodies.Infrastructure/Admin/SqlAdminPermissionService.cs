@@ -34,26 +34,29 @@ public sealed class SqlAdminPermissionService : IAdminPermissionService
         if (adminId == 888) return true;   // itadmin 超級管理員，擁有所有模組完整權限
         using var conn = await _db.CreateOpenConnectionAsync(ct);
 
-        // 取得模組對應的頂層 Lim
-        var lim = await conn.QuerySingleOrDefaultAsync<LimRow>(
-            "SELECT LimID FROM Lims WHERE [Key] = @module AND ParentID IS NULL",
-            new { module });
-
-        if (lim is null) return false;
-
-        // 取得該管理員對此 Lim 的授予記錄
+        // AdminLims 以「子層 Lim」為單位儲存（對齊舊系統與權限編輯器）。
+        // 模組授權 = 該模組（頂層 Lim）底下任一子項有授予記錄；
+        // 操作旗標取所有子項的聯集（OR），對應舊系統「父層有任一子項即視為有權」。
         var grant = await conn.QuerySingleOrDefaultAsync<GrantRow>(
-            @"SELECT al.IsAdd, al.IsUpdate, al.IsDelete
+            @"SELECT
+                  CAST(MAX(CAST(al.IsAdd    AS INT)) AS BIT) AS IsAdd,
+                  CAST(MAX(CAST(al.IsUpdate AS INT)) AS BIT) AS IsUpdate,
+                  CAST(MAX(CAST(al.IsDelete AS INT)) AS BIT) AS IsDelete
               FROM AdminLims al
-              JOIN Admins a ON a.AdminID = al.AdminID
-              WHERE al.AdminID = @adminId AND al.LimID = @limId AND a.Isenable = 1",
-            new { adminId, limId = lim.LimID });
+              JOIN Lims child  ON child.LimID = al.LimID
+              JOIN Lims parent ON parent.LimID = child.ParentID
+              JOIN Admins a    ON a.AdminID = al.AdminID
+              WHERE al.AdminID = @adminId
+                AND parent.[Key] = @module AND parent.ParentID IS NULL
+                AND a.Isenable = 1
+              HAVING COUNT(1) > 0",
+            new { adminId, module });
 
         if (grant is null) return false;
 
         return operation switch
         {
-            AdminOperation.Read => true,           // 只要有授予記錄即可讀
+            AdminOperation.Read => true,           // 只要有任一子項授予即可讀
             AdminOperation.Add => grant.IsAdd,
             AdminOperation.Update => grant.IsUpdate,
             AdminOperation.Write => grant.IsAdd || grant.IsUpdate,
@@ -85,16 +88,23 @@ public sealed class SqlAdminPermissionService : IAdminPermissionService
 
         using var conn = await _db.CreateOpenConnectionAsync(ct);
 
+        // AdminLims 以「子層 Lim」為單位儲存；彙整回「頂層模組」供前端側欄渲染。
+        // 父層（模組）只要底下任一子項有授予即列入；操作旗標取子項聯集（OR）。
+        // 對應舊系統 buildMenuItems 第一層判定 siteLink.Lims1.Any(...)。
         var rows = await conn.QueryAsync<PermissionRow>(@"
-SELECT l.[Key] AS Module, l.[Value] AS Label,
-       al.IsAdd, al.IsUpdate, al.IsDelete
+SELECT parent.[Key] AS Module, parent.[Value] AS Label,
+       CAST(MAX(CAST(al.IsAdd    AS INT)) AS BIT) AS IsAdd,
+       CAST(MAX(CAST(al.IsUpdate AS INT)) AS BIT) AS IsUpdate,
+       CAST(MAX(CAST(al.IsDelete AS INT)) AS BIT) AS IsDelete
 FROM AdminLims al
-JOIN Lims l ON l.LimID = al.LimID
-JOIN Admins a ON a.AdminID = al.AdminID
+JOIN Lims child  ON child.LimID = al.LimID
+JOIN Lims parent ON parent.LimID = child.ParentID
+JOIN Admins a    ON a.AdminID = al.AdminID
 WHERE al.AdminID = @adminId
-  AND l.ParentID IS NULL
+  AND parent.ParentID IS NULL
   AND a.Isenable = 1
-ORDER BY l.Sort",
+GROUP BY parent.[Key], parent.[Value], parent.Sort
+ORDER BY parent.Sort",
             new { adminId });
 
         return rows
@@ -103,7 +113,6 @@ ORDER BY l.Sort",
             .ToList();
     }
 
-    private sealed record LimRow(int LimID);
     private sealed record GrantRow(bool IsAdd, bool IsUpdate, bool IsDelete);
     private sealed record PermissionRow(string? Module, string? Label, bool IsAdd, bool IsUpdate, bool IsDelete);
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { apiFetch, ApiError } from '../../lib/apiClient'
+import { apiFetch, apiDownload, ApiError } from '../../lib/apiClient'
 
 interface OrderItem {
   id: string
@@ -100,6 +100,14 @@ async function patchOrder(action: string, body?: object) {
   }
 }
 
+async function downloadDeliver() {
+  try {
+    await apiDownload(`/admin/orders/${code}/deliver`, `${code}_deliver.xlsx`)
+  } catch (e) {
+    error.value = (e as ApiError).problem?.detail ?? (e as Error).message ?? '出貨單下載失敗'
+  }
+}
+
 async function handlePending() { await patchOrder('pending') }
 
 function handleShip() {
@@ -145,6 +153,7 @@ onMounted(load)
   <main class="odetail">
     <div class="odetail__nav">
       <button class="odetail__back" @click="router.push('/admin/orders')">&larr; 返回訂單列表</button>
+      <button v-if="order" class="odetail__edit-btn" @click="downloadDeliver">出貨單下載</button>
       <button v-if="order" class="odetail__edit-btn" @click="router.push(`/admin/orders/${code}/edit`)">編輯訂單</button>
     </div>
 

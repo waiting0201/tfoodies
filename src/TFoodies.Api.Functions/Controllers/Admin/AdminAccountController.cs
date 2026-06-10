@@ -12,11 +12,12 @@ namespace TFoodies.Api.Functions.Controllers.Admin;
 
 /// <summary>
 /// 後台管理員帳號管理。
-///   GET  /admin/admin-accounts              — 管理員列表（排除 ID=888）
-///   POST /admin/admin-accounts              — 新增管理員
-///   PUT  /admin/admin-accounts/{id}         — 更新管理員資訊
-///   GET  /admin/admin-accounts/{id}/permissions — 取得管理員模組授權
-///   PUT  /admin/admin-accounts/{id}/permissions — 覆寫管理員模組授權
+///   GET    /admin/admin-accounts              — 管理員列表（排除 ID=888）
+///   POST   /admin/admin-accounts              — 新增管理員
+///   PUT    /admin/admin-accounts/{id}         — 更新管理員資訊
+///   DELETE /admin/admin-accounts/{id}         — 停用管理員（軟刪除）
+///   GET    /admin/admin-accounts/{id}/permissions — 取得管理員模組授權（僅頂層 Lims）
+///   PUT    /admin/admin-accounts/{id}/permissions — 覆寫管理員模組授權
 /// </summary>
 public sealed class AdminAccountController
 {
@@ -29,6 +30,22 @@ public sealed class AdminAccountController
         _db = db;
     }
 
+    // GET /admin/me/permissions
+    // 回傳「當前登入管理員」可存取的模組清單（供前端側欄渲染）。
+    public async Task<IActionResult> MyPermissions(RouteContext ctx)
+    {
+        var guard = AdminGuard.RequireAdmin(ctx);
+        if (guard.Result is not null) return guard.Result;
+
+        var ct = ctx.Request.HttpContext.RequestAborted;
+        var perms = await _perms.GetPermissionsAsync(guard.AdminId, ct);
+
+        return ctx.Ok(new
+        {
+            permissions = perms.Select(p => p.Module).ToList()
+        });
+    }
+
     // GET /admin/admin-accounts
     public async Task<IActionResult> List(RouteContext ctx)
     {
@@ -39,12 +56,18 @@ public sealed class AdminAccountController
         using var conn = await _db.CreateOpenConnectionAsync(ct);
 
         var rows = await conn.QueryAsync(@"
-SELECT adminid, username, name, email, isenable
+SELECT adminid, username, isenable
 FROM Admins
 WHERE adminid != 888
 ORDER BY adminid");
 
-        return ctx.Ok(rows);
+        // 投影 anonymous object 確保 Dapper DapperRow key 序列化為 camelCase
+        return ctx.Ok(rows.Select(r => (object)new
+        {
+            adminId  = (int)r.adminid,
+            username = (string)r.username,
+            isEnable = ((byte)r.isenable) != 0,
+        }).ToList());
     }
 
     // POST /admin/admin-accounts
@@ -70,15 +93,13 @@ ORDER BY adminid");
         if (exists > 0) return ctx.Conflict("此帳號名稱已存在。");
 
         var adminId = await conn.ExecuteScalarAsync<int>(@"
-INSERT INTO Admins (username, password, name, email, isenable)
+INSERT INTO Admins (username, password, isenable)
 OUTPUT INSERTED.adminid
-VALUES (@username, @password, @name, @email, 1)",
+VALUES (@username, @password, 1)",
             new
             {
                 username = body.Username,
                 password = hashed,
-                name = body.Name ?? string.Empty,
-                email = body.Email,
             });
 
         return ctx.Created(new { adminId });
@@ -101,8 +122,6 @@ VALUES (@username, @password, @name, @email, 1)",
         var p = new DynamicParameters();
         p.Add("adminId", adminId);
 
-        if (body.Name is not null) { setClauses.Add("name=@name"); p.Add("name", body.Name); }
-        if (body.Email is not null) { setClauses.Add("email=@email"); p.Add("email", body.Email); }
         if (!string.IsNullOrWhiteSpace(body.Password))
         {
             setClauses.Add("password=@password");
@@ -123,6 +142,27 @@ VALUES (@username, @password, @name, @email, 1)",
         return ctx.Ok(new { message = "管理員資訊已更新" });
     }
 
+    // DELETE /admin/admin-accounts/{id}
+    public async Task<IActionResult> Disable(RouteContext ctx)
+    {
+        var guard = AdminGuard.RequireAdmin(ctx);
+        if (guard.Result is not null) return guard.Result;
+
+        if (!int.TryParse(ctx.RequirePathParam("id"), out var adminId))
+            return ctx.BadRequest("無效的管理員 ID。");
+        if (adminId == 888) return ctx.Forbidden("無法停用保留帳號。");
+
+        var ct = ctx.Request.HttpContext.RequestAborted;
+        using var conn = await _db.CreateOpenConnectionAsync(ct);
+
+        var rows = await conn.ExecuteAsync(
+            "UPDATE Admins SET isenable=0 WHERE adminid=@adminId AND adminid!=888",
+            new { adminId });
+
+        if (rows == 0) return ctx.NotFound("找不到管理員帳號。");
+        return ctx.Ok(new { message = "管理員帳號已停用" });
+    }
+
     // GET /admin/admin-accounts/{id}/permissions
     public async Task<IActionResult> GetPermissions(RouteContext ctx)
     {
@@ -135,17 +175,33 @@ VALUES (@username, @password, @name, @email, 1)",
         var ct = ctx.Request.HttpContext.RequestAborted;
         using var conn = await _db.CreateOpenConnectionAsync(ct);
 
+        // 舊系統以 child Lim（sublim.LimID）為單位儲存 AdminLims；
+        // 查詢 child Lims 並帶回 parent 資訊供前端分群顯示。
+        // CAST AS BIT 確保 LEFT JOIN NULL 時 Dapper 一致映射為 bool。
         var rows = await conn.QueryAsync(@"
-SELECT l.limid, l.key, l.label, l.parentid,
-       ISNULL(al.isadd,  0) AS canAdd,
-       ISNULL(al.isupdate, 0) AS canUpdate,
-       ISNULL(al.isdelete, 0) AS canDelete
+SELECT l.limid, l.[key], l.value AS label,
+       p.limid AS groupId, p.value AS groupLabel,
+       CAST(ISNULL(al.isadd,    0) AS BIT) AS canAdd,
+       CAST(ISNULL(al.isupdate, 0) AS BIT) AS canUpdate,
+       CAST(ISNULL(al.isdelete, 0) AS BIT) AS canDelete
 FROM Lims l
+INNER JOIN Lims p ON p.limid = l.parentid
 LEFT JOIN AdminLims al ON al.limid = l.limid AND al.adminid = @adminId
-ORDER BY l.limid",
+WHERE l.parentid IS NOT NULL
+ORDER BY p.sort, p.limid, l.sort, l.limid",
             new { adminId });
 
-        return ctx.Ok(rows);
+        return ctx.Ok(rows.Select(r => (object)new
+        {
+            limId      = (int)r.limid,
+            key        = (string)r.key,
+            label      = (string)r.label,
+            groupId    = (int)r.groupId,
+            groupLabel = (string)r.groupLabel,
+            canAdd     = (bool)r.canAdd,
+            canUpdate  = (bool)r.canUpdate,
+            canDelete  = (bool)r.canDelete,
+        }).ToList());
     }
 
     // PUT /admin/admin-accounts/{id}/permissions
@@ -175,10 +231,11 @@ ORDER BY l.limid",
                 foreach (var grant in body.Grants)
                 {
                     await conn.ExecuteAsync(@"
-INSERT INTO AdminLims (adminid, limid, isadd, isupdate, isdelete)
-VALUES (@adminId, @limId, @canAdd, @canUpdate, @canDelete)",
+INSERT INTO AdminLims (adminlimid, adminid, limid, isadd, isupdate, isdelete)
+VALUES (@adminLimId, @adminId, @limId, @canAdd, @canUpdate, @canDelete)",
                         new
                         {
+                            adminLimId = Guid.NewGuid(),
                             adminId,
                             limId = grant.LimId,
                             canAdd = grant.CanAdd,
@@ -213,17 +270,27 @@ VALUES (@adminId, @limId, @canAdd, @canUpdate, @canDelete)",
 
     private sealed record CreateAdminRequest(
         string? Username,
-        string? Password,
-        string? Name,
-        string? Email);
+        string? Password);
 
     private sealed record UpdateAdminRequest(
-        string? Name,
-        string? Email,
         string? Password,
         bool? IsEnable);
 
-    private sealed record SetPermissionsRequest(List<PermissionGrant>? Grants);
+    private sealed class SetPermissionsRequest
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("grants")]
+        public List<PermissionGrant>? Grants { get; set; }
+    }
 
-    private sealed record PermissionGrant(int LimId, bool CanAdd, bool CanUpdate, bool CanDelete);
+    private sealed class PermissionGrant
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("limId")]
+        public int LimId { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("canAdd")]
+        public bool CanAdd { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("canUpdate")]
+        public bool CanUpdate { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("canDelete")]
+        public bool CanDelete { get; set; }
+    }
 }

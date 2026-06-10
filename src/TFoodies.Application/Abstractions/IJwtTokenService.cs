@@ -13,12 +13,12 @@ public interface IJwtTokenService
     /// <summary>產生 access token（有效期由設定決定）。</summary>
     string GenerateAccessToken(IEnumerable<Claim> claims);
 
-    /// <summary>產生不透明 refresh token（cryptographically random）。</summary>
-    string GenerateRefreshToken();
+    /// <summary>
+    /// 產生 refresh token。為「無狀態」簽章 JWT（內含 subject 與到期時間），
+    /// 不需伺服器端儲存，重啟／多副本部署皆可驗證。
+    /// </summary>
+    string GenerateRefreshToken(string subject, DateTime expiry);
 
-    /// <summary>儲存 refresh token → (subject, expiry) 對應。</summary>
-    void StoreRefreshToken(string refreshToken, string subject, DateTime expiry);
-
-    /// <summary>驗證並消費 refresh token（one-time use）。成功回傳 subject；失效回傳 null。</summary>
-    string? ConsumeRefreshToken(string refreshToken);
+    /// <summary>驗證 refresh token（簽章 + 到期 + token_use）。成功回傳 subject；失效回傳 null。</summary>
+    string? ValidateRefreshToken(string refreshToken);
 }

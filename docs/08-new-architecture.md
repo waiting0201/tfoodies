@@ -2,7 +2,7 @@
 
 > 本文描述**新系統**（.NET 9 重構）的多專案分層設計。
 > 舊系統架構見 [docs/01-architecture.md](01-architecture.md)。
-> 上次更新：2026-06-09（新增訂單編輯、圖片上傳機制）
+> 上次更新：2026-06-10（OrderMs 完整子模組移轉：手動建單、出貨扣庫存、物流商、缺貨通知、報關、退貨建立/編輯、Excel 匯出/揀貨單/出貨單）
 
 ---
 
@@ -91,7 +91,7 @@ Persistence/
   EfUnitOfWork.cs              ← IUnitOfWork 實作（Scoped，包裝 TfoodiesContext）
 Auth/
   JwtSettings.cs               ← HS256 key/issuer/audience/expiry
-  JwtTokenService.cs           ← IJwtTokenService（Singleton，in-memory refresh）
+  JwtTokenService.cs           ← IJwtTokenService（Singleton，無狀態 JWT refresh token，重啟/多副本可驗證）
   AuthService.cs               ← IAuthService（PBKDF2 hash-on-login，自動升級明文）
 Payments/Fisc/
   FiscMessageCodec.cs          ← 智付通 HMAC-SHA256 + AES-GCM codec
@@ -122,6 +122,12 @@ DependencyInjection.cs         ← AddInfrastructure()，對外唯一入口
 **命名空間衝突規則**：Infrastructure 資料夾名若與 EF Scaffolded 實體名相同，會引發 CS0118。已知衝突：
 - `Stock` 實體 → Infrastructure 資料夾改用 `Inventory`（namespace `TFoodies.Infrastructure.Inventory`）
 - `Admin` 實體 → Infrastructure 資料夾改用 `Permissions`（namespace `TFoodies.Infrastructure.Permissions`）
+
+**⚠️ DB Schema 規範（資料庫結構唯讀，禁止任何 DDL 變更）**：
+新系統沿用既有 `tfoodies` SQL Server，**整個資料庫結構不可異動**——禁止執行 `ALTER TABLE`、`ADD COLUMN`、`DROP COLUMN`、`CREATE TABLE`、`DROP TABLE` 等 DDL。所有功能設計必須以 **Scaffolded 實體（`src/TFoodies.Infrastructure/Persistence/Scaffolded/`）所反映的現有欄位**為準。
+
+- 若需要某欄位卻不存在，應調整功能設計或 UI，而非修改資料庫。
+- Scaffolded 實體是現有 DB 的忠實映射，實作前先確認實體欄位，不可憑假設撰寫 SQL。
 
 不應放在這裡：HTTP 路由、Azure Functions 觸發器、Controller 邏輯。
 
@@ -178,10 +184,27 @@ Controllers/
   Admin/
     OrderAdminController.cs      ← /admin/orders（OrderMs RBAC）
                                    GET /admin/orders, GET /admin/orders/{code}
+                                   POST /admin/orders（手動建單；未提供 zipcode 時回退會員地區）
                                    PUT /admin/orders/{code}（全欄位編輯，含 items diff）
                                    PATCH /admin/orders/{code}/pending|ship|cancel|pay
-    ProductAdminController.cs    ← /admin/products + /admin/brands + /admin/producttypes（ProductMs）
-    MemberAdminController.cs     ← /admin/members（MemberMs）
+                                   ship 出貨時對「尚未配貨」明細以 IStockAllocator FIFO 扣庫存
+                                   GET /admin/orders/export（category=tfoodies|shopcom Excel）
+                                   GET /admin/orders/picking（揀貨單，orderIds 逗號分隔，FIFO 解析批號）
+                                   GET /admin/orders/{code}/deliver（出貨單，deliver.xlsx 範本）
+    LogisticAdminController.cs   ← /admin/logistics（OrderMs 物流商 CRUD，無刪除）
+    OutofnoticeAdminController.cs← /admin/outofnotices（缺貨通知；標記已通知/刪除）
+    DeclarationAdminController.cs← /admin/declarations(+/declarable)（報關唯讀，舊系統為 stub）
+                                   ReturnAdminController 另補 POST/PUT（後台手動建立/編輯退貨單）
+                                   Excel 匯出走 ClosedXML（Helpers/OrderExcelReport.cs + Templates/deliver.xlsx）
+    ProductAdminController.cs    ← ProductMs 完整對等：商品（含標籤 M:N、套裝 Setproducts、
+                                    代表圖、SEO、唯一性檢查、排序、Productphotos 圖庫）、
+                                    品牌（全欄位含 story/people/pattern + Brandphotos 圖庫）、
+                                    品類（含 memo/SEO）、標籤；圖檔走 /admin/upload + Blob 清理
+    MemberAdminController.cs     ← /admin/members（MemberMs）欄位對齊舊系統（型態/縣市/性別/開通）；
+                                    含新增會員、編輯（手機/型態/開通白名單，保留 isagent）、手機查重 check-mobile
+    ZipcodeAdminController.cs    ← /admin/zipcodes/cities + /admin/zipcodes/areas（縣市→區域連動參照，僅需登入）
+    SmsAdminController.cs        ← /admin/sms（簡訊維護，隸屬 MemberMs）：簡訊 CRUD + 收訊人(Smsdetails)管理
+                                    + 開始發送（逐筆走 ISmsService 三竹閘道，issend/statuscode 回寫）
     InventoryAdminController.cs  ← /admin/warehouses + /admin/inventory + /admin/stocks（InventoryMs）
     PurchaseAdminController.cs   ← /admin/suppliers + /admin/purchases（PurchaseMs）
     AccountingAdminController.cs ← /admin/expenditures + /admin/outcomes + /admin/ar-invoices
@@ -225,11 +248,21 @@ web/admin/src/
 │    orders/
 │      OrdersView.vue                 ← 訂單列表（分頁、狀態篩選）
 │      OrderCreateView.vue            ← 新增訂單（兩欄表單，商品搜尋含縮圖+編號）
-│      OrderDetailView.vue            ← 訂單明細（含出貨/取消操作，「編輯訂單」按鈕）
+│      OrderDetailView.vue            ← 訂單明細（含出貨/取消操作、「出貨單下載」、「編輯訂單」按鈕）
 │      OrderEditView.vue              ← 訂單編輯（兩欄表單，預填所有欄位含收件/付款/出貨/發票/items）
+│      LogisticsView.vue              ← 物流商管理（清單 + 新增/編輯，無刪除）
+│      OutofnoticesView.vue           ← 缺貨通知（分頁，標記已通知/刪除）
+│      DeclarationsView.vue           ← 報關（唯讀：報關單 + 待報關訂單）
+│      （OrdersView 另含 Excel 匯出 / 美安報表 / 待出貨揀貨單按鈕；下載走 apiClient.apiDownload）
 │    products/
-│      ProductsView.vue               ← 商品列表
-│      ProductFormView.vue            ← 新增/編輯商品表單
+│      ProductsView.vue               ← 商品列表（品牌/分類/狀態篩選、圖庫/編輯/停用）
+│      ProductFormView.vue            ← 新增/編輯商品（全欄位 + 標籤 + 套裝 + 代表圖 + HtmlEditor + 庫存檢視）
+│      ProductPhotosView.vue          ← 商品圖庫管理（上傳/排序/刪除）
+│      BrandsView.vue                 ← 品牌列表（導向表單頁 + 圖庫）
+│      BrandFormView.vue              ← 新增/編輯品牌（基本/圖片/Pattern/Story/People/SEO）
+│      BrandPhotosView.vue            ← 品牌圖庫管理（上傳/排序/刪除）
+│      ProductTypesView.vue           ← 商品分類（側滑面板，含 memo/SEO）
+│      TagsView.vue                   ← 標籤管理
 │    members/
 │      MembersView.vue                ← 會員列表
 │    inventory/
@@ -240,7 +273,8 @@ web/admin/src/
 │    accounting/
 │      AccountingView.vue             ← 財務管理（支出/收入/AR）
 │    returns/
-│      ReturnsView.vue                ← 退貨管理
+│      ReturnsView.vue                ← 退貨管理（清單 + 收貨/退款 + 新增/編輯連結）
+│      ReturnFormView.vue             ← 後台手動建立/編輯退貨單（選訂單→載明細→填退貨數量）
 │    cms/
 │      CmsView.vue                    ← 內容管理（橫幅/新聞/食譜）
 │    invoices/
@@ -259,7 +293,9 @@ web/admin/src/
 └─ style.css              ← @import "tailwindcss"; IBM Plex Sans/Mono 字型
 ```
 
-**Auth flow**：`POST /auth/admin/login` → `{ accessToken, refreshToken, username, permissions[] }` → Pinia 存 token（記憶體，XSS 安全）→ `auth.can(module)` 控制 sidebar 顯示。
+**Auth flow**：`POST /auth/admin/login` → `{ accessToken, refreshToken, username, permissions[] }` → Pinia 存 token（記憶體，XSS 安全）。`permissions[]` 為頂層模組 key（供 action 層級檢查）。
+
+**左側選單（server 驅動）**：`AdminLayout.vue` 於 mount 時呼叫 `GET /admin/menu`，後端 `AdminMenuController` 直接由 `Lims`/`AdminLims` 樹依權限過濾產生（比照舊系統 `buildMenuItems`：itadmin=888 全顯示；一般管理員的子項需在 `AdminLims` 有授予，頂層只要有任一可見子項即顯示）。前端僅維護 `Lim.Key → SPA 路由` 對照表，未對應路由者顯示為「開發中」停用項。選單順序/名稱/層級皆以 DB `Lims` 為準，改 DB 即反映，無需改前端。
 
 ---
 

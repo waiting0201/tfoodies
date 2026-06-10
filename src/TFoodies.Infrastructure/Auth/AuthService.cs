@@ -43,7 +43,7 @@ public sealed class AuthService : IAuthService
 
     public Task<TokenPair?> RefreshAsync(string refreshToken, CancellationToken ct = default)
     {
-        var subject = _jwt.ConsumeRefreshToken(refreshToken);
+        var subject = _jwt.ValidateRefreshToken(refreshToken);
         if (subject is null) return Task.FromResult<TokenPair?>(null);
 
         var parts = subject.Split(':', 2);
@@ -109,9 +109,8 @@ public sealed class AuthService : IAuthService
     private TokenPair IssueTokenPair(string subject, IEnumerable<Claim> claims)
     {
         var accessToken = _jwt.GenerateAccessToken(claims);
-        var refreshToken = _jwt.GenerateRefreshToken();
         var expiry = DateTime.UtcNow.AddDays(_settings.RefreshExpiryDays);
-        _jwt.StoreRefreshToken(refreshToken, subject, expiry);
+        var refreshToken = _jwt.GenerateRefreshToken(subject, expiry);
         return new TokenPair(accessToken, refreshToken, DateTime.UtcNow.AddMinutes(_settings.ExpiryMinutes));
     }
 

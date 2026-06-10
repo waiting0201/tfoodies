@@ -16,6 +16,14 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.1.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7" />
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 出貨單範本（移植自舊系統 ~/Template/deliver.xlsx）-->
+    <None Include="Templates\deliver.xlsx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

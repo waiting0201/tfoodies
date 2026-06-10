@@ -5,6 +5,9 @@ import { apiFetch, ApiError } from '../../lib/apiClient'
 interface ProductType {
   producttypeid: string
   title: string
+  memo?: string
+  keyword?: string
+  description?: string
   sort: number
   isenable: boolean
 }
@@ -15,7 +18,7 @@ const error = ref('')
 
 const panelMode = ref<'create' | 'edit' | null>(null)
 const panelTarget = ref<ProductType | null>(null)
-const form = reactive({ title: '', sort: 0, isEnable: true })
+const form = reactive({ title: '', memo: '', keyword: '', description: '', sort: 0, isEnable: true })
 const saving = ref(false)
 const saveError = ref('')
 
@@ -37,6 +40,9 @@ async function load() {
 
 function openCreate() {
   form.title = ''
+  form.memo = ''
+  form.keyword = ''
+  form.description = ''
   form.sort = items.value.length > 0 ? Math.max(...items.value.map(t => t.sort)) + 1 : 1
   form.isEnable = true
   saveError.value = ''
@@ -46,6 +52,9 @@ function openCreate() {
 
 function openEdit(t: ProductType) {
   form.title = t.title
+  form.memo = t.memo ?? ''
+  form.keyword = t.keyword ?? ''
+  form.description = t.description ?? ''
   form.sort = t.sort
   form.isEnable = t.isenable
   saveError.value = ''
@@ -60,7 +69,7 @@ async function save() {
   saving.value = true
   saveError.value = ''
   try {
-    const payload = { title: form.title, sort: form.sort, isEnable: form.isEnable }
+    const payload = { title: form.title, memo: form.memo, keyword: form.keyword, description: form.description, sort: form.sort, isEnable: form.isEnable }
     if (panelMode.value === 'create') {
       await apiFetch('/admin/producttypes', { method: 'POST', body: JSON.stringify(payload) })
     } else {
@@ -154,6 +163,18 @@ load()
           <div class="form-field">
             <label class="form-field__label">分類名稱 <span class="required">*</span></label>
             <input v-model="form.title" class="form-field__input" placeholder="分類名稱" />
+          </div>
+          <div class="form-field">
+            <label class="form-field__label">產品說明</label>
+            <input v-model="form.memo" class="form-field__input" placeholder="選填" />
+          </div>
+          <div class="form-field">
+            <label class="form-field__label">SEO 關鍵字</label>
+            <input v-model="form.keyword" class="form-field__input" placeholder="以逗號分隔，3 個以內" />
+          </div>
+          <div class="form-field">
+            <label class="form-field__label">SEO 描述</label>
+            <textarea v-model="form.description" class="form-field__input" rows="2" maxlength="150" placeholder="150 字以內"></textarea>
           </div>
           <div class="form-row">
             <div class="form-field">

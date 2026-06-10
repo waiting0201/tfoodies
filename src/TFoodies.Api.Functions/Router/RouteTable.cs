@@ -69,34 +69,92 @@ public class RouteTable
         Register<MemberController>("GET", "member/orders",                 (c, ctx) => c.GetOrders(ctx));
 
         // ── Admin Orders（OrderMs） ─────────────────────────────────────────
+        // ⚠ 字面路由（export、picking）必須排在 {code} 萬用路由之前。
         Register<OrderAdminController>("GET",   "admin/orders",                                           (c, ctx) => c.List(ctx));
-        Register<OrderAdminController>("GET",   @"admin/orders/(?<code>[^/]+)$",                          (c, ctx) => c.Detail(ctx));
+        Register<OrderAdminController>("POST",  "admin/orders",                                           (c, ctx) => c.Create(ctx));
+        Register<OrderAdminController>("GET",   "admin/orders/export",                                    (c, ctx) => c.ExportOrders(ctx));
+        Register<OrderAdminController>("GET",   "admin/orders/picking",                                   (c, ctx) => c.ExportPicking(ctx));
+        Register<OrderAdminController>("GET",   @"admin/orders/(?<code>[^/]+)/deliver$",                  (c, ctx) => c.ExportDeliver(ctx));
         Register<OrderAdminController>("PATCH", @"admin/orders/(?<code>[^/]+)/pending",                   (c, ctx) => c.ToPending(ctx));
         Register<OrderAdminController>("PATCH", @"admin/orders/(?<code>[^/]+)/ship",                      (c, ctx) => c.Ship(ctx));
         Register<OrderAdminController>("PATCH", @"admin/orders/(?<code>[^/]+)/cancel",                    (c, ctx) => c.Cancel(ctx));
         Register<OrderAdminController>("PATCH", @"admin/orders/(?<code>[^/]+)/pay",                       (c, ctx) => c.MarkPaid(ctx));
+        Register<OrderAdminController>("GET",   @"admin/orders/(?<code>[^/]+)$",                          (c, ctx) => c.Detail(ctx));
         Register<OrderAdminController>("PUT",   @"admin/orders/(?<code>[^/]+)$",                          (c, ctx) => c.Update(ctx));
 
+        // ── Admin Logistics（OrderMs → 物流商） ──────────────────────────────
+        Register<LogisticAdminController>("GET",  "admin/logistics",                                      (c, ctx) => c.List(ctx));
+        Register<LogisticAdminController>("POST", "admin/logistics",                                      (c, ctx) => c.Create(ctx));
+        Register<LogisticAdminController>("GET",  @"admin/logistics/(?<id>[^/]+)$",                       (c, ctx) => c.Detail(ctx));
+        Register<LogisticAdminController>("PUT",  @"admin/logistics/(?<id>[^/]+)$",                       (c, ctx) => c.Update(ctx));
+
+        // ── Admin Outofnotices（OrderMs → 缺貨通知） ─────────────────────────
+        Register<OutofnoticeAdminController>("GET",    "admin/outofnotices",                              (c, ctx) => c.List(ctx));
+        Register<OutofnoticeAdminController>("PATCH",  @"admin/outofnotices/(?<id>[^/]+)/notice",         (c, ctx) => c.MarkNotified(ctx));
+        Register<OutofnoticeAdminController>("DELETE", @"admin/outofnotices/(?<id>[^/]+)$",               (c, ctx) => c.Delete(ctx));
+
+        // ── Admin Declarations（OrderMs → 報關） ─────────────────────────────
+        Register<DeclarationAdminController>("GET", "admin/declarations/declarable",                      (c, ctx) => c.Declarable(ctx));
+        Register<DeclarationAdminController>("GET", "admin/declarations",                                 (c, ctx) => c.List(ctx));
+
         // ── Admin Products（ProductMs） ─────────────────────────────────────
+        // ⚠ 字面路由（check-*、sort、photos/sort）必須排在對應的 {id}/{photoId} 萬用路由之前。
+        // Brands
         Register<ProductAdminController>("GET",    "admin/brands",                                        (c, ctx) => c.Brands(ctx));
         Register<ProductAdminController>("POST",   "admin/brands",                                        (c, ctx) => c.CreateBrand(ctx));
+        Register<ProductAdminController>("PUT",    "admin/brands/sort",                                   (c, ctx) => c.SortBrands(ctx));
+        Register<ProductAdminController>("GET",    @"admin/brands/(?<id>[^/]+)/photos$",                  (c, ctx) => c.BrandPhotos(ctx));
+        Register<ProductAdminController>("POST",   @"admin/brands/(?<id>[^/]+)/photos$",                  (c, ctx) => c.CreateBrandPhoto(ctx));
+        Register<ProductAdminController>("PUT",    @"admin/brands/(?<id>[^/]+)/photos/sort$",             (c, ctx) => c.SortBrandPhotos(ctx));
+        Register<ProductAdminController>("PUT",    @"admin/brands/(?<id>[^/]+)/photos/(?<photoId>[^/]+)$",(c, ctx) => c.UpdateBrandPhoto(ctx));
+        Register<ProductAdminController>("DELETE", @"admin/brands/(?<id>[^/]+)/photos/(?<photoId>[^/]+)$",(c, ctx) => c.DeleteBrandPhoto(ctx));
+        Register<ProductAdminController>("GET",    @"admin/brands/(?<id>[^/]+)$",                         (c, ctx) => c.BrandDetail(ctx));
         Register<ProductAdminController>("PUT",    @"admin/brands/(?<id>[^/]+)$",                         (c, ctx) => c.UpdateBrand(ctx));
         Register<ProductAdminController>("DELETE", @"admin/brands/(?<id>[^/]+)$",                         (c, ctx) => c.DeleteBrand(ctx));
+        // Producttypes
         Register<ProductAdminController>("GET",    "admin/producttypes",                                  (c, ctx) => c.ProductTypes(ctx));
         Register<ProductAdminController>("POST",   "admin/producttypes",                                  (c, ctx) => c.CreateProductType(ctx));
+        Register<ProductAdminController>("GET",    "admin/producttypes/check-name",                       (c, ctx) => c.CheckProductTypeName(ctx));
+        Register<ProductAdminController>("PUT",    "admin/producttypes/sort",                             (c, ctx) => c.SortProductTypes(ctx));
         Register<ProductAdminController>("PUT",    @"admin/producttypes/(?<id>[^/]+)$",                   (c, ctx) => c.UpdateProductType(ctx));
         Register<ProductAdminController>("DELETE", @"admin/producttypes/(?<id>[^/]+)$",                   (c, ctx) => c.DeleteProductType(ctx));
+        // Products
         Register<ProductAdminController>("GET",    "admin/products",                                      (c, ctx) => c.List(ctx));
         Register<ProductAdminController>("POST",   "admin/products",                                      (c, ctx) => c.Create(ctx));
+        Register<ProductAdminController>("GET",    "admin/products/check-num",                            (c, ctx) => c.CheckProductNum(ctx));
+        Register<ProductAdminController>("GET",    "admin/products/check-name",                           (c, ctx) => c.CheckProductName(ctx));
+        Register<ProductAdminController>("PUT",    "admin/products/sort",                                 (c, ctx) => c.SortProducts(ctx));
+        Register<ProductAdminController>("GET",    @"admin/products/(?<id>[^/]+)/photos$",                (c, ctx) => c.ProductPhotos(ctx));
+        Register<ProductAdminController>("POST",   @"admin/products/(?<id>[^/]+)/photos$",                (c, ctx) => c.CreateProductPhoto(ctx));
+        Register<ProductAdminController>("PUT",    @"admin/products/(?<id>[^/]+)/photos/sort$",           (c, ctx) => c.SortProductPhotos(ctx));
+        Register<ProductAdminController>("PUT",    @"admin/products/(?<id>[^/]+)/photos/(?<photoId>[^/]+)$",   (c, ctx) => c.UpdateProductPhoto(ctx));
+        Register<ProductAdminController>("DELETE", @"admin/products/(?<id>[^/]+)/photos/(?<photoId>[^/]+)$",   (c, ctx) => c.DeleteProductPhoto(ctx));
         Register<ProductAdminController>("GET",    @"admin/products/(?<id>[^/]+)$",                       (c, ctx) => c.Detail(ctx));
         Register<ProductAdminController>("PUT",    @"admin/products/(?<id>[^/]+)$",                       (c, ctx) => c.Update(ctx));
         Register<ProductAdminController>("DELETE", @"admin/products/(?<id>[^/]+)$",                       (c, ctx) => c.Delete(ctx));
 
         // ── Admin Members（MemberMs） ───────────────────────────────────────
         Register<MemberAdminController>("GET",    "admin/members",                                        (c, ctx) => c.List(ctx));
+        Register<MemberAdminController>("GET",    "admin/members/check-mobile",                           (c, ctx) => c.CheckMobile(ctx));
+        Register<MemberAdminController>("POST",   "admin/members",                                        (c, ctx) => c.Create(ctx));
         Register<MemberAdminController>("GET",    @"admin/members/(?<id>[^/]+)$",                         (c, ctx) => c.Detail(ctx));
         Register<MemberAdminController>("PUT",    @"admin/members/(?<id>[^/]+)$",                         (c, ctx) => c.Update(ctx));
         Register<MemberAdminController>("DELETE", @"admin/members/(?<id>[^/]+)$",                         (c, ctx) => c.Delete(ctx));
+
+        // ── Zipcode 參照（縣市/區域連動）───────────────────────────────────
+        Register<ZipcodeAdminController>("GET",   "admin/zipcodes/cities",                                (c, ctx) => c.Cities(ctx));
+        Register<ZipcodeAdminController>("GET",   "admin/zipcodes/areas",                                 (c, ctx) => c.Areas(ctx));
+
+        // ── Admin SMS 簡訊維護（隸屬 MemberMs）──────────────────────────────
+        Register<SmsAdminController>("GET",    "admin/sms",                                               (c, ctx) => c.List(ctx));
+        Register<SmsAdminController>("POST",   "admin/sms",                                               (c, ctx) => c.Create(ctx));
+        Register<SmsAdminController>("DELETE", @"admin/sms/recipients/(?<detailId>[^/]+)$",               (c, ctx) => c.DeleteRecipient(ctx));
+        Register<SmsAdminController>("GET",    @"admin/sms/(?<id>[^/]+)/recipients$",                     (c, ctx) => c.Recipients(ctx));
+        Register<SmsAdminController>("POST",   @"admin/sms/(?<id>[^/]+)/recipients$",                     (c, ctx) => c.AddRecipients(ctx));
+        Register<SmsAdminController>("GET",    @"admin/sms/(?<id>[^/]+)/available-members$",              (c, ctx) => c.AvailableMembers(ctx));
+        Register<SmsAdminController>("POST",   @"admin/sms/(?<id>[^/]+)/send$",                           (c, ctx) => c.Send(ctx));
+        Register<SmsAdminController>("PUT",    @"admin/sms/(?<id>[^/]+)$",                                (c, ctx) => c.Update(ctx));
+        Register<SmsAdminController>("DELETE", @"admin/sms/(?<id>[^/]+)$",                                (c, ctx) => c.Delete(ctx));
 
         // ── Admin Inventory（InventoryMs） ──────────────────────────────────
         Register<InventoryAdminController>("GET",    "admin/warehouses",                                  (c, ctx) => c.ListWarehouses(ctx));
@@ -165,16 +223,24 @@ public class RouteTable
 
         // ── Admin Returns（OrderMs） ─────────────────────────────────────────
         Register<ReturnAdminController>("GET",   "admin/returns",                                         (c, ctx) => c.List(ctx));
+        Register<ReturnAdminController>("POST",  "admin/returns",                                         (c, ctx) => c.Create(ctx));
         Register<ReturnAdminController>("GET",   @"admin/returns/(?<id>[^/]+)$",                          (c, ctx) => c.Detail(ctx));
+        Register<ReturnAdminController>("PUT",   @"admin/returns/(?<id>[^/]+)$",                          (c, ctx) => c.Update(ctx));
         Register<ReturnAdminController>("PATCH", @"admin/returns/(?<id>[^/]+)/receive",                   (c, ctx) => c.Receive(ctx));
         Register<ReturnAdminController>("PATCH", @"admin/returns/(?<id>[^/]+)/refund",                    (c, ctx) => c.Refund(ctx));
 
         // ── Admin Accounts ───────────────────────────────────────────────────
-        Register<AdminAccountController>("GET",  "admin/admin-accounts",                                  (c, ctx) => c.List(ctx));
-        Register<AdminAccountController>("POST", "admin/admin-accounts",                                  (c, ctx) => c.Create(ctx));
-        Register<AdminAccountController>("PUT",  @"admin/admin-accounts/(?<id>[^/]+)$",                   (c, ctx) => c.Update(ctx));
-        Register<AdminAccountController>("GET",  @"admin/admin-accounts/(?<id>[^/]+)/permissions",        (c, ctx) => c.GetPermissions(ctx));
-        Register<AdminAccountController>("PUT",  @"admin/admin-accounts/(?<id>[^/]+)/permissions",        (c, ctx) => c.SetPermissions(ctx));
+        // 左側選單（依權限由 Lims 樹動態產生）
+        Register<AdminMenuController>("GET",       "admin/menu",                                            (c, ctx) => c.Get(ctx));
+        // 當前登入管理員的模組權限（供前端頁面重整後刷新側欄）
+        Register<AdminAccountController>("GET",    "admin/me/permissions",                                  (c, ctx) => c.MyPermissions(ctx));
+        Register<AdminAccountController>("GET",    "admin/admin-accounts",                                  (c, ctx) => c.List(ctx));
+        Register<AdminAccountController>("POST",   "admin/admin-accounts",                                  (c, ctx) => c.Create(ctx));
+        // ⚠️ permissions 路由必須比 /{id}$ 更早註冊，避免被通用路由攔截
+        Register<AdminAccountController>("GET",    @"admin/admin-accounts/(?<id>[^/]+)/permissions",        (c, ctx) => c.GetPermissions(ctx));
+        Register<AdminAccountController>("PUT",    @"admin/admin-accounts/(?<id>[^/]+)/permissions",        (c, ctx) => c.SetPermissions(ctx));
+        Register<AdminAccountController>("PUT",    @"admin/admin-accounts/(?<id>[^/]+)$",                   (c, ctx) => c.Update(ctx));
+        Register<AdminAccountController>("DELETE", @"admin/admin-accounts/(?<id>[^/]+)$",                   (c, ctx) => c.Disable(ctx));
 
         // ── Admin CMS（HomeMs）── Banners ─────────────────────────────────────
         Register<CmsAdminController>("GET",    "admin/cms/banners",                                       (c, ctx) => c.BannerList(ctx));

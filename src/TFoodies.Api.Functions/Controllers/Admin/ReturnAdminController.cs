@@ -30,6 +30,9 @@ public sealed class ReturnAdminController
         _codes = codes;
     }
 
+    // 舊系統 AddReturns 為每筆 returndetail 寫死的退貨會計科目 ID。
+    private static readonly Guid ReturnAccountingId = new("469AF577-AC6F-4026-AD48-8918525D1ACF");
+
     // GET /admin/returns?receivestatus=&page=1&pageSize=20
     public async Task<IActionResult> List(RouteContext ctx)
     {
@@ -63,16 +66,28 @@ public sealed class ReturnAdminController
 
         var items = await conn.QueryAsync($@"
 SELECT r.returnid, r.returncode, r.returndate,
-       m.name AS memberName, o.ordercode,
+       m.name AS memberName, m.mobile AS memberMobile, o.ordercode,
        r.note, r.receivestatus, r.refundstatus, r.warehousestatus
 FROM Returns r
 JOIN Members m ON m.memberid = r.memberid
 JOIN Orders o ON o.orderid = r.orderid
 WHERE {where}
-ORDER BY r.returndate DESC
+ORDER BY r.receivedate DESC, r.returncode DESC
 OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY", dp);
 
-        var list = items.Cast<object>().ToList();
+        // DapperRow key 不套 camelCase 政策，需投影到 anonymous object 並 .ToList()
+        var list = items.Select(r => (object)new
+        {
+            returnId = r.returnid,
+            returnCode = r.returncode,
+            orderCode = r.ordercode,
+            returnDate = r.returndate,
+            r.memberName,
+            r.memberMobile,
+            refundStatus = r.refundstatus,
+            receiveStatus = r.receivestatus,
+            warehouseStatus = r.warehousestatus,
+        }).ToList();
         return ctx.OkPaged(PaginatedResponse<object>.Create(list, total, page, pageSize));
     }
 
@@ -98,7 +113,7 @@ JOIN Members m ON m.memberid = r.memberid
 JOIN Orders o ON o.orderid = r.orderid
 WHERE r.returnid = @returnId;
 
-SELECT rd.returndetailid, rd.orderdetailid, rd.qty, rd.note,
+SELECT rd.returndetailid, rd.orderdetailid, rd.qty,
        od.price, od.subtotal,
        p.title AS productTitle, p.productid
 FROM Returndetails rd
@@ -194,8 +209,146 @@ VALUES (@refoundid, @memberid, @returnid, @refoundcode, @amount, @note, @created
         catch { tx.Rollback(); throw; }
     }
 
+    // POST /admin/returns — 後台手動建立退貨單（對應舊系統 AddReturns）。
+    public async Task<IActionResult> Create(RouteContext ctx)
+    {
+        var guard = await AdminGuard.AuthorizeAsync(ctx, _perms, "OrderMs", AdminOperation.Add);
+        if (guard.Result is not null) return guard.Result;
+
+        var body = await ctx.TryReadBodyAsync<UpsertReturnRequest>();
+        if (body is null || body.OrderId == Guid.Empty) return ctx.BadRequest("請選擇訂單。");
+        var details = (body.Details ?? new()).Where(d => d.Qty > 0).ToList();
+        if (details.Count == 0) return ctx.BadRequest("請至少填寫一項退貨數量。");
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(8));
+        var ct = ctx.Request.HttpContext.RequestAborted;
+
+        using var conn = (SqlConnection)await _db.CreateOpenConnectionAsync(ct);
+        using var tx = conn.BeginTransaction(IsolationLevel.ReadCommitted);
+        try
+        {
+            var memberId = await conn.ExecuteScalarAsync<Guid?>(
+                "SELECT memberid FROM Orders WHERE orderid=@orderId", new { orderId = body.OrderId }, tx);
+            if (memberId is null) { tx.Rollback(); return ctx.NotFound("找不到訂單。"); }
+
+            var returnId = Guid.NewGuid();
+            var returnCode = await _codes.NextAsync(CodeKind.Return, today, tx, ct);
+
+            await conn.ExecuteAsync(@"
+INSERT INTO Returns (returnid, memberid, orderid, returncode, returndate,
+    receivestatus, receivedate, refundstatus, refunddate, createdate, warehousestatus, note)
+VALUES (@returnid, @memberid, @orderid, @returncode, @returndate,
+    @receivestatus, @receivedate, @refundstatus, NULL, @createdate, @warehousestatus, @note)",
+                new
+                {
+                    returnid = returnId,
+                    memberid = memberId.Value,
+                    orderid = body.OrderId,
+                    returncode = returnCode,
+                    returndate = body.ReturnDate ?? today,
+                    receivestatus = body.ReceiveStatus,
+                    receivedate = body.ReceiveDate,
+                    refundstatus = body.RefundStatus,
+                    createdate = today,
+                    warehousestatus = (int)Domain.Enums.WarehouseStatus.NotStockedIn,
+                    note = body.Note,
+                }, tx);
+
+            foreach (var d in details)
+                await InsertReturnDetailAsync(conn, tx, returnId, d.OrderDetailId, d.Qty);
+
+            tx.Commit();
+            return ctx.Created(new { returnCode });
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    // PUT /admin/returns/{id} — 編輯退貨單（對應舊系統 EditReturns，含明細差異更新）。
+    public async Task<IActionResult> Update(RouteContext ctx)
+    {
+        var guard = await AdminGuard.AuthorizeAsync(ctx, _perms, "OrderMs", AdminOperation.Update);
+        if (guard.Result is not null) return guard.Result;
+        if (!Guid.TryParse(ctx.RequirePathParam("id"), out var returnId)) return ctx.BadRequest("無效的退貨 ID。");
+
+        var body = await ctx.TryReadBodyAsync<UpsertReturnRequest>();
+        if (body is null) return ctx.BadRequest("請求內容無效。");
+        var ct = ctx.Request.HttpContext.RequestAborted;
+
+        using var conn = (SqlConnection)await _db.CreateOpenConnectionAsync(ct);
+        using var tx = conn.BeginTransaction(IsolationLevel.ReadCommitted);
+        try
+        {
+            var rows = await conn.ExecuteAsync(@"
+UPDATE Returns SET returndate=@returndate, receivestatus=@receivestatus, receivedate=@receivedate,
+    refundstatus=@refundstatus, refunddate=@refunddate, note=@note
+WHERE returnid=@returnId",
+                new
+                {
+                    returnId,
+                    returndate = body.ReturnDate,
+                    receivestatus = body.ReceiveStatus,
+                    receivedate = body.ReceiveDate,
+                    refundstatus = body.RefundStatus,
+                    refunddate = body.RefundDate,
+                    note = body.Note,
+                }, tx);
+            if (rows == 0) { tx.Rollback(); return ctx.NotFound("找不到退貨記錄。"); }
+
+            var details = (body.Details ?? new()).Where(d => d.Qty > 0).ToList();
+
+            var existing = (await conn.QueryAsync<Guid>(
+                "SELECT returndetailid FROM Returndetails WHERE returnid=@returnId",
+                new { returnId }, tx)).ToHashSet();
+            var keep = details.Where(d => d.ReturnDetailId.HasValue).Select(d => d.ReturnDetailId!.Value).ToHashSet();
+
+            foreach (var delId in existing.Where(e => !keep.Contains(e)))
+                await conn.ExecuteAsync("DELETE FROM Returndetails WHERE returndetailid=@delId", new { delId }, tx);
+
+            foreach (var d in details)
+            {
+                if (d.ReturnDetailId.HasValue && existing.Contains(d.ReturnDetailId.Value))
+                    await conn.ExecuteAsync(
+                        "UPDATE Returndetails SET orderdetailid=@odid, qty=@qty WHERE returndetailid=@id",
+                        new { odid = d.OrderDetailId, qty = d.Qty, id = d.ReturnDetailId.Value }, tx);
+                else
+                    await InsertReturnDetailAsync(conn, tx, returnId, d.OrderDetailId, d.Qty);
+            }
+
+            tx.Commit();
+            return ctx.Ok(new { message = "退貨單已更新" });
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    private static async Task InsertReturnDetailAsync(
+        SqlConnection conn, SqlTransaction tx, Guid returnId, Guid orderDetailId, int qty)
+    {
+        var price = await conn.ExecuteScalarAsync<int?>(
+            "SELECT price FROM Orderdetails WHERE orderdetailid=@id", new { id = orderDetailId }, tx) ?? 0;
+        await conn.ExecuteAsync(@"
+INSERT INTO Returndetails (returndetailid, returnid, orderdetailid, accountingid, qty, price)
+VALUES (@id, @returnid, @orderdetailid, @accountingid, @qty, @price)",
+            new
+            {
+                id = Guid.NewGuid(),
+                returnid = returnId,
+                orderdetailid = orderDetailId,
+                accountingid = ReturnAccountingId,
+                qty,
+                price,
+            }, tx);
+    }
+
     // ── Row / DTO types ───────────────────────────────────────────────────────────
 
     private sealed record ReturnRow(Guid returnid, Guid memberid, int refundstatus);
     private sealed record RefundRequest(string? Note);
+
+    private sealed record UpsertReturnRequest(
+        Guid OrderId, DateOnly? ReturnDate,
+        int ReceiveStatus, DateOnly? ReceiveDate,
+        int RefundStatus, DateOnly? RefundDate,
+        string? Note, List<ReturnDetailItem>? Details);
+
+    private sealed record ReturnDetailItem(Guid? ReturnDetailId, Guid OrderDetailId, int Qty);
 }

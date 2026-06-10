@@ -83,8 +83,11 @@ public static class DependencyInjection
         services.AddHttpClient<IInvoiceService, EzPayInvoiceService>();
 
         // ── SMS service（HttpClient pool） ────────────────────────────────────────
+        // MitakeSmsService 以 IHttpClientFactory.CreateClient(nameof(MitakeSmsService)) 取得 client，
+        // 不是 typed client（建構子無 HttpClient 參數），故註冊「具名 client + 一般服務」而非 AddHttpClient<I,T>。
         services.Configure<MitakeSmsOptions>(configuration.GetSection(MitakeSmsOptions.SectionName));
-        services.AddHttpClient<ISmsService, MitakeSmsService>();
+        services.AddHttpClient(nameof(MitakeSmsService));
+        services.AddSingleton<ISmsService, MitakeSmsService>();
 
         // ── Blob Storage（Singleton — BlobContainerClient 是 thread-safe）────────
         services.Configure<AzureBlobOptions>(configuration.GetSection(AzureBlobOptions.SectionName));

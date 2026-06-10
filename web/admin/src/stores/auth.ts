@@ -20,6 +20,10 @@ interface RefreshResponse {
   refreshToken: string
 }
 
+interface MePermissionsResponse {
+  permissions: string[]
+}
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     // Access token: memory only (XSS-safe, lost on refresh — restored via refreshToken below)
@@ -44,9 +48,24 @@ export const useAuthStore = defineStore('auth', {
         })
         this.accessToken = res.accessToken
         localStorage.setItem(KEYS.refresh, res.refreshToken)
+        // Refresh permissions too — the refresh endpoint is role-agnostic and does
+        // not carry them, so the sidebar would otherwise stay on stale localStorage
+        // values after a page reload (or after an admin's permissions changed).
+        await this.refreshPermissions()
       } catch {
         // Refresh token expired or revoked — clear session and let user log in again
         this._clearSession()
+      }
+    },
+    // Re-fetch the current admin's module permissions and persist them.
+    // Best-effort: a failure here must not break an otherwise-valid session.
+    async refreshPermissions() {
+      try {
+        const res = await apiFetch<MePermissionsResponse>('/admin/me/permissions')
+        this.permissions = Array.isArray(res.permissions) ? res.permissions : []
+        localStorage.setItem(KEYS.perms, JSON.stringify(this.permissions))
+      } catch {
+        // keep existing (cached) permissions on transient failure
       }
     },
     async login(username: string, password: string) {

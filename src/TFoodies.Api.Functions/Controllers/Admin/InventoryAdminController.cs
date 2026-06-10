@@ -219,7 +219,7 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY", dp);
 
         var batches = await conn.QueryAsync<dynamic>(@"
 SELECT ws.warehousestockid, ws.warehouseid, w.title AS warehouseTitle,
-       s.stockid, s.expiredate, s.noticenum,
+       s.stockid, s.expiredate, s.noticenumber AS noticenum,
        ws.quantity_left, ws.transdate
 FROM Warehousestocks ws
 JOIN Warehouses w ON w.warehouseid=ws.warehouseid

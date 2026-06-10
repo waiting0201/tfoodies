@@ -3,23 +3,23 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiFetch } from '../../lib/apiClient'
 
+// /admin/brands、/admin/producttypes 由 Dapper dynamic 回傳，key 為原始 DB 欄位名（小寫）。
 interface Brand {
-  brandId: string
-  name: string
+  brandid: string
+  title: string
 }
 interface ProductType {
-  producttypeId: string
-  name: string
+  producttypeid: string
+  title: string
 }
 interface Product {
   productId: string
+  productNum?: string
   title: string
-  entitle: string
+  photo?: string
   price: number
-  brandId: string
   brandName?: string
-  producttypeId: string
-  producttypeName?: string
+  typeName?: string
   isdisabled: boolean
 }
 interface PagedResult<T> {
@@ -42,6 +42,7 @@ const filter = reactive({
   keyword: '',
   brandId: '',
   typeId: '',
+  disabled: '',
   page: 1,
   pageSize: 20,
 })
@@ -66,6 +67,7 @@ async function loadProducts() {
       page: String(filter.page),
       pageSize: String(filter.pageSize),
     })
+    if (filter.disabled !== '') params.set('disabled', filter.disabled)
     const res = await apiFetch<PagedResult<Product>>(`/admin/products?${params}`)
     products.value = res.items
     totalCount.value = res.totalCount
@@ -120,11 +122,16 @@ onMounted(async () => {
       />
       <select v-model="filter.brandId" class="select" @change="search">
         <option value="">所有品牌</option>
-        <option v-for="b in brands" :key="b.brandId" :value="b.brandId">{{ b.name }}</option>
+        <option v-for="b in brands" :key="b.brandid" :value="b.brandid">{{ b.title }}</option>
       </select>
       <select v-model="filter.typeId" class="select" @change="search">
         <option value="">所有分類</option>
-        <option v-for="t in productTypes" :key="t.producttypeId" :value="t.producttypeId">{{ t.name }}</option>
+        <option v-for="t in productTypes" :key="t.producttypeid" :value="t.producttypeid">{{ t.title }}</option>
+      </select>
+      <select v-model="filter.disabled" class="select" @change="search">
+        <option value="">全部狀態</option>
+        <option value="false">上架</option>
+        <option value="true">停用</option>
       </select>
       <button class="btn btn--secondary" @click="search">搜尋</button>
     </div>
@@ -151,13 +158,12 @@ onMounted(async () => {
             <td colspan="7" class="table__empty">無資料</td>
           </tr>
           <tr v-for="p in products" :key="p.productId" :class="{ 'row--disabled': p.isdisabled }">
-            <td class="td--mono">{{ p.productId.slice(0, 8) }}…</td>
+            <td class="td--mono">{{ p.productNum || '—' }}</td>
             <td>
               <span class="product-title">{{ p.title }}</span>
-              <span v-if="p.entitle" class="product-entitle">{{ p.entitle }}</span>
             </td>
-            <td>{{ p.brandName ?? p.brandId }}</td>
-            <td>{{ p.producttypeName ?? p.producttypeId }}</td>
+            <td>{{ p.brandName ?? '—' }}</td>
+            <td>{{ p.typeName ?? '—' }}</td>
             <td class="td--number">NT$ {{ p.price.toLocaleString() }}</td>
             <td>
               <span :class="['badge', p.isdisabled ? 'badge--off' : 'badge--on']">
@@ -165,6 +171,9 @@ onMounted(async () => {
               </span>
             </td>
             <td class="td--actions">
+              <router-link :to="`/admin/products/${p.productId}/photos`" class="btn btn--sm btn--secondary">
+                圖庫
+              </router-link>
               <router-link :to="`/admin/products/${p.productId}/edit`" class="btn btn--sm btn--ghost">
                 編輯
               </router-link>

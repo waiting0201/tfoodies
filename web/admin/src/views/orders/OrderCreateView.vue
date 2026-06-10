@@ -115,12 +115,12 @@ const form = reactive({
   receiverName: '',
   receiverMobile: '',
   receiverAddress: '',
-  recivertime: 0,     // 0=不限, 1=上午, 2=下午
-  payType: 1,         // 1=ATM, 2=信用卡, 3=貨到付款
-  invoiceType: 1,     // 1=二聯, 2=三聯, 3=愛心捐贈
-  companytitle: '',   // 三聯式：公司抬頭
-  companynumber: '',  // 三聯式：統一編號
-  lovecode: '',       // 愛心捐贈：捐贈碼
+  recivertime: 0,     // 0=不限, 1=上午, 2=下午（對應 DB recivertime）
+  payType: 2,         // DB EnumPayType：1=信用卡 2=貨到付款 3=ATM 5=現金 6=電匯
+  invoiceType: 1,     // DB EnumInvoiceType：1=二聯 2=捐贈 3=三聯 4=免開
+  companytitle: '',   // 三聯式(3)：公司抬頭
+  companynumber: '',  // 三聯式(3)：統一編號
+  lovecode: '',       // 捐贈(2)：捐贈碼
   discount: 0,        // 人工折扣（元）
   remark: '',
   shippingFee: 0,
@@ -149,30 +149,43 @@ async function handleSubmit() {
   submitError.value = ''
 
   // 基本驗證
+  if (!selectedMember.value) { submitError.value = '請選擇會員'; return }
   if (!form.receiverName.trim()) { submitError.value = '請填寫收件人姓名'; return }
   if (!form.receiverMobile.trim()) { submitError.value = '請填寫收件人手機'; return }
   if (!form.receiverAddress.trim()) { submitError.value = '請填寫收件地址'; return }
   if (orderItems.value.length === 0) { submitError.value = '請至少新增一項商品'; return }
 
+  // 欄位名稱需完全符合後端 CreateOrderRequest（camelCase）。
   const payload = {
-    memberId: selectedMember.value?.memberId ?? null,
+    memberId: selectedMember.value.memberId,
+    orderType: 2,                 // 線下單
     receiverName: form.receiverName,
     receiverMobile: form.receiverMobile,
     receiverAddress: form.receiverAddress,
-    recivertime: form.recivertime,
+    receiverZipcodeId: 0,         // 0 → 後端回退用會員登記地區
+    receiverTime: form.recivertime,
     payType: form.payType,
+    payStatus: 0,                 // 未付款
+    deliverStatus: 0,             // 未出貨
     invoiceType: form.invoiceType,
-    companytitle: form.invoiceType === 2 ? form.companytitle || null : null,
-    companynumber: form.invoiceType === 2 ? form.companynumber || null : null,
-    lovecode: form.invoiceType === 3 ? form.lovecode || null : null,
-    discount: form.discount || 0,
+    invoiceCode: null,
+    companyTitle: form.invoiceType === 3 ? form.companytitle || null : null,
+    companyNumber: form.invoiceType === 3 ? form.companynumber || null : null,
+    loveCode: form.invoiceType === 2 ? form.lovecode || null : null,
+    warehouseId: null,
+    logisticId: null,
+    trackingNumber: null,
+    note: null,
     remark: form.remark || null,
-    shippingFee: computedShippingFee.value,
+    freight: computedShippingFee.value,
+    discount: form.discount || 0,
     total: grandTotal.value,
     items: orderItems.value.map(i => ({
       productId: i.productId,
       qty: i.qty,
-      unitPrice: i.unitPrice,
+      price: i.unitPrice,
+      subtotal: i.unitPrice * i.qty,
+      isGift: false,
     })),
   }
 
@@ -378,9 +391,11 @@ async function handleSubmit() {
               <div class="form-field form-field--full">
                 <label class="label" for="payType">付款方式</label>
                 <select id="payType" v-model="form.payType" class="select">
-                  <option :value="1">ATM轉帳</option>
-                  <option :value="2">信用卡</option>
-                  <option :value="3">貨到付款</option>
+                  <option :value="1">信用卡線上刷卡</option>
+                  <option :value="2">宅配貨到付款</option>
+                  <option :value="3">ATM轉帳付款</option>
+                  <option :value="5">現金支付</option>
+                  <option :value="6">電匯</option>
                 </select>
               </div>
             </div>
@@ -395,14 +410,15 @@ async function handleSubmit() {
                 <label class="label" for="invoiceType">發票類型</label>
                 <select id="invoiceType" v-model="form.invoiceType" class="select">
                   <option :value="1">二聯式</option>
-                  <option :value="2">三聯式（統編）</option>
-                  <option :value="3">愛心捐贈</option>
+                  <option :value="2">愛心捐贈</option>
+                  <option :value="3">三聯式（統編）</option>
+                  <option :value="4">免開</option>
                 </select>
               </div>
             </div>
 
             <!-- 三聯式：公司資訊 -->
-            <div v-if="form.invoiceType === 2" class="form-row">
+            <div v-if="form.invoiceType === 3" class="form-row">
               <div class="form-field form-field--full">
                 <label class="label" for="companytitle">公司抬頭</label>
                 <input id="companytitle" v-model="form.companytitle" class="input" placeholder="公司名稱" />
@@ -414,7 +430,7 @@ async function handleSubmit() {
             </div>
 
             <!-- 愛心捐贈：捐贈碼 -->
-            <div v-if="form.invoiceType === 3" class="form-row">
+            <div v-if="form.invoiceType === 2" class="form-row">
               <div class="form-field form-field--full">
                 <label class="label" for="lovecode">愛心捐贈碼</label>
                 <input id="lovecode" v-model="form.lovecode" class="input" placeholder="捐贈碼（選填，系統可自動填入）" />
