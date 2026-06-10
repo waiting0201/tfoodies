@@ -63,6 +63,7 @@ const ROUTES: Record<string, string> = {
   Warehousestocks: '/admin/warehousestocks',
   // ReportMs（報表管理）
   Salereports: '/admin/reports',
+  Amountreports: '/admin/reports/amounts',
   // SettingMs（系統管理）
   Admins: '/admin/admin-accounts',
   Discounts: '/admin/discounts',

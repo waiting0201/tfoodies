@@ -303,7 +303,8 @@ web/admin/src/
 │    discounts/
 │      DiscountsView.vue              ← 折扣碼 CRUD（slide-in panel 編輯）
 │    reports/
-│      ReportsView.vue                ← 銷售報表 Tab（商品銷量 / 訂單金額）
+│      SalesQtyReportView.vue         ← 銷售量報表（Salereports，/admin/reports）
+│      SalesAmountReportView.vue      ← 銷售額報表（Amountreports，/admin/reports/amounts）
 ├─ stores/
 │    auth.ts              ← Pinia：accessToken(記憶體)、login/logout、can(module)
 ├─ lib/

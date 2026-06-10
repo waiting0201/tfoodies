@@ -25,7 +25,11 @@ public sealed class ReportAdminController
 
     // ══════════════════════════════════════════════════════════════════
     // SALES — GET /admin/reports/sales?year=2026&month=6
-    // 依月份查已出貨訂單（deliverstatus=3），按商品匯總銷售量
+    // 比照舊 Salereports：依訂單月份匯總商品銷售「數量」。
+    //   • 計入已出貨(1) / 退貨(2) 之訂單（EnumDeliverStatus：已出貨=1, 退貨=2）。
+    //   • 套組商品（Products.isset=1）展開為 Setproducts 子品項；子品項以每套
+    //     定義數量 sp.qty 計入（每筆明細加一次，不乘訂單數量，與舊系統一致）。
+    //   • 非套組商品以實際訂購數量 od.qty 計入。
     // ══════════════════════════════════════════════════════════════════
 
     public async Task<IActionResult> Sales(RouteContext ctx)
@@ -42,21 +46,40 @@ public sealed class ReportAdminController
 
         using var conn = await _db.CreateOpenConnectionAsync(ctx.Request.HttpContext.RequestAborted);
 
-        var items = await conn.QueryAsync(@"
-SELECT od.productid                    AS productId,
-       p.title,
-       p.capacity,
-       SUM(od.qty)                     AS totalQty,
-       SUM(od.qty * od.price)          AS totalAmount
-FROM Orders o
-JOIN Orderdetails od ON od.orderid = o.orderid
-JOIN Products     p  ON p.productid = od.productid
-WHERE YEAR(o.orderdate)  = @year
-  AND MONTH(o.orderdate) = @month
-  AND o.deliverstatus    = 3
-GROUP BY od.productid, p.title, p.capacity
-ORDER BY totalQty DESC",
-            new { year, month });
+        const string sql = @"
+WITH detail AS (
+    -- 非套組：實際訂購數量
+    SELECT od.productid AS productId, SUM(od.qty) AS qty
+    FROM Orders o
+    JOIN Orderdetails od ON od.orderid = o.orderid
+    JOIN Products     p  ON p.productid = od.productid
+    WHERE YEAR(o.orderdate) = @year AND MONTH(o.orderdate) = @month
+      AND o.deliverstatus IN (1, 2)
+      AND p.isset = 0
+    GROUP BY od.productid
+
+    UNION ALL
+
+    -- 套組：展開為 Setproducts 子品項，子品項以每套定義數量計入
+    SELECT sp.productid AS productId, SUM(sp.qty) AS qty
+    FROM Orders o
+    JOIN Orderdetails od ON od.orderid = o.orderid
+    JOIN Products     p  ON p.productid  = od.productid
+    JOIN Setproducts  sp ON sp.oproductid = od.productid
+    WHERE YEAR(o.orderdate) = @year AND MONTH(o.orderdate) = @month
+      AND o.deliverstatus IN (1, 2)
+      AND p.isset = 1
+    GROUP BY sp.productid
+)
+SELECT d.productId,
+       LTRIM(RTRIM(pr.title + ' ' + ISNULL(pr.capacity, ''))) AS name,
+       SUM(d.qty) AS qty
+FROM detail d
+JOIN Products pr ON pr.productid = d.productId
+GROUP BY d.productId, pr.title, pr.capacity
+ORDER BY qty DESC";
+
+        var items = await conn.QueryAsync(sql, new { year, month });
 
         return ctx.Ok(new
         {
@@ -68,7 +91,10 @@ ORDER BY totalQty DESC",
 
     // ══════════════════════════════════════════════════════════════════
     // AMOUNTS — GET /admin/reports/amounts?startDate=&endDate=&payStatus=
-    // 依日期區間查訂單金額統計（deliverstatus IN (3,4)）
+    // 比照舊 Amountreports：依日期區間列出訂單明細（起訖日必填、付款狀態選填）。
+    //   • 計入已出貨(1) / 退貨(2) 之訂單。
+    //   • 總金額 = 運費 freight + 商品金額 total − 折扣 discount。
+    //   • 回傳 grandTotal（總計）+ orders（明細）。
     // ══════════════════════════════════════════════════════════════════
 
     public async Task<IActionResult> Amounts(RouteContext ctx)
@@ -96,39 +122,34 @@ ORDER BY totalQty DESC",
         using var conn = await _db.CreateOpenConnectionAsync(ctx.Request.HttpContext.RequestAborted);
 
         var orders = (await conn.QueryAsync(
-            $@"SELECT o.orderid,
-                      o.ordercode,
+            $@"SELECT o.ordercode,
+                      o.ordertype,
                       o.orderdate,
-                      o.total,
-                      o.freight,
-                      o.discount,
+                      o.paytype,
                       o.paystatus,
-                      o.deliverstatus,
-                      m.name AS memberName
+                      (o.freight + o.total - ISNULL(o.discount, 0)) AS amount,
+                      o.recivername,
+                      w.title  AS warehouseTitle,
+                      m.name   AS memberName,
+                      m.mobile AS memberMobile
                FROM Orders o
                JOIN Members m ON m.memberid = o.memberid
+               LEFT JOIN Warehouses w ON w.warehouseid = o.warehouseid
                WHERE o.orderdate >= @startDate
                  AND o.orderdate <= @endDate
-                 AND o.deliverstatus IN (3, 4)
+                 AND o.deliverstatus IN (1, 2)
                  {payClause}
-               ORDER BY o.orderdate",
+               ORDER BY o.orderdate, o.ordercode",
             payStatusFilter.HasValue
                 ? (object)new { startDate, endDate = endDateInclusive, payStatus = payStatusFilter.Value }
                 : new { startDate, endDate = endDateInclusive }
         )).ToList();
 
-        // 匯總統計
-        var totalOrders   = orders.Count;
-        var totalAmount   = orders.Sum(o => (decimal)((dynamic)o).total);
-        var totalFreight  = orders.Sum(o => (decimal)((dynamic)o).freight);
-        var totalDiscount = orders.Sum(o => (decimal)((dynamic)o).discount);
+        var grandTotal = orders.Sum(o => (int)((dynamic)o).amount);
 
         return ctx.Ok(new
         {
-            totalOrders,
-            totalAmount,
-            totalFreight,
-            totalDiscount,
+            grandTotal,
             orders,
         });
     }

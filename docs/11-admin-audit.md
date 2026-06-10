@@ -232,15 +232,29 @@
 
 ## 報表管理（ReportMsController）
 
-### ✅ 已完成
-- 商品銷量報表（年/月）
-- 訂單金額報表（日期範圍 + 付款狀態）
+> **2026-06-10 完全比照舊程式重做**：`ReportAdminController` 介面對齊舊 `Salereports` / `Amountreports`，
+> 並依 `docs/10` 設計規範重寫（`.rpt__filters`、`.card` + `.data-table`、CSS 變數、spec badge）。
+> **拆為兩獨立頁（無 Tab）**：銷售量報表 + 銷售額報表，各自接側欄 Lim 子項。
 
-### ⚠️ 部分完成
-- **套組展開**：銷量報表是否展開套組子品項計算待確認
+### ✅ 已完成
+- **銷售量報表（Salereports，`SalesQtyReportView` → `/admin/reports`）**：依「訂單月份」
+  (`<input type="month">`) 查詢；欄位僅 **產品 / 數量**。
+  - 套組（`Products.isset=1`）**展開為 `Setproducts` 子品項**，子品項以每套定義數量 `sp.qty`
+    計入（每筆明細加一次，不乘訂單數量，與舊系統一致）；非套組以 `od.qty` 計入。
+- **銷售額報表（Amountreports，`SalesAmountReportView` → `/admin/reports/amounts`）**：起訖日（必填）
+  + 付款狀態（選填）；欄位 **訂單類型 / 出貨倉 / 訂單編號 / 訂單日期 / 購買人姓名 / 購買人電話 /
+  收件人 / 付款方式 / 總金額 / 付款狀態** + 總計。
+  - 總金額 = `freight + total − discount`。
+  - 側欄路由：`AdminLayout.ROUTES` 新增 `Amountreports: '/admin/reports/amounts'`。
+- **出貨狀態篩選修正**：兩報表均計入 **已出貨(1) + 退貨(2)**（`deliverstatus IN (1,2)`）。
+  - ⚠️ 修正前的 `=3` / `IN(3,4)` 實際對應 取消(3) / 待出貨(4)，為錯誤篩選（enum：已出貨=1, 退貨=2, 取消=3, 待出貨=4）。
 
 ### ❌ 缺少
 - 報表匯出 Excel（已出貨清單 xls）
+
+### 已知差異（與舊程式邏輯一致，保留待確認）
+- 套組子品項數量採每套定義 `sp.qty`，**未乘以訂單購買的套組數量**（忠實沿用舊 `Salereports`）；
+  若日後要改為「實際出貨子品項總量」需乘上 `od.qty`。
 
 ---
 

@@ -310,11 +310,16 @@ const routes: RouteRecordRaw[] = [
         name: 'discounts',
         component: () => import('../views/discounts/DiscountsView.vue'),
       },
-      // Reports
+      // Reports（報表管理 — 銷售量報表 / 銷售額報表）
       {
         path: 'admin/reports',
-        name: 'reports',
-        component: () => import('../views/reports/ReportsView.vue'),
+        name: 'report-sales',
+        component: () => import('../views/reports/SalesQtyReportView.vue'),
+      },
+      {
+        path: 'admin/reports/amounts',
+        name: 'report-amounts',
+        component: () => import('../views/reports/SalesAmountReportView.vue'),
       },
     ],
   },
