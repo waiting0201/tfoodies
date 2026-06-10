@@ -179,19 +179,50 @@ public class RouteTable
         Register<PurchaseAdminController>("PUT",    @"admin/purchases/(?<id>[^/]+)$",                     (c, ctx) => c.UpdatePurchase(ctx));
         Register<PurchaseAdminController>("PATCH",  @"admin/purchases/(?<id>[^/]+)/expenditure",          (c, ctx) => c.ToExpenditure(ctx));
 
-        // ── Admin Accounting（AccountingMs） ─────────────────────────────────
-        Register<AccountingAdminController>("GET",  "admin/expenditures",                                 (c, ctx) => c.ListExpenditures(ctx));
-        Register<AccountingAdminController>("POST", "admin/expenditures",                                 (c, ctx) => c.CreateExpenditure(ctx));
-        Register<AccountingAdminController>("GET",  @"admin/expenditures/(?<id>[^/]+)$",                  (c, ctx) => c.DetailExpenditure(ctx));
-        Register<AccountingAdminController>("POST", "admin/outcomes",                                     (c, ctx) => c.CreateOutcome(ctx));
-        Register<AccountingAdminController>("GET",  "admin/ar-invoices",                                  (c, ctx) => c.ListArInvoices(ctx));
-        Register<AccountingAdminController>("POST", "admin/ar-invoices",                                  (c, ctx) => c.CreateArInvoice(ctx));
-        Register<AccountingAdminController>("GET",  "admin/incomes",                                      (c, ctx) => c.ListIncomes(ctx));
-        Register<AccountingAdminController>("POST",   "admin/incomes",                                    (c, ctx) => c.CreateIncome(ctx));
-        Register<AccountingAdminController>("POST",   "admin/refounds",                                   (c, ctx) => c.CreateRefound(ctx));
+        // ── Admin Accounting（會計帳管理 AccountingMs） ───────────────────────
+        // 匯率 Exchanges（GET /admin/exchanges 在 PurchaseAdminController，採購表單下拉共用）
+        Register<AccountingAdminController>("POST",   "admin/exchanges",                                  (c, ctx) => c.CreateExchange(ctx));
+        Register<AccountingAdminController>("PUT",    @"admin/exchanges/(?<id>[^/]+)$",                   (c, ctx) => c.UpdateExchange(ctx));
+        Register<AccountingAdminController>("DELETE", @"admin/exchanges/(?<id>[^/]+)$",                   (c, ctx) => c.DeleteExchange(ctx));
+        // 會計科目 Accountings
+        Register<AccountingAdminController>("GET",    "admin/accountings",                                (c, ctx) => c.ListAccountings(ctx));
+        Register<AccountingAdminController>("POST",   "admin/accountings",                                (c, ctx) => c.CreateAccounting(ctx));
+        Register<AccountingAdminController>("PUT",    @"admin/accountings/(?<id>[^/]+)$",                 (c, ctx) => c.UpdateAccounting(ctx));
+        Register<AccountingAdminController>("DELETE", @"admin/accountings/(?<id>[^/]+)$",                 (c, ctx) => c.DeleteAccounting(ctx));
+        // 營業支出 Expenditures（payable 須在 {id} 之前註冊）
+        Register<AccountingAdminController>("GET",    "admin/expenditures",                               (c, ctx) => c.ListExpenditures(ctx));
+        Register<AccountingAdminController>("GET",    "admin/expenditures/payable",                       (c, ctx) => c.ListPayableExpenditures(ctx));
+        Register<AccountingAdminController>("POST",   "admin/expenditures",                               (c, ctx) => c.CreateExpenditure(ctx));
+        Register<AccountingAdminController>("GET",    @"admin/expenditures/(?<id>[^/]+)$",                (c, ctx) => c.DetailExpenditure(ctx));
+        Register<AccountingAdminController>("PUT",    @"admin/expenditures/(?<id>[^/]+)$",                (c, ctx) => c.UpdateExpenditure(ctx));
         Register<AccountingAdminController>("DELETE", @"admin/expenditures/(?<id>[^/]+)$",                (c, ctx) => c.DeleteExpenditure(ctx));
+        // 付款 Outcomes
+        Register<AccountingAdminController>("GET",    "admin/outcomes",                                   (c, ctx) => c.ListOutcomes(ctx));
+        Register<AccountingAdminController>("POST",   "admin/outcomes",                                   (c, ctx) => c.CreateOutcome(ctx));
+        Register<AccountingAdminController>("PUT",    @"admin/outcomes/(?<id>[^/]+)$",                    (c, ctx) => c.UpdateOutcome(ctx));
         Register<AccountingAdminController>("DELETE", @"admin/outcomes/(?<id>[^/]+)$",                    (c, ctx) => c.DeleteOutcome(ctx));
+        // 退款 Refounds（refundable-* 須在任何 {id} 之前）
+        Register<AccountingAdminController>("GET",    "admin/refounds",                                   (c, ctx) => c.ListRefounds(ctx));
+        Register<AccountingAdminController>("GET",    "admin/refounds/refundable-members",                (c, ctx) => c.ListRefundableMembers(ctx));
+        Register<AccountingAdminController>("GET",    "admin/refounds/refundable-returns",                (c, ctx) => c.ListRefundableReturns(ctx));
+        Register<AccountingAdminController>("POST",   "admin/refounds",                                   (c, ctx) => c.CreateRefound(ctx));
+        Register<AccountingAdminController>("PUT",    @"admin/refounds/(?<id>[^/]+)$",                    (c, ctx) => c.UpdateRefound(ctx));
+        Register<AccountingAdminController>("DELETE", @"admin/refounds/(?<id>[^/]+)$",                    (c, ctx) => c.DeleteRefound(ctx));
+        // 請款 AR Invoices（billable-* 須在 {id} 之前）
+        Register<AccountingAdminController>("GET",    "admin/ar-invoices",                                (c, ctx) => c.ListArInvoices(ctx));
+        Register<AccountingAdminController>("GET",    "admin/ar-invoices/billable-members",               (c, ctx) => c.ListBillableMembers(ctx));
+        Register<AccountingAdminController>("GET",    "admin/ar-invoices/billable-orders",                (c, ctx) => c.ListBillableOrders(ctx));
+        Register<AccountingAdminController>("POST",   "admin/ar-invoices",                                (c, ctx) => c.CreateArInvoice(ctx));
+        Register<AccountingAdminController>("GET",    @"admin/ar-invoices/(?<id>[^/]+)$",                 (c, ctx) => c.DetailArInvoice(ctx));
+        Register<AccountingAdminController>("PUT",    @"admin/ar-invoices/(?<id>[^/]+)$",                 (c, ctx) => c.UpdateArInvoice(ctx));
         Register<AccountingAdminController>("DELETE", @"admin/ar-invoices/(?<id>[^/]+)$",                 (c, ctx) => c.DeleteArInvoice(ctx));
+        // 入帳 Incomes（billable-* 須在 {id} 之前）
+        Register<AccountingAdminController>("GET",    "admin/incomes",                                    (c, ctx) => c.ListIncomes(ctx));
+        Register<AccountingAdminController>("GET",    "admin/incomes/billable-members",                   (c, ctx) => c.ListIncomeBillableMembers(ctx));
+        Register<AccountingAdminController>("GET",    "admin/incomes/billable-invoices",                  (c, ctx) => c.ListBillableInvoices(ctx));
+        Register<AccountingAdminController>("POST",   "admin/incomes",                                    (c, ctx) => c.CreateIncome(ctx));
+        Register<AccountingAdminController>("GET",    @"admin/incomes/(?<id>[^/]+)$",                     (c, ctx) => c.DetailIncome(ctx));
+        Register<AccountingAdminController>("PUT",    @"admin/incomes/(?<id>[^/]+)$",                     (c, ctx) => c.UpdateIncome(ctx));
         Register<AccountingAdminController>("DELETE", @"admin/incomes/(?<id>[^/]+)$",                     (c, ctx) => c.DeleteIncome(ctx));
 
         // ── Admin Tags ──────────────────────────────────────────────────────────

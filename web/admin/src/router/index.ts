@@ -146,11 +146,61 @@ const routes: RouteRecordRaw[] = [
         name: 'purchase-edit',
         component: () => import('../views/purchases/PurchaseFormView.vue'),
       },
-      // Accounting
+      // Accounting（會計帳管理 — 7 個獨立子模組，對應 DB Lims）
       {
-        path: 'admin/accounting',
-        name: 'accounting',
-        component: () => import('../views/accounting/AccountingView.vue'),
+        path: 'admin/exchanges',
+        name: 'exchanges',
+        component: () => import('../views/accounting/ExchangesView.vue'),
+      },
+      {
+        path: 'admin/accountings',
+        name: 'accountings',
+        component: () => import('../views/accounting/AccountingsView.vue'),
+      },
+      {
+        path: 'admin/expenditures',
+        name: 'expenditures',
+        component: () => import('../views/accounting/ExpendituresView.vue'),
+      },
+      {
+        path: 'admin/expenditures/new',
+        name: 'expenditure-new',
+        component: () => import('../views/accounting/ExpenditureFormView.vue'),
+      },
+      {
+        path: 'admin/expenditures/:id/edit',
+        name: 'expenditure-edit',
+        component: () => import('../views/accounting/ExpenditureFormView.vue'),
+      },
+      {
+        path: 'admin/outcomes',
+        name: 'outcomes',
+        component: () => import('../views/accounting/OutcomesView.vue'),
+      },
+      {
+        path: 'admin/refounds',
+        name: 'refounds',
+        component: () => import('../views/accounting/RefoundsView.vue'),
+      },
+      {
+        path: 'admin/ar-invoices',
+        name: 'ar-invoices',
+        component: () => import('../views/accounting/ArInvoicesView.vue'),
+      },
+      {
+        path: 'admin/ar-invoices/new',
+        name: 'ar-invoice-new',
+        component: () => import('../views/accounting/ArInvoiceFormView.vue'),
+      },
+      {
+        path: 'admin/incomes',
+        name: 'incomes',
+        component: () => import('../views/accounting/IncomesView.vue'),
+      },
+      {
+        path: 'admin/incomes/new',
+        name: 'income-new',
+        component: () => import('../views/accounting/IncomeFormView.vue'),
       },
       // Returns
       {
@@ -238,6 +288,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../views/reports/ReportsView.vue'),
       },
     ],
+  },
+  // 請款單列印（獨立頁，不套 AdminLayout；需登入）
+  {
+    path: '/admin/ar-invoices/:id/print',
+    name: 'ar-invoice-print',
+    component: () => import('../views/accounting/ArInvoicePrintView.vue'),
   },
 ]
 

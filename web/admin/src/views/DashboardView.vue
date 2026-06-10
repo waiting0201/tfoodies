@@ -47,7 +47,7 @@ const modules = [
   { label: '商品管理', desc: '新增、編輯商品資訊與圖片', path: '/admin/products', dot: '#10b981' },
   { label: '庫存管理', desc: '追蹤各倉庫庫存及效期 FIFO', path: '/admin/inventory', dot: '#f59e0b' },
   { label: '採購管理', desc: '採購單、進貨入庫管理', path: '/admin/purchases', dot: '#06b6d4' },
-  { label: '財務管理', desc: '收支記錄、對帳與應收帳款', path: '/admin/accounting', dot: '#f43f5e' },
+  { label: '會計帳管理', desc: '營業支出、付款、請款、入帳與退款', path: '/admin/expenditures', dot: '#f43f5e' },
   { label: '內容管理', desc: '首頁橫幅、新聞、食譜等 CMS', path: '/admin/cms', dot: '#14b8a6' },
 ]
 </script>

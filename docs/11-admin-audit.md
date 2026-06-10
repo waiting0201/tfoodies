@@ -14,7 +14,7 @@
 | 商品管理 | 7 | 3 | 5 |
 | 庫存管理 | 3 | 2 | 4 |
 | 採購管理 | 7 | 2 | 3 |
-| 財務管理 | 8 | 2 | 9 |
+| 會計帳管理 | 7 子模組全數完成 | 0 | 1（損益/資產負債→屬 StatementMs） |
 | CMS 內容 | 6 | 3 | 6 |
 | 會員管理 | 4 | 2 | 2 |
 | 報表管理 | 2 | 1 | 1 |
@@ -126,32 +126,34 @@
 
 ---
 
-## 財務管理（AccountingMsController）
+## 會計帳管理（AccountingMsController）
 
-### ✅ 已完成
-- 支出單清單（應付帳款，含明細展開）
-- 新增付款記錄（Outcome）
-- 應收帳款清單（AR Invoice）+ 新增
-- 收款記錄清單 + 新增
-- 退款處理（`POST /admin/refounds`）
+> **2026-06-10 全面移轉完成**：依 DB `Lims`（AccountingMs, LimID 46）的 7 個子選單，前端拆成 7 個獨立頁面並接上側欄；
+> 舊單頁 tab 版 `AccountingView.vue` 已退役。後端 `AccountingAdminController` 全部 list 端點改為 camelCase 投影。
 
-### ⚠️ 部分完成
-- **支出單手動新增**：API 存在，UI 的明細（`Expendituredetails`）輸入是否完整待確認
-- **退款流程**：是否同步更新訂單 `paystatus=退款` 待確認
+| 子模組 | Lim Key | SPA 路徑 | 頁面 | 狀態 |
+|---|---|---|---|---|
+| 匯率維護 | Exchanges | `/admin/exchanges` | `ExchangesView`（清單+右側面板+刪除） | ✅ CRUD |
+| 會計科目維護 | Accountings | `/admin/accountings` | `AccountingsView`（清單+右側面板+刪除） | ✅ CRUD |
+| 營業支出維護 | Expenditures | `/admin/expenditures` | `ExpendituresView`+`ExpenditureFormView` | ✅ List/明細展開/新增/編輯/刪除/行內付款 |
+| 付款維護 | Outcomes | `/admin/outcomes` | `OutcomesView`（清單+面板） | ✅ List/新增/編輯/刪除（重算憑單狀態） |
+| 退款維護 | Refounds | `/admin/refounds` | `RefoundsView`（清單+面板） | ✅ List/新增/編輯/刪除（還原退貨+訂單狀態） |
+| 請款維護 | Invoices(請款) | `/admin/ar-invoices` | `ArInvoicesView`+`ArInvoiceFormView` | ✅ List/明細展開/新增/編輯表頭/刪除 |
+| 入帳維護 | Incomes | `/admin/incomes` | `IncomesView`+`IncomeFormView` | ✅ List/明細展開/新增/編輯/刪除 |
 
-### ❌ 缺少
-- ~~支出單刪除（`DELETE /admin/expenditures/:id`）~~ ✅ 2026-06-09 完成
-- 支出單編輯（`PUT /admin/expenditures/:id`）
-- ~~付款記錄刪除（`DELETE /admin/outcomes/:id`）~~ ✅ 2026-06-09 完成
-- 付款記錄編輯（`PUT /admin/outcomes/:id`）
-- ~~應收帳款刪除（`DELETE /admin/ar-invoices/:id`）~~ ✅ 2026-06-09 完成
-- 應收帳款編輯（`PUT /admin/ar-invoices/:id`）
-- ~~收款記錄刪除（`DELETE /admin/incomes/:id`）~~ ✅ 2026-06-09 完成
-- 收款記錄編輯（`PUT /admin/incomes/:id`）
-- 退款記錄編輯/刪除
-- 會計科目管理（`Accountings` CRUD）
-- 匯率管理（AccountingMs 部分）
-- 損益表（`Incomestatements`，財務合規需求）
+> 註：`Invoices`(請款維護) SPA 路徑用 `/admin/ar-invoices`，以避開 `InvoiceMs`(電子發票) 的 `/admin/invoices`。
+
+### 後端新增端點（AccountingAdminController）
+- 匯率：`POST/PUT/DELETE /admin/exchanges`（GET 仍在 PurchaseAdmin，採購表單共用）
+- 會計科目：`GET/POST/PUT/DELETE /admin/accountings`
+- 支出：`PUT /admin/expenditures/{id}`（明細 diff + 重算狀態）、`GET /admin/expenditures/payable`
+- 付款：`GET /admin/outcomes`、`PUT /admin/outcomes/{id}`
+- 退款：`GET /admin/refounds`、`PUT/DELETE /admin/refounds/{id}`、`GET .../refundable-members|refundable-returns`
+- 請款：`GET /admin/ar-invoices/{id}`、`PUT /admin/ar-invoices/{id}`、`GET .../billable-members|billable-orders`
+- 入帳：`GET /admin/incomes/{id}`、`PUT /admin/incomes/{id}`、`GET .../billable-members|billable-invoices`
+
+### ❌ 仍缺少
+- 損益表（`Incomestatements`）/ 資產負債表（`Balancesheet`）— 屬 `StatementMs`(會計報表管理) 模組，非本模組
 
 ---
 
@@ -243,7 +245,7 @@
 
 ### 🟡 Phase 3 — 財務 CRUD 補齊
 12. ✅ 支出單 / 付款記錄 / 應收 / 收款 Delete API + UI（2026-06-09）
-13. 會計科目管理
+13. ✅ 會計帳管理 7 子模組全面移轉（2026-06-10）— 匯率/科目 CRUD、支出/付款/退款/請款/入帳 完整 List+新增+編輯+刪除，拆 7 獨立頁接側欄
 
 ### 🟢 Phase 4 — 匯出與輔助功能
 14. 訂單 / 出貨 Excel 匯出

@@ -26,6 +26,10 @@ public static class DependencyInjection
 
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        // Dapper 全域：讓 DateOnly / DateOnly? 可作為 SQL 參數（此 runtime 無內建支援）。
+        // 影響所有 Dapper 寫入（採購單、訂單、會計帳等的 date 欄位）。
+        Dapper.SqlMapper.AddTypeHandler(new Persistence.DateOnlyTypeHandler());
+
         var connectionString = configuration.GetConnectionString(ConnectionStringName);
 
         if (!string.IsNullOrWhiteSpace(connectionString))

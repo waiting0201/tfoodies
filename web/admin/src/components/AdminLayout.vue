@@ -46,6 +46,14 @@ const ROUTES: Record<string, string> = {
   // PurchaseMs（採購管理）
   Suppliers: '/admin/suppliers',
   Purchases: '/admin/purchases',
+  // AccountingMs（會計帳管理）— Invoices(請款) 用 /admin/ar-invoices 以避開 InvoiceMs(電子發票) 的 /admin/invoices
+  Exchanges: '/admin/exchanges',
+  Accountings: '/admin/accountings',
+  Expenditures: '/admin/expenditures',
+  Outcomes: '/admin/outcomes',
+  Refounds: '/admin/refounds',
+  Invoices: '/admin/ar-invoices',
+  Incomes: '/admin/incomes',
   // InventoryMs（庫存管理）
   Warehouses: '/admin/warehouses',
   Stocks: '/admin/inventory',
