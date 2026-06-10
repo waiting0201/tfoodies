@@ -69,44 +69,11 @@
       </div>
     </div>
   </div>
-  <div id="checkOutofnotice" class="contact-popup mfp-hide">
-    <form id="outofnoticeform">
-      <input type="hidden" id="noticeproductid" name="productid" />
-      <input type="hidden" id="noticememberid" name="memberid" />
-      <div class="formstyle">
-        <h3>到貨通知</h3>
-        <div class="information">
-          <div class="controlgroup">
-            <div class="controls">
-              <div class="status"><label for="name"><span class="must">*</span>姓名</label></div>
-              <div class="vertify"><input type="text" id="noticename" class="input" name="name" data-rule-required="true" data-msg-required="此為必填欄位"></div>
-            </div>
-          </div>
-          <div class="controlgroup">
-            <div class="controls">
-              <div class="status"><label for="email"><span class="must">* </span>電子郵件</label></div>
-              <div class="vertify"><input type="text" id="noticeemail" class="input" name="email" data-rule-email="true" data-msg-email="Email格式錯誤" data-rule-required="true" data-msg-required="此為必填欄位" data-rule-maxlength="150" data-msg-maxlength="請勿超過150個字元"></div>
-            </div>
-          </div>
-          <div class="controlgroup">
-            <div class="controls">
-              <div class="status"><label for="mobile"><span class="must">* </span>電話</label></div>
-              <div class="vertify"><input type="text" id="noticemobile" class="input" name="mobile" data-rule-required="true" data-msg-required="此為必填欄位" data-rule-maxlength="15" data-msg-maxlength="請勿超過15個字元"></div>
-            </div>
-          </div>
-          <div class="controlgroup">
-            <div class="credit-captcha">
-              <label for="captcha"></label><input type="text" name="inputcode" placeholder="驗證碼" class="input captcha" data-rule-required="true" data-msg-required="此為必填欄位">
-              <div class="captcha"><img id="captcha" :src="'/api/store/captcha'"></div>
-              <div class="inline"></div>
-              <div class="refresh"></div><a href="javascript:;" class="descript inline" id="refreshcaptcha">換一組驗證碼</a>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="choose-wrap">
-        <div class="choose-right"><button type="button" id="btnOutofnotice" class="btn basic">送出</button></div>
-      </div>
-    </form>
-  </div>
+  <!--
+    「到貨通知」彈窗（#checkOutofnotice）暫時移除：新 Functions API 尚未移植 captcha 產生端點
+    與公開的缺貨通知 POST，原本 <img src="/api/store/captcha"> 會在載入時 404。待後端補上
+    （captcha + outofnotice 端點）後，從 reference/old/tfoodies/Views/Shared/_Footer.cshtml
+    還原此區，並把 captcha src 與送出改走 runtimeConfig.public.apiBase。
+    產品頁的「到貨通知我」按鈕（.popup-contact）目前無對應彈窗，點擊不會開窗。
+  -->
 </template>
