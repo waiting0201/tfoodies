@@ -88,19 +88,23 @@
 
 ## 庫存管理（InventoryMsController）
 
-### ✅ 已完成
-- 倉庫清單（唯讀）
-- 庫存清單（分頁，依產品）
-- 新增入庫（`POST /admin/stocks`）
+> **2026-06-10 全面移轉完成**：依 DB `Lims`（InventoryMs, LimID 4）的 3 個子選單，前端拆成 3 個獨立頁面並接上側欄。
+> 同時修復舊版 `AddStock`/`TransferStock` 寫入不存在欄位（`noticenum`/`qty`）且漏寫 `NOTNULL` 欄位（`Stocks.purchaseid`、`Warehousestocks.quantity`/`createdate`）的缺陷——舊寫入路徑實際從未成功。
 
-### ⚠️ 部分完成
-- **倉庫管理**：✅ 2026-06-09 完成 CRUD
-- **入庫類型分流**：未區分申報貨（stocktype=1）與免申報貨（stocktype=2）
+| 子模組 | Lim Key | SPA 路徑 | 頁面 | 狀態 |
+|---|---|---|---|---|
+| 倉儲維護 | Warehouses | `/admin/warehouses` | `WarehousesView` | ✅ CRUD（有庫存不可刪；倉別=線上/線下/瑕疵品倉） |
+| 入庫維護 | Stocks | `/admin/inventory` | `StocksView`+`StockFormView` | ✅ List（單一清單，比照舊系統無 Tab，以「分類」欄區分需/不需申報）/新增/編輯；採購單→明細連動、通知號查重、CheckPurchaseStatus 推進採購狀態 |
+| 移庫維護 | Warehousestocks | `/admin/warehousestocks` | `WarehousestocksView` | ✅ 在庫帳 List/篩選/批次 FIFO 調撥（三層連動面板）/編輯數量/剩餘量/備註/逐列列印移倉單（舊系統列印鈕為死連結，此為新實作 window.print） |
+
+### ✅ 已完成
+- 倉儲維護 CRUD；在庫彙總（`GET /admin/inventory`）、商品批次明細（`GET /admin/inventory/{productId}`）
+- 入庫維護：依 stocktype 分流的清單、可入庫採購單下拉（status 1/3）、採購明細連動、通知號唯一性檢查
+- 新增/編輯入庫（建 `Stocks`+`Warehousestocks`、申報/免申報分流、`CheckPurchaseStatus` 推進採購單狀態）
+- 移庫維護：在庫帳清單、可調撥批次查詢、批次 FIFO 調撥（UPDLOCK 遞減來源、建目的批）、在庫帳編輯
 
 ### ❌ 缺少
-- ~~倉庫 CRUD（`POST/PUT/DELETE /admin/warehouses`）~~ ✅ 2026-06-09 完成
-- ~~倉庫庫存調撥（`AddWarehousestocks`：FIFO 移轉，一倉移出 → 另一倉）~~ ✅ 2026-06-09 完成（UI 已整合）
-- 庫存批次紀錄編輯（`EditStocks`/`EditNoStocks`：效期/條碼/數量修正）
+- 倉內庫存詳情（`ResultWarehouses`：單一倉所有批次一覽，依產品→效期排序）—— 本次未納入
 
 ---
 

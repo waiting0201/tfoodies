@@ -114,16 +114,34 @@ const routes: RouteRecordRaw[] = [
       // SMS 簡訊維護
       { path: 'admin/sms', name: 'sms', component: () => import('../views/sms/SmsView.vue') },
       { path: 'admin/sms/:id/recipients', name: 'sms-recipients', component: () => import('../views/sms/SmsRecipientsView.vue') },
-      // Inventory
+      // Inventory（庫存管理 InventoryMs）
+      // 入庫維護 Stocks
       {
         path: 'admin/inventory',
         name: 'inventory',
-        component: () => import('../views/inventory/InventoryView.vue'),
+        component: () => import('../views/inventory/StocksView.vue'),
       },
+      {
+        path: 'admin/inventory/new',
+        name: 'stock-new',
+        component: () => import('../views/inventory/StockFormView.vue'),
+      },
+      {
+        path: 'admin/inventory/:id/edit',
+        name: 'stock-edit',
+        component: () => import('../views/inventory/StockFormView.vue'),
+      },
+      // 倉儲維護 Warehouses
       {
         path: 'admin/warehouses',
         name: 'warehouses',
         component: () => import('../views/inventory/WarehousesView.vue'),
+      },
+      // 移庫維護 Warehousestocks
+      {
+        path: 'admin/warehousestocks',
+        name: 'warehousestocks',
+        component: () => import('../views/inventory/WarehousestocksView.vue'),
       },
       // Purchases
       {

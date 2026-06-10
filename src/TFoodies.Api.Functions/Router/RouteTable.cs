@@ -157,14 +157,26 @@ public class RouteTable
         Register<SmsAdminController>("DELETE", @"admin/sms/(?<id>[^/]+)$",                                (c, ctx) => c.Delete(ctx));
 
         // ── Admin Inventory（InventoryMs） ──────────────────────────────────
+        // 倉儲維護 Warehouses
         Register<InventoryAdminController>("GET",    "admin/warehouses",                                  (c, ctx) => c.ListWarehouses(ctx));
         Register<InventoryAdminController>("POST",   "admin/warehouses",                                  (c, ctx) => c.CreateWarehouse(ctx));
         Register<InventoryAdminController>("PUT",    @"admin/warehouses/(?<id>[^/]+)$",                   (c, ctx) => c.UpdateWarehouse(ctx));
         Register<InventoryAdminController>("DELETE", @"admin/warehouses/(?<id>[^/]+)$",                   (c, ctx) => c.DeleteWarehouse(ctx));
-        Register<InventoryAdminController>("POST",   "admin/warehouse-transfer",                          (c, ctx) => c.TransferStock(ctx));
         Register<InventoryAdminController>("GET",    "admin/inventory",                                   (c, ctx) => c.ListInventory(ctx));
         Register<InventoryAdminController>("GET",    @"admin/inventory/(?<productId>[^/]+)$",             (c, ctx) => c.ProductInventory(ctx));
+        // 入庫維護 Stocks（exact 路由須先於 admin/stocks/{id}）
+        Register<InventoryAdminController>("GET",    "admin/stocks",                                      (c, ctx) => c.ListStocks(ctx));
+        Register<InventoryAdminController>("GET",    "admin/stocks/purchasable",                          (c, ctx) => c.PurchasableList(ctx));
+        Register<InventoryAdminController>("GET",    @"admin/stocks/purchasable/(?<id>[^/]+)/details$",   (c, ctx) => c.PurchaseDetailOptions(ctx));
+        Register<InventoryAdminController>("GET",    "admin/stocks/check-notice",                         (c, ctx) => c.CheckNotice(ctx));
+        Register<InventoryAdminController>("GET",    @"admin/stocks/(?<id>[^/]+)$",                       (c, ctx) => c.StockDetail(ctx));
         Register<InventoryAdminController>("POST",   "admin/stocks",                                      (c, ctx) => c.AddStock(ctx));
+        Register<InventoryAdminController>("PUT",    @"admin/stocks/(?<id>[^/]+)$",                       (c, ctx) => c.UpdateStock(ctx));
+        // 移庫維護 Warehousestocks
+        Register<InventoryAdminController>("GET",    "admin/warehousestocks",                             (c, ctx) => c.ListWarehousestocks(ctx));
+        Register<InventoryAdminController>("GET",    "admin/warehousestocks/source",                      (c, ctx) => c.SourceStocks(ctx));
+        Register<InventoryAdminController>("POST",   "admin/warehousestocks/transfer",                    (c, ctx) => c.TransferStock(ctx));
+        Register<InventoryAdminController>("PUT",    @"admin/warehousestocks/(?<id>[^/]+)$",              (c, ctx) => c.UpdateWarehousestock(ctx));
 
         // ── Admin Purchases（PurchaseMs） ────────────────────────────────────
         Register<PurchaseAdminController>("GET",    "admin/suppliers",                                    (c, ctx) => c.ListSuppliers(ctx));

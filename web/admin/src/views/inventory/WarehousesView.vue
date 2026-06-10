@@ -8,7 +8,7 @@ interface Warehouse {
   title: string
 }
 
-const WAREHOUSE_TYPES: Record<number, string> = { 1: '一般倉', 2: '冷藏倉', 3: '冷凍倉' }
+const WAREHOUSE_TYPES: Record<number, string> = { 1: '線上倉', 2: '線下倉', 3: '瑕疵品倉' }
 
 const items = ref<Warehouse[]>([])
 const loading = ref(false)
@@ -153,9 +153,9 @@ load()
           <div class="form-field">
             <label class="form-field__label">倉庫類型</label>
             <select v-model.number="form.warehouseType" class="form-field__input">
-              <option :value="1">一般倉</option>
-              <option :value="2">冷藏倉</option>
-              <option :value="3">冷凍倉</option>
+              <option :value="1">線上倉</option>
+              <option :value="2">線下倉</option>
+              <option :value="3">瑕疵品倉</option>
             </select>
           </div>
           <p v-if="saveError" class="form-error">{{ saveError }}</p>

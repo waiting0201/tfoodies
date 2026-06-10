@@ -60,6 +60,7 @@ const ROUTES: Record<string, string> = {
   // InventoryMs（庫存管理）
   Warehouses: '/admin/warehouses',
   Stocks: '/admin/inventory',
+  Warehousestocks: '/admin/warehousestocks',
   // ReportMs（報表管理）
   Salereports: '/admin/reports',
   // SettingMs（系統管理）

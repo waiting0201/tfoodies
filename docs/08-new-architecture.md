@@ -2,7 +2,10 @@
 
 > 本文描述**新系統**（.NET 9 重構）的多專案分層設計。
 > 舊系統架構見 [docs/01-architecture.md](01-architecture.md)。
-> 上次更新：2026-06-10（PurchaseMs 完整移轉：供應商 CRUD、幣別下拉端點、採購單列表/明細/新增/編輯/轉應付，含產品挑選器與 etd/交貨期限/付款條件；UI 全面套用 docs/10 規範）
+> 上次更新：2026-06-10（InventoryMs 完整移轉：拆三獨立選單頁對齊 DB Lims——倉儲維護/入庫維護/移庫維護；
+> 入庫維護全套（採購連動、需申報/不需申報、通知號查重、CheckPurchaseStatus 推進採購狀態），
+> 移庫維護批次 FIFO 調撥＋在庫帳編輯；倉別標籤修正為線上/線下/瑕疵品倉；
+> 並修復舊有 AddStock/TransferStock 寫入錯欄位的缺陷。UI 全面套用 docs/10 規範）
 
 ---
 
@@ -205,7 +208,12 @@ Controllers/
     ZipcodeAdminController.cs    ← /admin/zipcodes/cities + /admin/zipcodes/areas（縣市→區域連動參照，僅需登入）
     SmsAdminController.cs        ← /admin/sms（簡訊維護，隸屬 MemberMs）：簡訊 CRUD + 收訊人(Smsdetails)管理
                                     + 開始發送（逐筆走 ISmsService 三竹閘道，issend/statuscode 回寫）
-    InventoryAdminController.cs  ← /admin/warehouses + /admin/inventory + /admin/stocks（InventoryMs）
+    InventoryAdminController.cs  ← InventoryMs 完整對等（對照舊系統 InventoryMsController）三子模組：
+                                    倉儲維護 /admin/warehouses（CRUD，有庫存不可刪）+ /admin/inventory（在庫彙總/批次明細）；
+                                    入庫維護 /admin/stocks（list 依 stocktype 分流、purchasable 採購單+明細連動下拉、
+                                    check-notice 通知號查重、新增/編輯；建 Stock+Warehousestock 並 CheckPurchaseStatus 推進採購狀態）；
+                                    移庫維護 /admin/warehousestocks（在庫帳 list、source 可調撥批次、
+                                    transfer 批次 FIFO 調撥（UPDLOCK 遞減來源、建目的批）、編輯數量/剩餘量/備註）
     PurchaseAdminController.cs   ← PurchaseMs 完整對等（對照舊系統 PurchaseMsController）：
                                     供應商 CRUD（title/contactor/phone/address，仍有採購單則不可刪）；
                                     /admin/exchanges（幣別/匯率下拉，維護歸 AccountingMs）；
@@ -271,8 +279,11 @@ web/admin/src/
 │      TagsView.vue                   ← 標籤管理
 │    members/
 │      MembersView.vue                ← 會員列表
-│    inventory/
-│      InventoryView.vue              ← 庫存總覽（倉庫/效期/批次）
+│    inventory/  ← 庫存管理（InventoryMs 下三獨立選單項，對齊 DB Lims：倉儲維護/入庫維護/移庫維護）
+│      WarehousesView.vue             ← 倉儲維護（清單 + 右側面板 CRUD + 刪除 Modal；倉別=線上/線下/瑕疵品倉）
+│      StocksView.vue                 ← 入庫維護（單一清單，需申報/不需申報以「分類」欄區分；關鍵字篩選 + 卡片表格 + 分頁，比照舊系統無 Tab）
+│      StockFormView.vue              ← 新增/編輯入庫（採購單→明細連動、入庫倉/狀態、申報欄位、通知號查重；兩種類型）
+│      WarehousestocksView.vue        ← 移庫維護（在庫/移倉帳清單 + 倉庫/關鍵字篩選 + 移倉調撥面板（三層連動）+ 編輯面板 + 逐列列印移倉單 window.print）
 │    purchases/  ← 採購管理（PurchaseMs 下兩獨立選單項：供應商維護 Suppliers / 採購單維護 Purchases，非頁籤）
 │      SuppliersView.vue              ← 供應商維護（卡片表格 + 右側滑出面板 CRUD + 刪除 Modal）
 │      PurchasesView.vue              ← 採購單維護（狀態/供應商篩選 + 勾選列 + 卡片表格（金額/狀態 Badge）+ 分頁 + 編輯/轉應付 + 匯出 Excel）
