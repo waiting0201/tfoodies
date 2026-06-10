@@ -7,7 +7,33 @@ const pageNum = computed(() => Number(route.params.p ?? 1))
 const { data } = await useNewsDetailData(newid.value, pageNum.value)
 const item = computed(() => data.value.item)
 
-useHead(() => ({ title: item.value?.title ?? '最新消息' }))
+const siteUrl = String(useRuntimeConfig().public.siteUrl).replace(/\/+$/, '')
+const ogImage = computed(() => (item.value?.photo ? data.value.blobUrl + item.value.photo : undefined))
+
+useSeo(() => ({
+  title: item.value?.title ?? '最新消息',
+  description: item.value?.summary || item.value?.intro,
+  image: ogImage.value,
+  url: item.value?.shortener || undefined,
+  type: 'article',
+}))
+
+useJsonLd(() => {
+  if (!item.value) return null
+  return [
+    articleJsonLd({
+      headline: item.value.title,
+      description: item.value.summary || item.value.intro,
+      image: ogImage.value,
+      url: `${siteUrl}/NewsDetail/${item.value.newid}/1`,
+      datePublished: item.value.publishdate,
+    }),
+    breadcrumbJsonLd([
+      { name: '最新消息', url: `${siteUrl}/News` },
+      { name: item.value.title },
+    ]),
+  ]
+})
 </script>
 
 <template>

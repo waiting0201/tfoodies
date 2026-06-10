@@ -6,7 +6,11 @@ const page = computed(() => Number(route.params.p ?? route.query.p ?? 1))
 const keyword = computed(() => String(route.query.k ?? ''))
 const { data } = await useRecipesData(page.value, keyword.value || undefined)
 
-useHead({ title: '美味料理' })
+useSeo(() => ({
+  title: '美味料理',
+  description: '食在呼 TFoodies 嚴選美味料理食譜，用頂級橄欖油與天然食材，輕鬆做出健康好味道。',
+  type: 'website',
+}))
 
 const searchInput = ref(keyword.value)
 function submitSearch() {

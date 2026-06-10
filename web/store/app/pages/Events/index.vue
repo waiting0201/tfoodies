@@ -5,7 +5,11 @@ const route = useRoute()
 const page = computed(() => Number(route.query.p ?? 1))
 const { data } = await useEventsData(page.value)
 
-useHead({ title: '活動花絮' })
+useSeo(() => ({
+  title: '活動花絮',
+  description: '食在呼 TFoodies 活動花絮：橄欖油品油課程、餐會與健康飲食推廣活動的精彩記錄。',
+  type: 'website',
+}))
 </script>
 
 <template>

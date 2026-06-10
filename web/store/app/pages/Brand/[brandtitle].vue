@@ -6,7 +6,17 @@ const brandtitle = computed(() => String(route.params.brandtitle ?? ''))
 const { data } = await useBrandData(brandtitle.value)
 const b = computed(() => data.value.brand)
 
-useHead(() => ({ title: b.value?.title ?? '品牌' }))
+const ogImage = computed(() => {
+  const photo = b.value?.banner ?? b.value?.logo
+  return photo ? data.value.blobUrl + photo : undefined
+})
+
+useSeo(() => ({
+  title: b.value?.title ?? '品牌',
+  description: b.value?.intro || b.value?.slogan,
+  image: ogImage.value,
+  type: 'website',
+}))
 </script>
 
 <template>

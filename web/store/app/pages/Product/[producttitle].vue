@@ -10,15 +10,41 @@ const p = computed(() => data.value.product)
 const ntd = (n: number) => 'NT. ' + new Intl.NumberFormat('en-US').format(Math.trunc(n))
 const onSale = computed(() => p.value && p.value.fixprice > p.value.price)
 
-useHead(() => ({
+const siteUrl = String(useRuntimeConfig().public.siteUrl).replace(/\/+$/, '')
+const heroImage = computed(() => {
+  const photo = p.value?.photos?.[0]?.photo ?? p.value?.photo
+  return photo ? data.value.blobUrl + photo : undefined
+})
+
+useSeo(() => ({
   title: p.value?.title ?? title.value,
-  link: p.value?.shortener ? [{ rel: 'canonical', href: p.value.shortener }] : [],
-  meta: [
-    { property: 'og:title', content: p.value?.title ?? title.value },
-    { property: 'og:description', content: p.value?.intro ?? '' },
-    ...(p.value?.shortener ? [{ property: 'og:url', content: p.value.shortener }] : []),
-  ],
+  description: p.value?.intro,
+  image: heroImage.value,
+  url: p.value?.shortener || undefined,
+  type: 'product',
 }))
+
+useJsonLd(() => {
+  if (!p.value) return null
+  return [
+    productJsonLd({
+      name: p.value.title,
+      description: p.value.intro,
+      image: heroImage.value,
+      url: p.value.shortener || `${siteUrl}/Product/${titleToUrlSlug(p.value.title)}`,
+      price: p.value.price,
+      inStock: p.value.added > 0,
+      brand: p.value.brand?.title,
+    }),
+    breadcrumbJsonLd([
+      { name: '所有產品', url: `${siteUrl}/Products` },
+      ...(p.value.producttypetitle
+        ? [{ name: p.value.producttypetitle, url: `${siteUrl}/Products/${encodeURIComponent(p.value.producttypetitle)}` }]
+        : []),
+      { name: p.value.title },
+    ]),
+  ]
+})
 </script>
 
 <template>

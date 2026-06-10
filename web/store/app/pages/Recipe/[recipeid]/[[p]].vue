@@ -7,7 +7,35 @@ const pageNum = computed(() => Number(route.params.p ?? 1))
 const { data } = await useRecipeDetailData(recipeid.value, pageNum.value)
 const item = computed(() => data.value.item)
 
-useHead(() => ({ title: item.value?.title ?? '美味料理' }))
+const siteUrl = String(useRuntimeConfig().public.siteUrl).replace(/\/+$/, '')
+const ogImage = computed(() => {
+  const photo = item.value?.photo ?? item.value?.rphoto
+  return photo ? data.value.blobUrl + photo : undefined
+})
+
+useSeo(() => ({
+  title: item.value?.title ?? '美味料理',
+  description: item.value?.intro,
+  image: ogImage.value,
+  url: item.value?.shortener || undefined,
+  type: 'article',
+}))
+
+useJsonLd(() => {
+  if (!item.value) return null
+  return [
+    articleJsonLd({
+      headline: item.value.title,
+      description: item.value.intro,
+      image: ogImage.value,
+      url: `${siteUrl}/Recipe/${item.value.recipeid}/1`,
+    }),
+    breadcrumbJsonLd([
+      { name: '美味料理', url: `${siteUrl}/Recipes` },
+      { name: item.value.title },
+    ]),
+  ]
+})
 
 let step = 1
 </script>

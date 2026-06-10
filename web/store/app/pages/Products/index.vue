@@ -1,6 +1,10 @@
 <script setup lang="ts">
 // Port of reference/old/tfoodies/Views/MainMs/Products.cshtml — all products (no type filter).
-useHead({ title: '所有商品' })
+useSeo(() => ({
+  title: '所有商品',
+  description: '瀏覽食在呼 TFoodies 全系列商品：頂級橄欖油、健康好油與嚴選天然食材，產地直送，安心美味。',
+  type: 'website',
+}))
 const { data } = await useProductsData()
 </script>
 

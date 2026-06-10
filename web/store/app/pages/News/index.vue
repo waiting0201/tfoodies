@@ -5,7 +5,11 @@ const route = useRoute()
 const page = computed(() => Number(route.params.p ?? route.query.p ?? 1))
 const { data } = await useNewsData(page.value)
 
-useHead({ title: '最新消息' })
+useSeo(() => ({
+  title: '最新消息',
+  description: '食在呼 TFoodies 最新消息、活動公告與優惠訊息。',
+  type: 'website',
+}))
 </script>
 
 <template>

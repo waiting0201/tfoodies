@@ -7,7 +7,36 @@ const pageNum = computed(() => Number(route.query.p ?? 1))
 const { data } = await useEventDetailData(eventid.value, pageNum.value)
 const item = computed(() => data.value.item)
 
-useHead(() => ({ title: item.value?.title ?? '活動花絮' }))
+const siteUrl = String(useRuntimeConfig().public.siteUrl).replace(/\/+$/, '')
+const ogImage = computed(() => {
+  const photo = item.value?.photos?.[0]?.photo
+  return photo ? data.value.blobUrl + photo : undefined
+})
+
+useSeo(() => ({
+  title: item.value?.title ?? '活動花絮',
+  description: item.value?.intro,
+  image: ogImage.value,
+  url: item.value?.shortener || undefined,
+  type: 'article',
+}))
+
+useJsonLd(() => {
+  if (!item.value) return null
+  return [
+    articleJsonLd({
+      headline: item.value.title,
+      description: item.value.intro,
+      image: ogImage.value,
+      url: `${siteUrl}/Events/${item.value.eventid}`,
+      datePublished: item.value.eventdate,
+    }),
+    breadcrumbJsonLd([
+      { name: '活動花絮', url: `${siteUrl}/Events` },
+      { name: item.value.title },
+    ]),
+  ]
+})
 </script>
 
 <template>

@@ -164,9 +164,9 @@ TFOODIES_CONNSTRING='Server=...;Database=tfoodies;User Id=...;Password=...;Trust
 
 | 項目 | 狀態 | 備註 |
 |---|---|---|
-| Bicep infra（`infra/main.bicep`） | ✅ | SWA×2(store linked backend→Functions) / Functions EP1+plan / storage / KV(RBAC+MI) / appinsights+LAW / redis / cosmos(mongo) / appconfig；**`az bicep build` 通過**；SQL 不重建 |
-| GitHub Actions（`.github/workflows/`） | ✅ | `api`(test→slot→smoke→swap)/`store`/`admin`(SWA deploy)/`infra`(bicep what-if+deploy)/`visual`；**5 檔 YAML 驗證通過** |
-| `staticwebapp.config.json`（store + admin） | ✅ | admin SPA fallback；store 靜態快取 header；JSON 驗證通過 |
+| Bicep infra（`infra/main.bicep`） | ✅ | store=**Container App**(Nuxt SSR, scale-to-zero)+ACR / admin=SWA / Functions Flex / storage 等；前台已從 SWA 改 Container Apps（SEO 全 SSR）；SQL 不重建 |
+| GitHub Actions（`.github/workflows/`） | ✅ | `api`(test→slot→smoke→swap)/`store`(az acr build→containerapp update)/`admin`(SWA deploy)/`infra`(bicep what-if+deploy)/`visual` |
+| `staticwebapp.config.json`（admin） | ✅ | admin SPA fallback；store 改 SSR 已移除其 SWA config |
 | Playwright 視覺回歸 harness | ✅ | `web/visual-regression`（config 1280/1024/768/375 + parity.spec）；待擷取舊站 baseline |
 | `.gitignore`（bin/obj/node_modules/.output/secrets） | ✅ | |
 

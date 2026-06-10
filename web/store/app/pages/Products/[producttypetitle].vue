@@ -5,7 +5,13 @@ const route = useRoute()
 const typeTitle = computed(() => String(route.params.producttypetitle ?? ''))
 const { data } = await useProductsData(typeTitle.value)
 
-useHead(() => ({ title: data.value.currentType?.title ?? '商品' }))
+useSeo(() => ({
+  title: data.value.currentType?.title ?? '商品',
+  description:
+    data.value.currentType?.memo ||
+    `食在呼 TFoodies ${data.value.currentType?.title ?? ''}系列商品，嚴選天然安心食材，產地直送餐桌。`,
+  type: 'website',
+}))
 </script>
 
 <template>

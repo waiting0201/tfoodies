@@ -23,6 +23,7 @@
 | 了解**新系統**多專案分層（Domain/Application/Infrastructure/Contracts/Api.Functions 各做什麼、程式碼放哪裡） | [docs/08-new-architecture.md](docs/08-new-architecture.md) | `software-architect-blueprint` · `system-analyst` |
 | 撰寫或審查測試（xUnit Domain/Application/Infrastructure、Playwright 視覺回歸） | [docs/09-testing.md](docs/09-testing.md) | `qa-test-engineer` · `backend-engineer` · `frontend-architect` |
 | 後台 Vue 元件設計規範（清單、表單、按鈕、Badge、CSS 變數定義） | [docs/10-admin-ui-design.md](docs/10-admin-ui-design.md) | `frontend-architect` · `visual-design-architect` |
+| 部署前台 store（Container Apps SSR：建 ACR/環境、首次部署映像、自訂網域切換、退役舊 SWA） | [docs/11-store-deployment.md](docs/11-store-deployment.md) | `backend-engineer` |
 
 ## 速查關鍵事實
 

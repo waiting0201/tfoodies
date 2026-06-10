@@ -6,7 +6,11 @@ const page = computed(() => Number(route.params.p ?? route.query.p ?? 1))
 const keyword = computed(() => String(route.query.k ?? ''))
 const { data } = await useIssuesData(page.value, keyword.value || undefined)
 
-useHead({ title: '綠誌' })
+useSeo(() => ({
+  title: '綠誌',
+  description: '食在呼 TFoodies 綠誌：分享健康飲食、天然食材知識與品味生活的綠色篇章。',
+  type: 'website',
+}))
 
 const searchInput = ref(keyword.value)
 function submitSearch() {

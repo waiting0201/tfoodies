@@ -1,0 +1,85 @@
+name: store-bootstrap
+
+# 一鍵建立 + 首次部署前台 store（Nuxt SSR on Azure Container Apps）。
+# 在 GitHub → Actions → store-bootstrap → Run workflow 執行一次即可：
+#   1) 註冊 resource providers
+#   2) 部署 infra（ACR + Container Apps 環境 + Container App，含 placeholder 映像）
+#   3) 讀 Bicep outputs（acrName / storeFqdn）
+#   4) az acr build 建 Nuxt 映像 → az containerapp update 切換
+#   5) 驗證 SSR / robots / sitemap
+# 之後的日常部署走 store.yml（push web/store/**）。
+
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Target environment'
+        type: choice
+        options: [dev, staging, prod]
+        default: prod
+
+permissions:
+  id-token: write   # OIDC login to Azure
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.env || 'prod' }}   # 沿用各環境的審核閘 / scoped secrets
+    env:
+      RG: ${{ vars.RESOURCE_GROUP || 'WeyproUS' }}
+      ENV: ${{ github.event.inputs.env || 'prod' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Register resource providers (idempotent)
+        run: |
+          az provider register --namespace Microsoft.App
+          az provider register --namespace Microsoft.ContainerRegistry
+          az provider register --namespace Microsoft.OperationalInsights
+
+      - name: Deploy infrastructure (ACR + Container Apps + Container App)
+        id: infra
+        run: |
+          outputs=$(az deployment group create \
+            --resource-group "$RG" \
+            --name store-bootstrap-$ENV \
+            --template-file infra/main.bicep \
+            --parameters env=$ENV \
+            --query properties.outputs -o json)
+          echo "acr=$(echo "$outputs"  | jq -r .acrName.value)"   >> "$GITHUB_OUTPUT"
+          echo "fqdn=$(echo "$outputs" | jq -r .storeFqdn.value)" >> "$GITHUB_OUTPUT"
+          echo "ACR=$(echo "$outputs"  | jq -r .acrName.value)"
+          echo "FQDN=$(echo "$outputs" | jq -r .storeFqdn.value)"
+
+      - name: Build store image in ACR
+        run: |
+          az acr build \
+            --registry ${{ steps.infra.outputs.acr }} \
+            --image store:${{ github.sha }} \
+            --image store:latest \
+            --file web/store/Dockerfile \
+            web
+
+      - name: Deploy image to Container App
+        run: |
+          az containerapp update \
+            --name tfoodies-store \
+            --resource-group "$RG" \
+            --image ${{ steps.infra.outputs.acr }}.azurecr.io/store:${{ github.sha }}
+
+      - name: Verify SSR
+        run: |
+          FQDN=${{ steps.infra.outputs.fqdn }}
+          echo "Store is live at: https://$FQDN"
+          sleep 15   # 容忍首次 revision 啟動 + 冷啟動
+          echo '--- robots.txt ---'
+          curl -fsS "https://$FQDN/robots.txt" | head -8
+          echo '--- sitemap <loc> count ---'
+          curl -fsS "https://$FQDN/sitemap.xml" | grep -c '<loc>' || true

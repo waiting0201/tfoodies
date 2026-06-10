@@ -1,7 +1,11 @@
 <script setup lang="ts">
 // Home "/" — verbatim port of reference/old/tfoodies/Views/MainMs/Index.cshtml.
 // Same DOM/classes for legacy main.css; ViewBag foreach → v-for over useHomeData().
-useHead({ title: '首頁' })
+useSeo(() => ({
+  title: '首頁',
+  description: '食在呼 TFoodies — 嚴選天然安心食材、頂級橄欖油與健康好油，產地直送餐桌。提供美味料理食譜、品牌故事與最新活動消息。',
+  type: 'website',
+}))
 const { data } = useHomeData()
 </script>
 

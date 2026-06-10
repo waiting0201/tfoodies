@@ -329,6 +329,37 @@ web/admin/src/
 
 ---
 
+### 前台顧客商城（web/store）
+
+技術棧：**Nuxt 4 + Vue 3 + TypeScript + Pinia**，**完整 SSR**（`ssr: true`，Nitro `node-server` preset）。URL 結構與舊站 `RouteConfig.cs` 1:1，沿用舊 `main.css` + jQuery 視覺外掛（verbatim 服務於 `/public`，body-close 載入、hydration 後才執行）。
+
+**為何全 SSR（SEO）**：舊站 `www.tfoodies.com` 已被 Google 索引；社群爬蟲（FB / LINE / Twitter）不執行 JS，SPA 空殼會讓分享預覽全壞。改 SSR 後伺服器即時輸出含完整 meta 的真 HTML。
+
+```
+web/store/app/
+├─ pages/                  ← 檔案式路由（/Product/{slug}、/NewsDetail/{id}/{p?} …，對齊舊 URL）
+├─ composables/
+│    useSeo.ts             ← useSeo()：包 useSeoMeta，補齊 description/og:*/twitter/canonical（無圖 fallback favicon）
+│                             + useJsonLd()：注入 application/ld+json
+│    useXxxData.ts         ← useFetch 包裝，打 Store API（/store/...）
+├─ utils/
+│    seo.ts               ← stripHtml/truncate/metaDescription/absoluteUrl
+│    jsonLd.ts            ← productJsonLd / articleJsonLd / breadcrumbJsonLd（schema.org）
+│    slug.ts             ← title(斜線) ↔ URL(連字號) 轉換
+└─ server/api/
+     __sitemap-urls.ts    ← @nuxtjs/sitemap 動態來源：runtime 查 Store list API 彙整內容 URL
+```
+
+**SEO 機制**：
+- **meta**：每頁呼叫 `useSeo()`（詳情頁帶 og:image=blob 圖、canonical=`shortener` 或站台 URL）。
+- **JSON-LD**：商品=`Product`(offers/price/TWD/availability)、News/Recipe/Issue/Event=`Article`、詳情頁附 `BreadcrumbList`。
+- **sitemap.xml**：`@nuxtjs/sitemap`，靜態路由自動收錄，動態內容由 `server/api/__sitemap-urls.ts` 於 runtime 查 API（品牌頁因無 list API 暫不納入）。
+- **robots.txt**：`@nuxtjs/robots` 產生（不再有靜態檔），`Disallow: /Member/ /Cart /Checkout /Order/` 並自動附 `Sitemap:`；被 disallow 的頁面自動補 `noindex` meta。
+
+**部署**：Docker 化（`web/store/Dockerfile`，多階段 → `node .output/server/index.mjs`，port 3000）→ **Azure Container Apps**（scale-to-zero 省成本，冷啟動如影響 SEO 改 minReplicas=1）。CI `.github/workflows/store.yml`：`az acr build` → `az containerapp update`。API base 由 Container App env `NUXT_PUBLIC_API_BASE` 注入。
+
+---
+
 ## 4. 相依方向（只能往下，不能往上）
 
 ```
