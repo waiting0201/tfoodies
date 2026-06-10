@@ -1,5 +1,11 @@
 name: infra
 
+# ⚠️ 一次性前置（訂閱層，需 Owner/Contributor，RG 範圍的部署 SP 做不到）：
+#   az provider register --namespace Microsoft.App --wait
+#   az provider register --namespace Microsoft.ContainerRegistry --wait
+#   az provider register --namespace Microsoft.OperationalInsights --wait
+# 未註冊會在部署 ACR / Container Apps 時報 AuthorizationFailed。詳見 docs/11-store-deployment.md §0。
+
 on:
   workflow_dispatch:
     inputs:

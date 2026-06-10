@@ -18,12 +18,21 @@
   - **Variables**：`RESOURCE_GROUP`(=`WeyproUS`)、`FUNCTION_APP_NAME`
   - ⚠️ **不需要** `ACR_NAME`：store workflow 會自動從 RG 解析 ACR 名稱。
 - 規模設定：Container App **scale-to-zero（minReplicas=0）** 省成本，閒置縮到 0；已寫在 Bicep。
-- 手動跑 az CLI 時才需要：`az login` + `az account set --subscription <SUBSCRIPTION_ID>`，並先註冊 provider：
+- ⚠️ **一次性：訂閱層註冊 resource providers（需 Owner/Contributor）**。GitHub 部署用的 OIDC service
+  principal 通常只在 RG `WeyproUS` 範圍有權限，**無法**做訂閱層的 `Microsoft.App/register/action`
+  （bootstrap 會報 `AuthorizationFailed`）。請一位**訂閱 Owner/Contributor** 先跑一次（或在 Portal →
+  訂閱 → 資源提供者 註冊）：
   ```bash
-  az provider register --namespace Microsoft.App
-  az provider register --namespace Microsoft.ContainerRegistry
-  az provider register --namespace Microsoft.OperationalInsights
+  az account set --subscription <SUBSCRIPTION_ID>
+  az provider register --namespace Microsoft.App --wait
+  az provider register --namespace Microsoft.ContainerRegistry --wait
+  az provider register --namespace Microsoft.OperationalInsights --wait
   ```
+  註冊是訂閱層、一次到位；之後 RG 範圍的部署身分即可建立所有資源。確認狀態：
+  ```bash
+  az provider show -n Microsoft.App --query registrationState -o tsv   # 應為 Registered
+  ```
+- 手動跑 az CLI 部署時：`az login` + `az account set --subscription <SUBSCRIPTION_ID>`。
 
 ---
 

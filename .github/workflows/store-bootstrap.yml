@@ -38,11 +38,30 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Register resource providers (idempotent)
+      # Provider registration is a SUBSCRIPTION-scoped action. The RG-scoped deploy SP usually
+      # can't do it, so this step is non-fatal: if a provider is already Registered we proceed;
+      # otherwise we emit a warning telling an admin to register it once. (See docs/11.)
+      - name: Ensure resource providers are registered
         run: |
-          az provider register --namespace Microsoft.App
-          az provider register --namespace Microsoft.ContainerRegistry
-          az provider register --namespace Microsoft.OperationalInsights
+          fail=0
+          for ns in Microsoft.App Microsoft.ContainerRegistry Microsoft.OperationalInsights; do
+            state=$(az provider show --namespace "$ns" --query registrationState -o tsv 2>/dev/null || echo Unknown)
+            if [ "$state" = "Registered" ]; then
+              echo "$ns: Registered ✓"
+            else
+              echo "$ns: $state — trying to register…"
+              if az provider register --namespace "$ns" >/dev/null 2>&1; then
+                echo "$ns: registration requested"
+              else
+                echo "::warning::No rights to register $ns. A subscription Owner/Contributor must run once: az provider register --namespace $ns --wait"
+                fail=1
+              fi
+            fi
+          done
+          if [ "$fail" = "1" ]; then
+            echo "::error::One or more required providers are not registered and this identity can't register them. See docs/11-store-deployment.md §0."
+            exit 1
+          fi
 
       - name: Deploy infrastructure (ACR + Container Apps + Container App)
         id: infra
