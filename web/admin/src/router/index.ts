@@ -127,6 +127,11 @@ const routes: RouteRecordRaw[] = [
       },
       // Purchases
       {
+        path: 'admin/suppliers',
+        name: 'suppliers',
+        component: () => import('../views/purchases/SuppliersView.vue'),
+      },
+      {
         path: 'admin/purchases',
         name: 'purchases',
         component: () => import('../views/purchases/PurchasesView.vue'),

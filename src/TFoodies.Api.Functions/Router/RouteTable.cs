@@ -171,8 +171,10 @@ public class RouteTable
         Register<PurchaseAdminController>("POST",   "admin/suppliers",                                    (c, ctx) => c.CreateSupplier(ctx));
         Register<PurchaseAdminController>("PUT",    @"admin/suppliers/(?<id>[^/]+)$",                     (c, ctx) => c.UpdateSupplier(ctx));
         Register<PurchaseAdminController>("DELETE", @"admin/suppliers/(?<id>[^/]+)$",                     (c, ctx) => c.DeleteSupplier(ctx));
+        Register<PurchaseAdminController>("GET",    "admin/exchanges",                                    (c, ctx) => c.ListExchanges(ctx));
         Register<PurchaseAdminController>("GET",    "admin/purchases",                                    (c, ctx) => c.ListPurchases(ctx));
         Register<PurchaseAdminController>("POST",   "admin/purchases",                                    (c, ctx) => c.CreatePurchase(ctx));
+        Register<PurchaseAdminController>("GET",    "admin/purchases/export",                             (c, ctx) => c.ExportPurchases(ctx));
         Register<PurchaseAdminController>("GET",    @"admin/purchases/(?<id>[^/]+)$",                     (c, ctx) => c.DetailPurchase(ctx));
         Register<PurchaseAdminController>("PUT",    @"admin/purchases/(?<id>[^/]+)$",                     (c, ctx) => c.UpdatePurchase(ctx));
         Register<PurchaseAdminController>("PATCH",  @"admin/purchases/(?<id>[^/]+)/expenditure",          (c, ctx) => c.ToExpenditure(ctx));

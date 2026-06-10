@@ -2,7 +2,7 @@
 
 > 本文描述**新系統**（.NET 9 重構）的多專案分層設計。
 > 舊系統架構見 [docs/01-architecture.md](01-architecture.md)。
-> 上次更新：2026-06-10（OrderMs 完整子模組移轉：手動建單、出貨扣庫存、物流商、缺貨通知、報關、退貨建立/編輯、Excel 匯出/揀貨單/出貨單）
+> 上次更新：2026-06-10（PurchaseMs 完整移轉：供應商 CRUD、幣別下拉端點、採購單列表/明細/新增/編輯/轉應付，含產品挑選器與 etd/交貨期限/付款條件；UI 全面套用 docs/10 規範）
 
 ---
 
@@ -206,7 +206,13 @@ Controllers/
     SmsAdminController.cs        ← /admin/sms（簡訊維護，隸屬 MemberMs）：簡訊 CRUD + 收訊人(Smsdetails)管理
                                     + 開始發送（逐筆走 ISmsService 三竹閘道，issend/statuscode 回寫）
     InventoryAdminController.cs  ← /admin/warehouses + /admin/inventory + /admin/stocks（InventoryMs）
-    PurchaseAdminController.cs   ← /admin/suppliers + /admin/purchases（PurchaseMs）
+    PurchaseAdminController.cs   ← PurchaseMs 完整對等（對照舊系統 PurchaseMsController）：
+                                    供應商 CRUD（title/contactor/phone/address，仍有採購單則不可刪）；
+                                    /admin/exchanges（幣別/匯率下拉，維護歸 AccountingMs）；
+                                    採購單列表（狀態/供應商篩選、含金額合計與幣別、排序採購日期 DESC→採購編號 DESC）、明細、
+                                    新增（產生 purchasecode、status=1、含 etd/deliverterm/付款條件/明細）、
+                                    編輯（明細差異比對；已轉應付不可編輯）、PATCH 轉應付憑單、
+                                    GET /admin/purchases/export（勾選 purchaseIds 或依篩選匯出 .xlsx，ClosedXML/PurchaseExcelReport）
     AccountingAdminController.cs ← /admin/expenditures + /admin/outcomes + /admin/ar-invoices
                                     + /admin/incomes + /admin/refounds（AccountingMs）
     ReturnAdminController.cs     ← /admin/returns（ReturnMs）
@@ -267,9 +273,11 @@ web/admin/src/
 │      MembersView.vue                ← 會員列表
 │    inventory/
 │      InventoryView.vue              ← 庫存總覽（倉庫/效期/批次）
-│    purchases/
-│      PurchasesView.vue              ← 採購單列表
-│      PurchaseFormView.vue           ← 新增/編輯採購單
+│    purchases/  ← 採購管理（PurchaseMs 下兩獨立選單項：供應商維護 Suppliers / 採購單維護 Purchases，非頁籤）
+│      SuppliersView.vue              ← 供應商維護（卡片表格 + 右側滑出面板 CRUD + 刪除 Modal）
+│      PurchasesView.vue              ← 採購單維護（狀態/供應商篩選 + 勾選列 + 卡片表格（金額/狀態 Badge）+ 分頁 + 編輯/轉應付 + 匯出 Excel）
+│      PurchaseFormView.vue           ← 新增/編輯採購單（兩欄表單：供應商/幣別/採購日期/ETD/付款條件/交貨期限/備註
+│                                        + 產品搜尋挑選器 + 明細表 + 合計）
 │    accounting/
 │      AccountingView.vue             ← 財務管理（支出/收入/AR）
 │    returns/

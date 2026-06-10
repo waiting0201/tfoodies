@@ -44,6 +44,7 @@ const ROUTES: Record<string, string> = {
   Members: '/admin/members',
   Sms: '/admin/sms',
   // PurchaseMs（採購管理）
+  Suppliers: '/admin/suppliers',
   Purchases: '/admin/purchases',
   // InventoryMs（庫存管理）
   Warehouses: '/admin/warehouses',
