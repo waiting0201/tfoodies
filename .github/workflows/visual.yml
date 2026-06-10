@@ -21,8 +21,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: npm ci
+      - name: Install deps (retry on esbuild ETXTBSY flake)
         working-directory: web
+        run: |
+          for i in 1 2 3; do npm ci && break || { echo "npm ci failed, retry $i"; sleep 5; }; done
       - name: Build & start store
         working-directory: web
         run: |
