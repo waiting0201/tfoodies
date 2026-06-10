@@ -16,7 +16,7 @@ on:
         description: 'Target environment'
         type: choice
         options: [dev, staging, prod]
-        default: prod
+        default: dev   # 對齊 infra.yml（push 觸發時也是 dev），避免同名 Container App 跨環境衝突
 
 permissions:
   id-token: write   # OIDC login to Azure
@@ -25,10 +25,10 @@ permissions:
 jobs:
   bootstrap:
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.env || 'prod' }}   # 沿用各環境的審核閘 / scoped secrets
+    environment: ${{ github.event.inputs.env || 'dev' }}   # 沿用各環境的審核閘 / scoped secrets
     env:
       RG: ${{ vars.RESOURCE_GROUP || 'WeyproUS' }}
-      ENV: ${{ github.event.inputs.env || 'prod' }}
+      ENV: ${{ github.event.inputs.env || 'dev' }}
     steps:
       - uses: actions/checkout@v4
 
