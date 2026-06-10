@@ -310,6 +310,12 @@ const routes: RouteRecordRaw[] = [
         name: 'discounts',
         component: () => import('../views/discounts/DiscountsView.vue'),
       },
+      // 系統管理 — 購物說明分類 / 購物說明（對應 DB Lims: Questiontypes / Questions）
+      // 分類採右側 slide-in panel 內嵌編輯（同 Discounts），故無獨立表單路由。
+      { path: 'admin/questiontypes',          name: 'questiontypes',      component: () => import('../views/shopping-guide/QuestiontypesView.vue') },
+      { path: 'admin/questions',              name: 'questions',          component: () => import('../views/shopping-guide/QuestionsView.vue') },
+      { path: 'admin/questions/new',          name: 'question-new',       component: () => import('../views/shopping-guide/QuestionFormView.vue') },
+      { path: 'admin/questions/:id/edit',     name: 'question-edit',      component: () => import('../views/shopping-guide/QuestionFormView.vue') },
       // Reports（報表管理 — 銷售量報表 / 銷售額報表）
       {
         path: 'admin/reports',

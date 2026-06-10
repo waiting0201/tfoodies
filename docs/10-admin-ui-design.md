@@ -56,6 +56,41 @@
 
 ---
 
+## ⚠️ 整數編碼欄位的表單綁定（前端必讀，後台設定共用）
+
+> 後台多數「設定類」欄位在凍結的 DB 是**整數編碼（0/1/2…），不是 boolean**。後端 API 原樣回傳整數、`Detail` 端點直接回 Dapper row（欄位名為 DB 原始小寫，**非 camelCase**，因 `DictionaryKeyPolicy` 未設定）。前端綁定時若把整數當 boolean 會踩雷。
+
+### 鐵則
+
+1. **radio**：`:value` 必須是**數字字面量**且配 `v-model.number`，數字要對齊 DB 編碼。
+   ```html
+   <input type="radio" v-model.number="form.istype" :value="0" /> 折扣比例
+   <input type="radio" v-model.number="form.istype" :value="1" /> 折抵金額
+   ```
+2. **checkbox 不可直接綁整數欄位**。Vue 的 `looseEqual` 以 `String(a)===String(b)` 比對，`String(1) !== String(true)` → **值為 `1` 也永遠不打勾**。兩種正解：
+   - 載入時 `Number(x) === 1` 轉布林、送出時 `form.x ? 1 : 0` 轉回整數；或
+   - 標明 `:true-value="1" :false-value="0"`。
+3. **多於兩態**（如 `isonetime` 有 0/1/2）**不能用單一 checkbox**，改用 radio 群組或 `<select>`，否則第三態無法表達。
+4. **載入 Detail 時對所有編碼欄位做 `Number(detail.x)`**，別假設型別；送出前確認送的是整數（後端 DTO 多為 `int`，送 boolean 會被 STJ 擋下 → 400）。
+
+> 殷鑑：折扣碼維護曾把 `istype` 用 1/2（實際是 0/1）、`isonetime`/`isdisable` 當 boolean，導致編輯時 radio/checkbox 全不預選、且新增直接 400。修正見 `DiscountsView.vue`。
+
+### 編碼權威來源
+
+- 多數欄位定義於 **`src/TFoodies.Domain/Enums/Enums.cs`**（值已凍結對齊 DB；另見 [docs/06](06-cross-cutting.md) 列舉表）。
+- **例外**：`Discounts.isonetime` **不在** Enums.cs，語意僅在 `src/TFoodies.Infrastructure/Orders/DiscountService.cs` 註解中，見下表。
+
+### 折扣碼維護（SettingMs → Discounts）欄位編碼
+
+| 欄位 | 編碼 | 前端控件 | 備註 |
+|---|---|---|---|
+| `istype` | 0=折扣比例、1=折抵金額 | radio（`:value` 0/1） | `Domain.DiscountType`；計算見 DiscountService |
+| `v` | 折扣值（decimal） | number input | istype=0 時為**折扣後比例**（0.85=85折）；istype=1 時為固定金額 |
+| `isonetime` | 0=不限、1=全站限一次、2=每位會員限一次 | radio／select（三態） | **不在 Enums.cs**；語意在 DiscountService |
+| `isdisable` | 0=啟用、1=停用 | checkbox（需 int↔bool 轉換） | 軟刪欄位 |
+
+---
+
 ## 一、清單頁規範（參照 `BrandsView.vue`）
 
 ### 結構

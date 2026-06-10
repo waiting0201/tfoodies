@@ -278,6 +278,9 @@ public class RouteTable
         Register<ReturnAdminController>("PATCH", @"admin/returns/(?<id>[^/]+)/receive",                   (c, ctx) => c.Receive(ctx));
         Register<ReturnAdminController>("PATCH", @"admin/returns/(?<id>[^/]+)/refund",                    (c, ctx) => c.Refund(ctx));
 
+        // ── Admin Dashboard（儀表板統計，唯讀，任一登入管理員可讀）─────────────
+        Register<DashboardAdminController>("GET",  "admin/dashboard/stats",                                 (c, ctx) => c.Stats(ctx));
+
         // ── Admin Accounts ───────────────────────────────────────────────────
         // 左側選單（依權限由 Lims 樹動態產生）
         Register<AdminMenuController>("GET",       "admin/menu",                                            (c, ctx) => c.Get(ctx));
@@ -361,6 +364,18 @@ public class RouteTable
         // ── Admin Reports（ReportMs） ─────────────────────────────────────────
         Register<ReportAdminController>("GET", "admin/reports/sales",                                     (c, ctx) => c.Sales(ctx));
         Register<ReportAdminController>("GET", "admin/reports/amounts",                                   (c, ctx) => c.Amounts(ctx));
+
+        // ── Admin 購物說明（SettingMs → 購物說明分類 Questiontypes / 購物說明 Questions）──
+        Register<ShoppingGuideAdminController>("GET",    "admin/questiontypes",                           (c, ctx) => c.TypeList(ctx));
+        Register<ShoppingGuideAdminController>("POST",   "admin/questiontypes",                           (c, ctx) => c.TypeCreate(ctx));
+        Register<ShoppingGuideAdminController>("GET",    @"admin/questiontypes/(?<id>[^/]+)$",            (c, ctx) => c.TypeDetail(ctx));
+        Register<ShoppingGuideAdminController>("PUT",    @"admin/questiontypes/(?<id>[^/]+)$",            (c, ctx) => c.TypeUpdate(ctx));
+        Register<ShoppingGuideAdminController>("DELETE", @"admin/questiontypes/(?<id>[^/]+)$",            (c, ctx) => c.TypeDelete(ctx));
+        Register<ShoppingGuideAdminController>("GET",    "admin/questions",                               (c, ctx) => c.List(ctx));
+        Register<ShoppingGuideAdminController>("POST",   "admin/questions",                               (c, ctx) => c.Create(ctx));
+        Register<ShoppingGuideAdminController>("GET",    @"admin/questions/(?<id>[^/]+)$",                (c, ctx) => c.Detail(ctx));
+        Register<ShoppingGuideAdminController>("PUT",    @"admin/questions/(?<id>[^/]+)$",                (c, ctx) => c.Update(ctx));
+        Register<ShoppingGuideAdminController>("DELETE", @"admin/questions/(?<id>[^/]+)$",                (c, ctx) => c.Delete(ctx));
 
         // ── Admin Upload（共用圖片上傳，需登入，container = tfoodies）────────────
         Register<UploadAdminController>("POST", "admin/upload",                                           (c, ctx) => c.Upload(ctx));

@@ -2,7 +2,9 @@
 
 > 本文描述**新系統**（.NET 9 重構）的多專案分層設計。
 > 舊系統架構見 [docs/01-architecture.md](01-architecture.md)。
-> 上次更新：2026-06-10（InventoryMs 完整移轉：拆三獨立選單頁對齊 DB Lims——倉儲維護/入庫維護/移庫維護；
+> 上次更新：2026-06-10（SettingMs 購物說明移轉：新增 ShoppingGuideAdminController + 前端 shopping-guide/ 四個 view，
+> 對應 DB Lims 既有 Questiontypes/Questions 兩選單；分類+明細兩層 CRUD，皆硬刪（FK CASCADE），answer 富文本由 HtmlEditor 處理。
+> 先前：InventoryMs 完整移轉：拆三獨立選單頁對齊 DB Lims——倉儲維護/入庫維護/移庫維護；
 > 入庫維護全套（採購連動、需申報/不需申報、通知號查重、CheckPurchaseStatus 推進採購狀態），
 > 移庫維護批次 FIFO 調撥＋在庫帳編輯；倉別標籤修正為線上/線下/瑕疵品倉；
 > 並修復舊有 AddStock/TransferStock 寫入錯欄位的缺陷。UI 全面套用 docs/10 規範）
@@ -229,6 +231,10 @@ Controllers/
     AdminAccountController.cs    ← /admin/admin-accounts（管理員帳號 CRUD + 模組權限設定）
     DiscountAdminController.cs   ← /admin/discounts（DiscountMs；列表/新增/明細/更新/軟刪除）
     ReportAdminController.cs     ← /admin/reports/sales + /admin/reports/amounts（ReportMs）
+    DashboardAdminController.cs  ← /admin/dashboard/stats（儀表板統計；RequireAdmin 僅驗 JWT、不綁模組；
+                                    今日訂單/待出貨/未付款/本月訂單/本月營收/上架商品/活躍會員/低庫存，單一查詢 8 子查詢，TW 時區）
+    ShoppingGuideAdminController.cs ← /admin/questiontypes + /admin/questions（SettingMs；購物說明分類/購物說明；
+                                       無啟用停用欄位→硬刪，FK CASCADE 連帶刪明細/媒體；answer ntext 需 CAST）
 Program.cs     ← DI 組合根（所有 Controller 以 AddScoped 註冊）
 ```
 
@@ -258,7 +264,7 @@ web/admin/src/
 │    AdminLayout.vue      ← 主框架：slate-900 左側 sidebar + sticky topbar + RouterView
 ├─ views/
 │    LoginView.vue                    ← 登入頁（split panel；dark 左品牌 + 右表單）
-│    DashboardView.vue                ← 儀表板（stat cards + 模組快速導覽）
+│    DashboardView.vue                ← 儀表板（串 /admin/dashboard/stats：今日待辦＋本月概覽兩區 stat cards、卡片可點進對應模組；＋模組快速導覽）
 │    orders/
 │      OrdersView.vue                 ← 訂單列表（分頁、狀態篩選）
 │      OrderCreateView.vue            ← 新增訂單（兩欄表單，商品搜尋含縮圖+編號）
@@ -305,6 +311,10 @@ web/admin/src/
 │    reports/
 │      SalesQtyReportView.vue         ← 銷售量報表（Salereports，/admin/reports）
 │      SalesAmountReportView.vue      ← 銷售額報表（Amountreports，/admin/reports/amounts）
+│    shopping-guide/                  ← 購物說明（SettingMs；前台呈現為「購物說明 / 會員常見問題」）
+│      QuestiontypesView.vue          ← 購物說明分類清單＋右側 slide-in panel 內嵌新增/編輯（同 Discounts）；含問題數、刪除前提示連帶刪除
+│      QuestionsView.vue              ← 購物說明清單（Questions；分頁＋分類篩選）
+│      QuestionFormView.vue           ← 購物說明新增/編輯獨立頁（分類下拉＋title＋HtmlEditor 富文本 answer）
 ├─ stores/
 │    auth.ts              ← Pinia：accessToken(記憶體)、login/logout、can(module)
 ├─ lib/

@@ -215,7 +215,12 @@ WHERE discountid = @discountid",
     {
         if (string.IsNullOrWhiteSpace(r.Discountcode))       return "discountcode 為必填欄位。";
         if (r.Discountcode.Length > 8)                        return "discountcode 長度不可超過 8 個字元。";
-        if (r.Istype != 1 && r.Istype != 2)                  return "istype 須為 1（折抵金額）或 2（折扣比例）。";
+        // istype 0=折扣比例（v=折扣後比例，如 0.85=85折）、1=折抵金額（v=固定金額）。
+        // 對齊 Domain.DiscountType 與 DiscountService 計算邏輯。
+        if (r.Istype != 0 && r.Istype != 1)                  return "istype 須為 0（折扣比例）或 1（折抵金額）。";
+        // isonetime 0=不限、1=全站限用一次、2=每位會員限用一次（見 DiscountService）。
+        if (r.Isonetime < 0 || r.Isonetime > 2)              return "isonetime 須為 0（不限）、1（全站限一次）或 2（每位會員限一次）。";
+        if (r.Isdisable != 0 && r.Isdisable != 1)            return "isdisable 須為 0（啟用）或 1（停用）。";
         if (r.V <= 0)                                         return "v（折扣值）必須大於 0。";
         return null;
     }

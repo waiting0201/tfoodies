@@ -67,6 +67,8 @@ const ROUTES: Record<string, string> = {
   // SettingMs（系統管理）
   Admins: '/admin/admin-accounts',
   Discounts: '/admin/discounts',
+  Questiontypes: '/admin/questiontypes',
+  Questions: '/admin/questions',
   // childless 頂層模組（key 即模組）
   InvoiceMs: '/admin/invoices',
   DiscountMs: '/admin/discounts',

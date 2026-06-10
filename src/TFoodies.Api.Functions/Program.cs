@@ -87,5 +87,7 @@ builder.Services.AddScoped<UploadAdminController>();
 builder.Services.AddScoped<InvoiceAdminController>();
 builder.Services.AddScoped<DiscountAdminController>();
 builder.Services.AddScoped<ReportAdminController>();
+builder.Services.AddScoped<ShoppingGuideAdminController>();
+builder.Services.AddScoped<DashboardAdminController>();
 
 builder.Build().Run();

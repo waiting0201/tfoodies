@@ -6,13 +6,13 @@ import { apiFetch } from '../../lib/apiClient'
 interface Discount {
   discountId: string
   discountcode: string
-  istype: 1 | 2
+  istype: 0 | 1          // 0=折扣比例(%), 1=折抵金額(NT$)
   startdate: string
   expiredate: string
-  isonetime: boolean
+  isonetime: 0 | 1 | 2   // 0=不限, 1=全站限一次, 2=每位會員限一次
   v: number
   memo: string
-  isdisable: boolean
+  isdisable: 0 | 1       // 0=啟用, 1=停用
 }
 
 interface PagedResult<T> {
@@ -24,13 +24,13 @@ interface PagedResult<T> {
 
 interface DiscountForm {
   discountcode: string
-  istype: 1 | 2
+  istype: 0 | 1
   v: string
   startdate: string
   expiredate: string
-  isonetime: boolean
+  isonetime: 0 | 1 | 2
   memo: string
-  isdisable: boolean
+  isdisable: boolean   // UI 用布林綁定 checkbox，送出時轉 0/1
 }
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -40,17 +40,21 @@ function fmtDate(d: string) {
 
 function fmtValue(item: Discount): string {
   if (item.istype === 1) return `NT$ ${item.v.toLocaleString()}`
-  return `${item.v}%`
+  return `比例 ${item.v}`   // 折扣比例：v 為折扣後比例（如 0.85 = 85折）
+}
+
+function fmtOnetime(v: number): string {
+  return v === 2 ? '每人一次' : v === 1 ? '全站一次' : '不限'
 }
 
 function emptyForm(): DiscountForm {
   return {
     discountcode: '',
-    istype: 1,
+    istype: 0,
     v: '',
     startdate: '',
     expiredate: '',
-    isonetime: false,
+    isonetime: 0,
     memo: '',
     isdisable: false,
   }
@@ -120,13 +124,13 @@ async function openEdit(item: Discount) {
     const detail = await apiFetch<Discount>(`/admin/discounts/${item.discountId}`)
     form.value = {
       discountcode: detail.discountcode,
-      istype: detail.istype,
+      istype: (Number(detail.istype) === 1 ? 1 : 0),
       v: String(detail.v),
       startdate: detail.startdate ? detail.startdate.slice(0, 10) : '',
       expiredate: detail.expiredate ? detail.expiredate.slice(0, 10) : '',
-      isonetime: detail.isonetime,
+      isonetime: (Number(detail.isonetime) as 0 | 1 | 2),
       memo: detail.memo ?? '',
-      isdisable: detail.isdisable,
+      isdisable: Number(detail.isdisable) === 1,
     }
   } catch (e: any) {
     panelError.value = e.message ?? '載入明細失敗'
@@ -148,6 +152,9 @@ async function submitForm() {
     const body = {
       ...form.value,
       v: Number(form.value.v),
+      istype: form.value.istype,
+      isonetime: form.value.isonetime,
+      isdisable: form.value.isdisable ? 1 : 0,
     }
     if (panelMode.value === 'create') {
       await apiFetch('/admin/discounts', { method: 'POST', body: JSON.stringify(body) })
@@ -238,7 +245,7 @@ async function confirmDelete() {
               <th>折扣值</th>
               <th>起始日期</th>
               <th>截止日期</th>
-              <th>一次性</th>
+              <th>限用</th>
               <th>狀態</th>
               <th>備註</th>
               <th class="action-th"></th>
@@ -257,7 +264,7 @@ async function confirmDelete() {
               <td>{{ fmtDate(item.expiredate) }}</td>
               <td>
                 <span class="indicator" :class="item.isonetime ? 'indicator--yes' : 'indicator--no'">
-                  {{ item.isonetime ? '是' : '否' }}
+                  {{ fmtOnetime(item.isonetime) }}
                 </span>
               </td>
               <td>
@@ -311,30 +318,33 @@ async function confirmDelete() {
                 <label class="form-field__label">折扣類型 <span class="required">*</span></label>
                 <div class="radio-group">
                   <label class="radio-option">
-                    <input type="radio" v-model="form.istype" :value="1" />
-                    <span>折抵金額（NT$）</span>
+                    <input type="radio" v-model.number="form.istype" :value="0" />
+                    <span>折扣比例</span>
                   </label>
                   <label class="radio-option">
-                    <input type="radio" v-model="form.istype" :value="2" />
-                    <span>折扣比例（%）</span>
+                    <input type="radio" v-model.number="form.istype" :value="1" />
+                    <span>折抵金額（NT$）</span>
                   </label>
                 </div>
               </div>
 
               <div class="form-field">
                 <label class="form-field__label" for="f-v">
-                  {{ form.istype === 1 ? '折抵金額（NT$）' : '折扣比例（%）' }}
+                  {{ form.istype === 1 ? '折抵金額（NT$）' : '折扣比例' }}
                   <span class="required">*</span>
                 </label>
                 <input
                   id="f-v"
                   v-model="form.v"
                   type="number"
-                  :min="form.istype === 2 ? 1 : 1"
-                  :max="form.istype === 2 ? 100 : undefined"
-                  :placeholder="form.istype === 1 ? '例：200' : '例：10'"
+                  min="0"
+                  :step="form.istype === 1 ? 1 : 0.01"
+                  :placeholder="form.istype === 1 ? '例：200' : '例：0.85（即 85 折）'"
                   class="form-field__input"
                 />
+                <p class="field-hint">
+                  {{ form.istype === 1 ? '直接輸入折抵的金額（元）。' : '輸入折扣後比例，85 折請輸入 0.85。' }}
+                </p>
               </div>
 
               <div class="form-row">
@@ -353,11 +363,25 @@ async function confirmDelete() {
                 <textarea id="f-memo" v-model="form.memo" rows="2" placeholder="選填備註" class="form-field__input" style="resize:vertical;"></textarea>
               </div>
 
+              <div class="form-field">
+                <label class="form-field__label">限用設定 <span class="required">*</span></label>
+                <div class="radio-group radio-group--col">
+                  <label class="radio-option">
+                    <input type="radio" v-model.number="form.isonetime" :value="0" />
+                    <span>不限次數</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" v-model.number="form.isonetime" :value="1" />
+                    <span>全站限用一次</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" v-model.number="form.isonetime" :value="2" />
+                    <span>每位會員限用一次</span>
+                  </label>
+                </div>
+              </div>
+
               <div class="form-checks">
-                <label class="checkbox-option">
-                  <input type="checkbox" v-model="form.isonetime" />
-                  <span>單次使用（每位會員僅限一次）</span>
-                </label>
                 <label class="checkbox-option">
                   <input type="checkbox" v-model="form.isdisable" />
                   <span>停用此折扣碼</span>
@@ -523,8 +547,10 @@ async function confirmDelete() {
 .form-field__input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
 
 .radio-group { display: flex; gap: 1.25rem; }
+.radio-group--col { flex-direction: column; gap: 0.5rem; }
 .radio-option { display: flex; align-items: center; gap: 0.4rem; font-size: 0.875rem; color: #475569; cursor: pointer; }
 .radio-option input { accent-color: var(--tf-color-primary); }
+.field-hint { font-size: 0.78rem; color: #94a3b8; margin: 0.35rem 0 0; line-height: 1.5; }
 
 .form-checks { display: flex; flex-direction: column; gap: 0.6rem; }
 .checkbox-option { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: #475569; cursor: pointer; }
