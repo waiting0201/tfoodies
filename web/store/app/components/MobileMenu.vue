@@ -1,10 +1,16 @@
 <script setup lang="ts">
 // Verbatim port of reference/old/tfoodies/Views/Shared/_SubMenu.cshtml (Slidebars mobile menu).
 interface Brand { title: string }
-withDefaults(defineProps<{ brands?: Brand[]; isLoggedIn?: boolean }>(), {
+withDefaults(defineProps<{ brands?: Brand[] }>(), {
   brands: () => [],
-  isLoggedIn: false,
 })
+
+const memberAuth = useMemberAuthStore()
+const isLoggedIn = computed(() => memberAuth.isAuthenticated)
+function logout() {
+  memberAuth.logout()
+  navigateTo('/Member/Login')
+}
 </script>
 
 <template>
@@ -36,9 +42,12 @@ withDefaults(defineProps<{ brands?: Brand[]; isLoggedIn?: boolean }>(), {
         <li><a href="/TFoodies" title="關於我們">關於我們</a></li>
       </ul>
       <div class="slide-social">
-        <div v-if="isLoggedIn" class="centered">
-          <a href="/MemberMs/Logout" class="logout">
+        <div class="centered">
+          <a v-if="isLoggedIn" href="javascript:;" class="logout" @click.prevent="logout">
             <div class="small white">登出</div>
+          </a>
+          <a v-else href="/Member/Login" class="logout" rel="nofollow">
+            <div class="small white">登入</div>
           </a>
         </div>
         <div class="social-link">

@@ -10,6 +10,38 @@ const p = computed(() => data.value.product)
 const ntd = (n: number) => 'NT. ' + new Intl.NumberFormat('en-US').format(Math.trunc(n))
 const onSale = computed(() => p.value && p.value.fixprice > p.value.price)
 
+// Cart wiring (legacy ProductDetail.cshtml relied on jQuery/inline scripts that weren't
+// ported, so the quantity +/- and 加入購物車 controls were inert). Drive them via the
+// pinia cart store instead.
+const cartStore = useCartStore()
+onMounted(() => cartStore.hydrate())
+
+const qty = ref(1)
+const decQty = () => { qty.value = Math.max(1, qty.value - 1) }
+const incQty = () => { qty.value += 1 }
+const onQtyInput = (e: Event) => {
+  const n = Math.floor(Number((e.target as HTMLInputElement).value))
+  qty.value = Number.isFinite(n) && n >= 1 ? n : 1
+}
+
+const justAdded = ref(false)
+function addToCart() {
+  const prod = p.value
+  if (!prod || prod.added <= 0) return
+  cartStore.add({
+    productId: prod.productid,
+    title: prod.title,
+    unitPrice: prod.price,
+    quantity: qty.value,
+    // 代表圖 (representative image); fall back to the first gallery photo only if unset.
+    photo: prod.photo || prod.photos?.[0]?.photo || undefined,
+    capacity: prod.capacity ?? undefined,
+  })
+  // Brief pulse on the header cart badge (mirrors legacy `.addnumber.add-active`).
+  justAdded.value = true
+  setTimeout(() => { justAdded.value = false }, 1200)
+}
+
 const siteUrl = String(useRuntimeConfig().public.siteUrl).replace(/\/+$/, '')
 const heroImage = computed(() => {
   const photo = p.value?.photos?.[0]?.photo ?? p.value?.photo
@@ -82,14 +114,14 @@ useJsonLd(() => {
 
             <div class="sale">
               <template v-if="onSale">
-                <div class="line-through">原價 NT. {{ ntd(p.fixprice) }}</div>
+                <div class="line-through">原價 {{ ntd(p.fixprice) }}</div>
                 <div class="centered">
                   <div class="sale-tag">特價</div>
                 </div>
-                <div class="product-price">NT. {{ ntd(p.price) }}</div>
+                <div class="product-price">{{ ntd(p.price) }}</div>
               </template>
               <template v-else>
-                <div class="product-price">NT. {{ ntd(p.price) }}</div>
+                <div class="product-price">{{ ntd(p.price) }}</div>
               </template>
             </div>
 
@@ -97,15 +129,15 @@ useJsonLd(() => {
               <div class="numb"><p>數量</p></div>
               <div class="quantity-wrap">
                 <div class="quantity">
-                  <div class="qty-minus"><a href="javascript:;" class="minus">-</a></div>
-                  <div class="qtyinput"><input type="text" name="qty" id="qty" value="1" class="input form-input qty"></div>
-                  <div class="qty-plus"><a href="javascript:;" class="plus">+</a></div>
+                  <div class="qty-minus"><a href="javascript:;" class="minus" @click.prevent="decQty">-</a></div>
+                  <div class="qtyinput"><input type="text" name="qty" id="qty" inputmode="numeric" :value="qty" class="input form-input qty" @input="onQtyInput"></div>
+                  <div class="qty-plus"><a href="javascript:;" class="plus" @click.prevent="incQty">+</a></div>
                 </div>
               </div>
             </div>
 
             <div class="buybtn-wrap">
-              <a v-if="p.added > 0" href="javascript:;" class="btn outline-btn solidhover js-add-cart" :data-productid="p.productid" :data-title="p.title">加入購物車</a>
+              <a v-if="p.added > 0" href="javascript:;" class="btn outline-btn solidhover js-add-cart" :data-productid="p.productid" :data-title="p.title" @click.prevent="addToCart">{{ justAdded ? '已加入購物車' : '加入購物車' }}</a>
               <a v-else href="javascript:;" class="btn outline-btn solidhover popup-contact" :data-productid="p.productid">到貨通知我</a>
               <a href="javascript:;" class="btn outline-btn solidhover mylistbtn" :data-productid="p.productid">
                 <div class="love"></div>

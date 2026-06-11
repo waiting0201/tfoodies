@@ -59,6 +59,8 @@ public class RouteTable
         Register<StoreOrderController>("POST", "store/discount/apply", (c, ctx) => c.ApplyDiscount(ctx));
         Register<StoreOrderController>("POST", "store/orders",         (c, ctx) => c.PlaceOrder(ctx));
         Register<StoreOrderController>("GET",  @"store/orders/(?<code>[^/]+)", (c, ctx) => c.GetOrder(ctx));
+        Register<StoreZipcodeController>("GET", "store/zipcodes/cities", (c, ctx) => c.Cities(ctx));
+        Register<StoreZipcodeController>("GET", "store/zipcodes/areas",  (c, ctx) => c.Areas(ctx));
 
         // ── Auth ────────────────────────────────────────────────────────────
         Register<AuthController>("POST", "auth/login",   (c, ctx) => c.Login(ctx));

@@ -86,20 +86,24 @@ let step = 1
           <div class="ingredient-wrapper">
             <div class="ingredient-box">
               <table class="ingredient-table">
-                <tr><th><h2 class="left">食材準備</h2></th><th></th></tr>
-                <tr v-for="ing in item.ingredients" :key="ing.sort">
-                  <td class="left">{{ ing.title }}</td>
-                  <td>{{ ing.value }}</td>
-                </tr>
+                <tbody>
+                  <tr><th><h2 class="left">食材準備</h2></th><th></th></tr>
+                  <tr v-for="ing in item.ingredients" :key="ing.sort">
+                    <td class="left">{{ ing.title }}</td>
+                    <td>{{ ing.value }}</td>
+                  </tr>
+                </tbody>
               </table>
             </div>
             <div class="ingredient-box">
               <table class="ingredient-table">
-                <tr><th><h2 class="left">調味料準備</h2></th><th></th></tr>
-                <tr v-for="s in item.seasonings" :key="s.sort">
-                  <td class="left">{{ s.title }}</td>
-                  <td>{{ s.value }}</td>
-                </tr>
+                <tbody>
+                  <tr><th><h2 class="left">調味料準備</h2></th><th></th></tr>
+                  <tr v-for="s in item.seasonings" :key="s.sort">
+                    <td class="left">{{ s.title }}</td>
+                    <td>{{ s.value }}</td>
+                  </tr>
+                </tbody>
               </table>
             </div>
           </div>

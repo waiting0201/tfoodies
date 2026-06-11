@@ -7,10 +7,12 @@
 //
 // VISUAL FIDELITY (plan §7.1): the legacy main.css + assets are served VERBATIM from
 // /public (NOT imported through Vite, so url(../images/...) keeps resolving). Pages/
-// components reproduce the exact legacy DOM/classes. jQuery + the original visual plugins
-// (slick/owl/bxSlider/slidebars/magnificPopup/sticky/tabber) load at body close, same as
-// the legacy _Scripts.cshtml; under SSR they run only after hydration (client), so
-// carousels/mobile-menu/lightbox behave identically without touching the server render.
+// components reproduce the exact legacy DOM/classes. jQuery + the original visual plugin
+// *definitions* (slick/owl/bxSlider/slidebars/magnificPopup/sticky/tabber) load at body
+// close (below); they only define plugins and don't touch app DOM. The plugin *init* —
+// legacy main.js — is NOT loaded here: its `$(document).ready` races Vue hydration and
+// wipes the carousels, so plugins/legacy-effects.client.ts injects it AFTER hydration and
+// rebuilds the content sliders on each SPA navigation.
 const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || 'https://www.tfoodies.com'
 
 export default defineNuxtConfig({
@@ -37,8 +39,16 @@ export default defineNuxtConfig({
       // Azure Blob base for product/article images. The API returns bare filenames
       // (legacy schema); pages prepend this exactly as legacy ViewBag.BlobUrl did
       // (`<blob url>/<container>/`). Override per-env via NUXT_PUBLIC_BLOB_URL.
-      blobUrl: process.env.NUXT_PUBLIC_BLOB_URL || 'https://tfoodiesblob.blob.core.windows.net/tfoodies/',
+      blobUrl: process.env.NUXT_PUBLIC_BLOB_URL || 'https://weyprous8ed9.blob.core.windows.net/tfoodies/',
     },
+  },
+
+  // Personalised, auth-gated pages: render client-side only. Their guard reads the member
+  // token from localStorage, which doesn't exist during SSR — server-rendering them would
+  // always redirect a logged-in user to /Member/Login on reload. Not indexed anyway (see
+  // sitemap/robots below).
+  routeRules: {
+    '/Member/**': { ssr: false },
   },
 
   // Dynamic content URLs (products / news / recipes / issues / events) are produced at
@@ -68,11 +78,15 @@ export default defineNuxtConfig({
       ],
       script: [
         // Same load order as legacy _Scripts.cshtml; at body close so the DOM exists.
+        // These only *define* jQuery + the visual plugins (slick/owl/bxSlider/slidebars/sticky…),
+        // they don't touch app DOM, so they're safe to load eagerly.
         { src: '/scripts/vendor.js', tagPosition: 'bodyClose' },
         { src: '/scripts/plugins.js', tagPosition: 'bodyClose' },
         { src: '/scripts/jquery.validate.min.js', tagPosition: 'bodyClose' },
         { src: '/scripts/jquery-confirm.min.js', tagPosition: 'bodyClose' },
-        { src: '/scripts/main.js', tagPosition: 'bodyClose' },
+        // NOTE: main.js (the plugin *initialisation*) is intentionally NOT loaded here — it runs
+        // `$(document).ready` which races Vue hydration and wipes the carousels. It is injected
+        // after hydration by plugins/legacy-effects.client.ts instead.
       ],
     },
   },

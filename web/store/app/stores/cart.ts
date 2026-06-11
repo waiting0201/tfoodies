@@ -8,6 +8,9 @@ export interface CartItem {
   title: string
   unitPrice: number
   quantity: number
+  // Optional display metadata (used by the header cart dropdown); safe to omit.
+  photo?: string
+  capacity?: string
 }
 
 const STORAGE_KEY = 'tfoodies.cart'
@@ -15,6 +18,11 @@ const STORAGE_KEY = 'tfoodies.cart'
 export const useCartStore = defineStore('cart', {
   state: () => ({
     items: [] as CartItem[],
+    // Increments only on an explicit add() — NOT on hydrate()/updateQty(). Lets the header
+    // react to "user just added something" (pulse badge + slide the mini-cart out) without
+    // firing on every page load that restores a non-empty cart from localStorage. In-memory
+    // only (never persisted).
+    addPulse: 0,
   }),
   getters: {
     count: (s) => s.items.reduce((n, i) => n + i.quantity, 0),
@@ -34,6 +42,7 @@ export const useCartStore = defineStore('cart', {
       const existing = this.items.find((i) => i.productId === item.productId)
       if (existing) existing.quantity += item.quantity
       else this.items.push({ ...item })
+      this.addPulse++
       this.persist()
     },
     updateQty(productId: string, quantity: number) {

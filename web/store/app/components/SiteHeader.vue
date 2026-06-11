@@ -3,22 +3,39 @@
 // DOM structure & class names are preserved 1:1 so the legacy main.css renders identically.
 // Only ~/content/* → /content/* and @Url.Action(...) → preserved route paths.
 interface Brand { title: string }
-interface CartLine { name: string; capacity?: string; photo?: string; quantity: number }
 
 withDefaults(defineProps<{
   brands?: Brand[]
-  cartContents?: CartLine[]
-  cartItems?: number
-  addActive?: string
-  blobUrl?: string
-  isLoggedIn?: boolean
 }>(), {
   brands: () => [],
-  cartContents: () => [],
-  cartItems: 0,
-  addActive: '',
-  blobUrl: '',
-  isLoggedIn: false,
+})
+
+// Cart badge + dropdown are driven by the shared pinia store (the old `cartContents`/
+// `cartItems` props were never passed, so the header always showed 0).
+const cart = useCartStore()
+const blobUrl = String(useRuntimeConfig().public.blobUrl)
+onMounted(() => cart.hydrate())
+
+// Login state from the member-auth store (hydrated app-wide by plugins/auth.client.ts).
+const memberAuth = useMemberAuthStore()
+const isLoggedIn = computed(() => memberAuth.isAuthenticated)
+function logout() {
+  memberAuth.logout()
+  navigateTo('/Member/Login')
+}
+
+// On an actual add-to-cart (addPulse — not hydrate), briefly slide the mini-cart open so the
+// user sees what was added, then auto-close. (Hover-to-open is disabled in the legacy-effects
+// plugin per request; the badge itself is the persistent indicator — see template.)
+let closeTimer: ReturnType<typeof setTimeout> | undefined
+watch(() => cart.addPulse, (now, prev) => {
+  if (now <= (prev ?? 0)) return
+  const $ = (window as unknown as { $?: any }).$
+  if (!$ || !$.fn) return
+  const el = $('.shopping-cart .cart-content')
+  el.stop(true, true).slideDown('fast')
+  clearTimeout(closeTimer)
+  closeTimer = setTimeout(() => el.stop(true, true).slideUp('fast'), 2500)
 })
 </script>
 
@@ -36,30 +53,32 @@ withDefaults(defineProps<{
         <div class="login-wrap">
           <div class="member">
             <template v-if="isLoggedIn">
-              <a href="/MemberMs/Orders" class="member-icon"></a>
-              <a href="/MemberMs/Logout" class="logout">
+              <a href="/Member/Center" class="member-icon"></a>
+              <a href="javascript:;" class="logout" @click.prevent="logout">
                 <div class="small">登出</div>
               </a>
             </template>
             <template v-else>
-              <a href="/Login" class="member-icon" rel="nofollow"></a>
-              <a href="/Login" class="logout" rel="nofollow">
+              <a href="/Member/Login" class="member-icon" rel="nofollow"></a>
+              <a href="/Member/Login" class="logout" rel="nofollow">
                 <div class="small">登入</div>
               </a>
             </template>
           </div>
           <div class="shopping-cart">
-            <a href="javascript:;" class="cart-icon"></a>
-            <div class="addnumber" :class="addActive">
-              <div class="addsmall">{{ cartItems }}</div>
+            <a href="/Cart" class="cart-icon"></a>
+            <!-- 購物車有商品時才顯示 badge（.add-active 讓 .addnumber 由 display:none 變 block）-->
+            <div class="addnumber" :class="{ 'add-active': cart.count > 0 }">
+              <div class="addsmall">{{ cart.count }}</div>
             </div>
             <div class="cart-content">
               <!-- <div class="triangle"></div> -->
               <div class="buy-item-wrap">
-                <div v-for="(item, i) in cartContents" :key="i" class="buy-item">
+                <p v-if="cart.items.length === 0" class="descript centered">購物車是空的</p>
+                <div v-for="item in cart.items" :key="item.productId" class="buy-item">
                   <div class="buy-pic"><img :src="blobUrl + (item.photo ?? '')"></div>
                   <div class="buy-info">
-                    <p>{{ item.name + (item.capacity ?? '') }}</p>
+                    <p>{{ item.title + (item.capacity ?? '') }}</p>
                     <div class="amount descript">
                       <div class="numb">數量:</div>
                       <div class="quantity-wrap">
@@ -71,7 +90,7 @@ withDefaults(defineProps<{
                   </div>
                 </div>
               </div>
-              <div class="centered"><a href="javascript:;" class="btn basic paycheck" rel="nofollow">前往結帳</a></div>
+              <div class="centered"><a :href="cart.items.length ? '/Checkout' : '/Cart'" class="btn basic paycheck" rel="nofollow">前往結帳</a></div>
             </div>
           </div>
         </div>

@@ -187,7 +187,7 @@ var storePlaceholderImage = 'mcr.microsoft.com/azuredocs/containerapps-helloworl
 // 圖檔對外基底：與後端 / admin 共用同一組 blobBaseUrl + blobContainerName 參數
 // （皆源自 GitHub 變數 BLOB_BASE_URL / BLOB_CONTAINER）。store 需要「合併且結尾帶 /」的形狀
 // （Nuxt 直接以 blobUrl + 檔名 組圖），故在此組合。blobBaseUrl 為空時退回正式帳號，避免 bootstrap 部署壞掉。
-var storeBlobPublicBase = empty(blobBaseUrl) ? 'https://tfoodiesblob.blob.core.windows.net' : blobBaseUrl
+var storeBlobPublicBase = empty(blobBaseUrl) ? 'https://weyprous8ed9.blob.core.windows.net' : blobBaseUrl
 var storeBlobPublicUrl = '${storeBlobPublicBase}/${blobContainerName}/'
 
 resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {

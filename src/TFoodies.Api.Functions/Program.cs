@@ -61,6 +61,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<StoreController>();
 builder.Services.AddScoped<AuthController>();
 builder.Services.AddScoped<StoreOrderController>();
+builder.Services.AddScoped<StoreZipcodeController>();
 builder.Services.AddScoped<MemberController>();
 builder.Services.AddScoped<OrderAdminController>();
 builder.Services.AddScoped<ProductAdminController>();

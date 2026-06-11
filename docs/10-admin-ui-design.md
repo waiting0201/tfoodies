@@ -45,6 +45,27 @@
 
 ---
 
+## ⚠️ 黃金規則：圖片一律用 `toBlobUrl()`
+
+**API 回傳的圖片欄位是裸檔名**（如 `20250609123456.jpg`），不是完整 URL。直接綁 `:src="x.photo"` 圖片必破（缺 blob 帳號 + container 前綴）。
+
+```html
+<!-- ✅ 正確 -->
+<img v-if="x.photo" :src="toBlobUrl(x.photo)" />
+
+<!-- ❌ 錯誤（漏了 blob base + container，圖片裂） -->
+<img v-if="x.photo" :src="x.photo" />
+```
+
+- helper：[`src/lib/blobUrl.ts`](../web/admin/src/lib/blobUrl.ts) `toBlobUrl(photo)` → `VITE_BLOB_URL/VITE_BLOB_CONTAINER/photo`；已處理 null 與「本身已是 http(s) 完整網址」。
+- **凡是 `:src` 綁後端來的圖片欄位（`photo` / `photoUrl` / `logo` / `banner` …），一律包 `toBlobUrl()`**。清單頁縮圖、表單預覽、下拉選項縮圖都算（過去 List 頁與訂單頁就是漏在這裡）。
+- 例外：本地 `data:` URL、靜態 asset、CSS 漸層 `background-image` 不需要。
+- 環境變數來源見 [docs/08 §7.1](08-new-architecture.md#71-環境變數)；production 由共通 GitHub 變數 `BLOB_BASE_URL` / `BLOB_CONTAINER` 驅動，**不要在元件或 .env 寫死帳號**。
+
+> 對照：store（Nuxt）前台用 `useRuntimeConfig().public.blobUrl`（合併形狀，結尾帶 `/`），不是 `toBlobUrl()`。
+
+---
+
 ## 表單類型決策
 
 | 情境 | 做法 | 參照 |
