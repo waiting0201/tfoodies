@@ -10,10 +10,13 @@ namespace TFoodies.Infrastructure.Auth;
 /// <summary>
 /// 登入驗證 + refresh token 換發。Scoped（依賴 IDbConnectionFactory Singleton）。
 ///
-/// 密碼策略（hash-on-login）：
+/// 密碼策略：
 ///   1. 先嘗試以 PBKDF2 驗證（新格式 "pbkdf2:迭代:salt:hash"）。
 ///   2. 若格式不符，判斷為明文舊密碼，直接比對。
-///   3. 成功後自動升級：以 PBKDF2 替換明文密碼，完成向前遷移。
+///
+/// ⚠️ 不做 hash-on-login 自動升級：Admins.Password / Members.password 皆為 nvarchar(20)，
+/// 且 DB schema 唯讀（禁止 DDL），無法容納 ~83 字元的 PBKDF2 雜湊。先前寫回雜湊會觸發
+/// SQL「String or binary data would be truncated」例外，導致登入回傳 HTTP 500。
 ///
 /// JWT 主體格式："role:id"，例如 "member:3fa85f64-..."  /  "admin:888"
 /// </summary>
@@ -67,9 +70,6 @@ public sealed class AuthService : IAuthService
 
         if (!VerifyPassword(password, row.password)) return null;
 
-        await UpgradePasswordIfNeeded(conn, "UPDATE Members SET password=@h WHERE memberid=@id",
-            row.password, password, row.memberid.ToString());
-
         var subject = $"member:{row.memberid}";
         var claims = BuildClaims("member", row.memberid.ToString(), row.name);
         return IssueTokenPair(subject, claims);
@@ -88,9 +88,6 @@ public sealed class AuthService : IAuthService
         if (row is null) return null;
 
         if (!VerifyPassword(password, row.Password)) return null;
-
-        await UpgradePasswordIfNeeded(conn, "UPDATE Admins SET Password=@h WHERE AdminID=@id",
-            row.Password, password, row.AdminID.ToString());
 
         var subject = $"admin:{row.AdminID}";
         var claims = BuildClaims("admin", row.AdminID.ToString(), row.Username);
@@ -136,14 +133,6 @@ public sealed class AuthService : IAuthService
         return CryptographicOperations.FixedTimeEquals(actual, expected);
     }
 
-    private static string HashPassword(string password)
-    {
-        const int Iterations = 260_000;
-        var salt = RandomNumberGenerator.GetBytes(16);
-        var hash = Pbkdf2Hash(password, salt, Iterations);
-        return $"pbkdf2:{Iterations}:{Convert.ToBase64String(salt)}:{Convert.ToBase64String(hash)}";
-    }
-
     private static byte[] Pbkdf2Hash(string password, byte[] salt, int iterations)
         => Rfc2898DeriveBytes.Pbkdf2(
             Encoding.UTF8.GetBytes(password),
@@ -151,15 +140,6 @@ public sealed class AuthService : IAuthService
             iterations,
             HashAlgorithmName.SHA256,
             32);
-
-    private static async Task UpgradePasswordIfNeeded(
-        System.Data.IDbConnection conn, string updateSql,
-        string currentStored, string plaintext, string id)
-    {
-        if (currentStored.StartsWith("pbkdf2:", StringComparison.Ordinal)) return;
-        var hashed = HashPassword(plaintext);
-        await conn.ExecuteAsync(updateSql, new { h = hashed, id });
-    }
 
     // ── Row types ──────────────────────────────────────────────────────────────────
 

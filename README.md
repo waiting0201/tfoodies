@@ -84,8 +84,14 @@ cd web && npm install
 
 ### 終端機 A — Azurite（Azure Storage 模擬器）
 
+`func start` 啟動時需要 `AzureWebJobsStorage`（`local.settings.json` 設為 `UseDevelopmentStorage=true`），因此**必須先跑 Azurite，再跑終端機 B 的 `func start`**。
+
 ```bash
-azurite --silent --location /tmp/azurite
+# 首次先安裝（若環境需求未裝）：npm i -g azurite
+# --location 指定資料持久化目錄；用固定路徑可跨重開機保留，/tmp 會在重開機後清空
+azurite --silent --location ~/.azurite
+
+# 監聽 Blob 10000 / Queue 10001 / Table 10002
 ```
 
 ### 終端機 B — API（Azure Functions）
