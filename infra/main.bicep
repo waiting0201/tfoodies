@@ -1,6 +1,8 @@
 // TFoodies infra — Azure Functions (Flex Consumption) + Container App (前台 Nuxt SSR) +
 // Static Web App (後台 admin SPA)。
-// NOTE: Azure SQL Database 不在此建立，連線字串透過 Function App 的 App Settings 手動設定。
+// NOTE: Azure SQL Database 不在此建立；其連線字串與其他必需 App Settings（Jwt/AzureBlob/Sms…）
+//       由本範本的參數帶入（秘密走 @secure() 參數 + GitHub Secrets），不要再到 Portal 手動設定，
+//       否則下次部署會被整包覆蓋而消失。
 //
 // 前台 store 已從 Static Web App 改為 Container App（完整 SSR for SEO）。Bicep 只建立資源並
 // 帶 placeholder image；實際映像由 .github/workflows/store.yml 以 `az acr build` + `az
@@ -12,6 +14,44 @@ targetScope = 'resourceGroup'
 param env string = 'dev'
 
 param location string = resourceGroup().location
+
+// ---------- Function App 設定（由 infra.yml 從 GitHub Secrets/Variables 傳入） ----------
+// ⚠️ Microsoft.Web/sites 的 appSettings 是「整包覆蓋」：bicep 沒列的設定，部署當下會被刪除。
+//    因此所有 Function App 必需的 App Settings 都要在此宣告，否則每次 infra 部署都會把
+//    Portal 手動設的值清空（曾導致 JwtTokenService 因 Jwt:Secret 為空而啟動 500）。
+//    秘密以 @secure() 參數帶入，不在範本內留明文。
+
+@secure()
+@description('JWT HMAC 簽章金鑰（≥32 字元）。缺值會導致 API 啟動即 500。')
+param jwtSecret string
+
+@secure()
+@description('Azure SQL（tfoodies）連線字串。')
+param sqlConnectionString string
+
+@secure()
+@description('圖檔 Azure Blob 儲存體連線字串。')
+param blobConnectionString string
+
+@secure()
+@description('Application Insights 連線字串（選填；空字串=不接 telemetry）。')
+param appInsightsConnectionString string = ''
+
+@secure()
+@description('三竹簡訊密碼（選填）。')
+param smsPassword string = ''
+
+param jwtIssuer string = 'tfoodies'
+param jwtAudience string = 'tfoodies'
+param blobContainerName string = 'tfoodies'
+@description('圖檔 Blob 對外基底網址，例如 https://<account>.blob.core.windows.net/tfoodies')
+param blobBaseUrl string = ''
+param smsUsername string = ''
+param smsApiUrl string = 'https://sms.mitake.com.tw/b2c/mtk/SmSend'
+param orderFreightLimit string = '2000'
+param orderFreightAmount string = '120'
+param orderAtmExpiryDays string = '3'
+param orderAtmPrefix string = '1943'
 
 var tags = {
   app: 'tfoodies'
@@ -75,9 +115,29 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       appSettings: [
+        // Functions runtime / 部署（storage 由本範本管理）
         { name: 'AzureWebJobsStorage', value: storageConnectionString }
         { name: 'DEPLOYMENT_STORAGE_CONNECTION_STRING', value: storageConnectionString }
-        // AzureBlob:ConnectionString / ContainerName / BaseUrl 於 Portal 手動設定
+        { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsightsConnectionString }
+        // Auth（缺 Jwt__Secret 會啟動即 500）
+        { name: 'Jwt__Secret', value: jwtSecret }
+        { name: 'Jwt__Issuer', value: jwtIssuer }
+        { name: 'Jwt__Audience', value: jwtAudience }
+        // 資料庫（Dapper + EF Core 共用）
+        { name: 'ConnectionStrings__Tfoodies', value: sqlConnectionString }
+        // 圖檔 Blob
+        { name: 'AzureBlob__ConnectionString', value: blobConnectionString }
+        { name: 'AzureBlob__ContainerName', value: blobContainerName }
+        { name: 'AzureBlob__BaseUrl', value: blobBaseUrl }
+        // 訂單 / 運費 / ATM
+        { name: 'Order__FreightLimit', value: orderFreightLimit }
+        { name: 'Order__FreightAmount', value: orderFreightAmount }
+        { name: 'Order__AtmExpiryDays', value: orderAtmExpiryDays }
+        { name: 'Order__AtmPrefix', value: orderAtmPrefix }
+        // 三竹簡訊
+        { name: 'Sms__Username', value: smsUsername }
+        { name: 'Sms__Password', value: smsPassword }
+        { name: 'Sms__ApiUrl', value: smsApiUrl }
       ]
     }
   }

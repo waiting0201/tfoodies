@@ -38,10 +38,24 @@ jobs:
           az deployment group what-if \
             --resource-group ${{ vars.RESOURCE_GROUP }} \
             --template-file infra/main.bicep \
-            --parameters env=${{ github.event.inputs.env || 'dev' }}
+            --parameters env=${{ github.event.inputs.env || 'dev' }} \
+              jwtSecret='${{ secrets.JWT_SECRET }}' \
+              sqlConnectionString='${{ secrets.SQL_CONNECTION_STRING }}' \
+              blobConnectionString='${{ secrets.BLOB_CONNECTION_STRING }}' \
+              appInsightsConnectionString='${{ secrets.APPINSIGHTS_CONNECTION_STRING }}' \
+              smsPassword='${{ secrets.SMS_PASSWORD }}' \
+              smsUsername='${{ vars.SMS_USERNAME }}' \
+              blobBaseUrl='${{ vars.BLOB_BASE_URL }}'
       - name: Deploy
         run: |
           az deployment group create \
             --resource-group ${{ vars.RESOURCE_GROUP }} \
             --template-file infra/main.bicep \
-            --parameters env=${{ github.event.inputs.env || 'dev' }}
+            --parameters env=${{ github.event.inputs.env || 'dev' }} \
+              jwtSecret='${{ secrets.JWT_SECRET }}' \
+              sqlConnectionString='${{ secrets.SQL_CONNECTION_STRING }}' \
+              blobConnectionString='${{ secrets.BLOB_CONNECTION_STRING }}' \
+              appInsightsConnectionString='${{ secrets.APPINSIGHTS_CONNECTION_STRING }}' \
+              smsPassword='${{ secrets.SMS_PASSWORD }}' \
+              smsUsername='${{ vars.SMS_USERNAME }}' \
+              blobBaseUrl='${{ vars.BLOB_BASE_URL }}'
