@@ -48,10 +48,30 @@ param blobContainerName string = 'tfoodies'
 param blobBaseUrl string = ''
 param smsUsername string = ''
 param smsApiUrl string = 'https://sms.mitake.com.tw/b2c/mtk/SmSend'
+param jwtExpiryMinutes string = '60'
+param jwtRefreshExpiryDays string = '30'
 param orderFreightLimit string = '2000'
 param orderFreightAmount string = '120'
 param orderAtmExpiryDays string = '3'
 param orderAtmPrefix string = '1943'
+
+// FISC 金流（尚未啟用；有正式金鑰時填對應 GitHub Secret/Variable）
+param fiscBaseUrl string = 'https://www.focas.fisc.com.tw/FOCAS_WS/API20/V1/FISCII'
+param fiscMerchantId string = ''
+param fiscTerminalId string = ''
+param fiscAcqBank string = ''
+@secure()
+param fiscVerificationKeyHex string = ''
+@secure()
+param fiscFieldKeyHex string = ''
+
+// ezPay 電子發票（尚未啟用；有正式金鑰時填對應 GitHub Secret/Variable）
+param ezpayBaseUrl string = 'https://inv.ezpay.com.tw/Api'
+param ezpayMerchantId string = ''
+@secure()
+param ezpayHashKey string = ''
+@secure()
+param ezpayHashIV string = ''
 
 var tags = {
   app: 'tfoodies'
@@ -123,6 +143,8 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'Jwt__Secret', value: jwtSecret }
         { name: 'Jwt__Issuer', value: jwtIssuer }
         { name: 'Jwt__Audience', value: jwtAudience }
+        { name: 'Jwt__ExpiryMinutes', value: jwtExpiryMinutes }
+        { name: 'Jwt__RefreshExpiryDays', value: jwtRefreshExpiryDays }
         // 資料庫（Dapper + EF Core 共用）
         { name: 'ConnectionStrings__Tfoodies', value: sqlConnectionString }
         // 圖檔 Blob
@@ -138,6 +160,18 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'Sms__Username', value: smsUsername }
         { name: 'Sms__Password', value: smsPassword }
         { name: 'Sms__ApiUrl', value: smsApiUrl }
+        // FISC 金流
+        { name: 'Fisc__BaseUrl', value: fiscBaseUrl }
+        { name: 'Fisc__MerchantId', value: fiscMerchantId }
+        { name: 'Fisc__TerminalId', value: fiscTerminalId }
+        { name: 'Fisc__AcqBank', value: fiscAcqBank }
+        { name: 'Fisc__VerificationKeyHex', value: fiscVerificationKeyHex }
+        { name: 'Fisc__FieldKeyHex', value: fiscFieldKeyHex }
+        // ezPay 電子發票
+        { name: 'EzPay__BaseUrl', value: ezpayBaseUrl }
+        { name: 'EzPay__MerchantId', value: ezpayMerchantId }
+        { name: 'EzPay__HashKey', value: ezpayHashKey }
+        { name: 'EzPay__HashIV', value: ezpayHashIV }
       ]
     }
   }
