@@ -2,6 +2,7 @@
 import { ref, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiFetch, ApiError } from '../../lib/apiClient'
+import { toBlobUrl } from '../../lib/blobUrl'
 
 const router = useRouter()
 
@@ -333,7 +334,7 @@ async function handleSubmit() {
                     @click="addProduct(p)"
                   >
                     <div class="ocreate__dropdown-row">
-                      <img v-if="p.photo" :src="p.photo" class="ocreate__dropdown-thumb" alt="" @error="($event.target as HTMLImageElement).style.display='none'" />
+                      <img v-if="p.photo" :src="toBlobUrl(p.photo)" class="ocreate__dropdown-thumb" alt="" @error="($event.target as HTMLImageElement).style.display='none'" />
                       <div class="ocreate__dropdown-text">
                         <span class="ocreate__dropdown-name">{{ p.title }}</span>
                         <span class="ocreate__dropdown-sub">{{ p.productNum }} · NT$ {{ p.price.toLocaleString() }}</span>
@@ -355,7 +356,7 @@ async function handleSubmit() {
               </div>
               <div v-for="(item, idx) in orderItems" :key="item.productId" class="ocreate__item-row">
                 <span class="ocreate__col-thumb">
-                  <img v-if="item.photo" :src="item.photo" class="ocreate__item-thumb" alt="" @error="($event.target as HTMLImageElement).style.display='none'" />
+                  <img v-if="item.photo" :src="toBlobUrl(item.photo)" class="ocreate__item-thumb" alt="" @error="($event.target as HTMLImageElement).style.display='none'" />
                 </span>
                 <span class="ocreate__col-name">
                   <span class="ocreate__item-name">{{ item.productName }}</span>

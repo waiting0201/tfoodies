@@ -425,11 +425,23 @@ TFoodies.Infrastructure            │
 | 後端（`local.settings.json` / Azure App Settings） | `AzureBlob__ConnectionString` | Storage 連線字串 | `UseDevelopmentStorage=true` |
 | 後端 | `AzureBlob__ContainerName` | Container 名稱（對應舊系統 `azure.blob.container`） | `tfoodies` |
 | 後端 | `AzureBlob__BaseUrl` | Storage account URL，**不含 container**（對應舊系統 `azure.blob.url`） | `http://127.0.0.1:10000/devstoreaccount1` |
-| 前端（`.env` / `.env.production`） | `VITE_BLOB_URL` | 同後端 `AzureBlob__BaseUrl` | `http://127.0.0.1:10000/devstoreaccount1` |
-| 前端 | `VITE_BLOB_CONTAINER` | 同後端 `AzureBlob__ContainerName` | `tfoodies` |
+| Admin 前端（`.env` / `.env.production`） | `VITE_BLOB_URL` | 同後端 `AzureBlob__BaseUrl` | `http://127.0.0.1:10000/devstoreaccount1` |
+| Admin 前端 | `VITE_BLOB_CONTAINER` | 同後端 `AzureBlob__ContainerName` | `tfoodies` |
+| Store 前端（Container App env / `nuxt.config`） | `NUXT_PUBLIC_BLOB_URL` | **合併且結尾帶 `/`**：`BaseUrl/Container/`（Nuxt 直接 blobUrl+檔名） | `http://127.0.0.1:10000/devstoreaccount1/tfoodies/` |
 
 完整圖片 URL = `BaseUrl` + `/` + `ContainerName` + `/` + `fileName`  
 等同舊系統：`azure.blob.url` + `"/"` + `azure.blob.container` + `"/"` + `entity.photo`
+
+#### 部署來源（共通 GitHub 變數，單一真實來源）
+
+production 三邊全部由**同兩個 GitHub Actions 變數**驅動，避免各自寫死漂移：
+
+| GitHub 變數 | 流向後端 | 流向 Admin | 流向 Store |
+|---|---|---|---|
+| `BLOB_BASE_URL` | `infra.yml` → bicep `blobBaseUrl` → `AzureBlob__BaseUrl` | `admin.yml` build env → `VITE_BLOB_URL` | bicep 組 `NUXT_PUBLIC_BLOB_URL = base/container/` |
+| `BLOB_CONTAINER` | `infra.yml` → bicep `blobContainerName` → `AzureBlob__ContainerName`（未設則 `tfoodies`） | `admin.yml` → `VITE_BLOB_CONTAINER`（未設則 `tfoodies`） | 同上組合 |
+
+> framework 層的 env 名（`AzureBlob__*` / `VITE_*` / `NUXT_PUBLIC_*`）因各框架前綴要求無法統一，但共通的「真實來源」是 GitHub 變數層的 `BLOB_BASE_URL` / `BLOB_CONTAINER`。本地開發各自走 `local.settings.json` / `.env` 預設值。
 
 ### 7.2 後端：上傳 API
 

@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { apiFetch } from '../../lib/apiClient'
+import { toBlobUrl } from '../../lib/blobUrl'
 
 // ─── types ────────────────────────────────────────────────────────────────────
 interface Banner { bannerId: string; title: string; subtitle?: string; url?: string; photoUrl?: string; style?: number; sort: number }
@@ -189,7 +190,7 @@ function goEdit(type: CmsTab, id: string) {
             <tr v-for="b in banners" :key="b.bannerId">
               <td>{{ b.sort }}</td>
               <td>
-                <img v-if="b.photoUrl" :src="b.photoUrl" class="thumb" alt="" />
+                <img v-if="b.photoUrl" :src="toBlobUrl(b.photoUrl)" class="thumb" alt="" />
                 <span v-else class="no-photo">—</span>
               </td>
               <td>{{ b.title }}</td>
@@ -248,7 +249,7 @@ function goEdit(type: CmsTab, id: string) {
             <tr v-for="r in recipeItems" :key="r.recipeId">
               <td>{{ r.sort ?? '—' }}</td>
               <td>
-                <img v-if="r.photo" :src="r.photo" class="thumb" alt="" />
+                <img v-if="r.photo" :src="toBlobUrl(r.photo)" class="thumb" alt="" />
                 <span v-else class="no-photo">—</span>
               </td>
               <td>{{ r.title }}</td>
@@ -276,7 +277,7 @@ function goEdit(type: CmsTab, id: string) {
           <tbody>
             <tr v-for="i in issueItems" :key="i.issueId">
               <td>
-                <img v-if="i.photo" :src="i.photo" class="thumb" alt="" />
+                <img v-if="i.photo" :src="toBlobUrl(i.photo)" class="thumb" alt="" />
                 <span v-else class="no-photo">—</span>
               </td>
               <td>{{ i.title }}</td>

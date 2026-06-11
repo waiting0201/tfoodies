@@ -2,6 +2,7 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { apiFetch, ApiError } from '../../lib/apiClient'
+import { toBlobUrl } from '../../lib/blobUrl'
 
 const route = useRoute()
 const router = useRouter()
@@ -317,7 +318,7 @@ onMounted(load)
                     @click="addProduct(p)"
                   >
                     <div class="oedit__dropdown-row">
-                      <img v-if="p.photo" :src="p.photo" class="oedit__dropdown-thumb" alt="" @error="($event.target as HTMLImageElement).style.display='none'" />
+                      <img v-if="p.photo" :src="toBlobUrl(p.photo)" class="oedit__dropdown-thumb" alt="" @error="($event.target as HTMLImageElement).style.display='none'" />
                       <div class="oedit__dropdown-text">
                         <span class="oedit__dropdown-name">{{ p.title }}</span>
                         <span class="oedit__dropdown-sub">{{ p.productNum }} · NT$ {{ p.price.toLocaleString() }}</span>
@@ -340,7 +341,7 @@ onMounted(load)
                 </div>
                 <div v-for="(item, idx) in items" :key="idx" class="oedit__item-row">
                   <span class="oedit__col-thumb">
-                    <img v-if="item.photo" :src="item.photo" class="oedit__item-thumb" alt="" @error="($event.target as HTMLImageElement).style.display='none'" />
+                    <img v-if="item.photo" :src="toBlobUrl(item.photo)" class="oedit__item-thumb" alt="" @error="($event.target as HTMLImageElement).style.display='none'" />
                   </span>
                   <span class="oedit__col-name">
                     <span class="oedit__item-name">{{ item.productName }}</span>

@@ -184,6 +184,12 @@ param siteUrl string = 'https://www.tfoodies.com'
 // CI 會以實際映像覆蓋；首次建立用公開 placeholder 以避免 image-not-found。
 var storePlaceholderImage = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 
+// 圖檔對外基底：與後端 / admin 共用同一組 blobBaseUrl + blobContainerName 參數
+// （皆源自 GitHub 變數 BLOB_BASE_URL / BLOB_CONTAINER）。store 需要「合併且結尾帶 /」的形狀
+// （Nuxt 直接以 blobUrl + 檔名 組圖），故在此組合。blobBaseUrl 為空時退回正式帳號，避免 bootstrap 部署壞掉。
+var storeBlobPublicBase = empty(blobBaseUrl) ? 'https://tfoodiesblob.blob.core.windows.net' : blobBaseUrl
+var storeBlobPublicUrl = '${storeBlobPublicBase}/${blobContainerName}/'
+
 resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
   name: toLower('tfoodiesacr${env}${take(suffix, 8)}')
   location: location
@@ -239,6 +245,7 @@ resource storeApp 'Microsoft.App/containerApps@2024-03-01' = {
           env: [
             { name: 'NUXT_PUBLIC_API_BASE', value: 'https://${functionApp.properties.defaultHostName}/api' }
             { name: 'NUXT_PUBLIC_SITE_URL', value: siteUrl }
+            { name: 'NUXT_PUBLIC_BLOB_URL', value: storeBlobPublicUrl }
           ]
         }
       ]

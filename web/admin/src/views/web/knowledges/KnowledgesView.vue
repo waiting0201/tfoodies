@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiFetch } from '../../../lib/apiClient'
+import { toBlobUrl } from '../../../lib/blobUrl'
 
 interface Knowledge {
   knowledgeId: string
@@ -96,7 +97,7 @@ onMounted(load)
             <tr v-for="k in items" :key="k.knowledgeId" class="data-table__row">
               <td>{{ k.sort }}</td>
               <td>
-                <img v-if="k.photo" :src="k.photo" :alt="k.question" class="thumb" />
+                <img v-if="k.photo" :src="toBlobUrl(k.photo)" :alt="k.question" class="thumb" />
                 <span v-else class="text-muted">—</span>
               </td>
               <td>{{ k.question }}</td>
