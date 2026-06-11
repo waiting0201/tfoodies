@@ -49,21 +49,21 @@ export default defineSitemapEventHandler(async () => {
     }
   }
 
-  // Products + product-type listings (non-paginated single response).
+  // Products + product-type listings (non-paginated single response, camelCase DTOs).
   const products = await safe(
-    () => $fetch<{ products: { title: string }[]; producttypes: { title: string }[] }>(
+    () => $fetch<{ products: { title: string }[]; productTypes: { title: string }[] }>(
       `${apiBase}/store/products`,
     ),
-    { products: [], producttypes: [] },
+    { products: [], productTypes: [] },
   )
-  for (const t of products.producttypes) urls.push({ loc: `/Products/${encodeURIComponent(t.title)}` })
+  for (const t of products.productTypes) urls.push({ loc: `/Products/${encodeURIComponent(t.title)}` })
   for (const p of products.products) urls.push({ loc: `/Product/${toSlug(p.title)}` })
 
   await Promise.all([
-    collect<{ newid: string }>('/store/news', (n) => `/NewsDetail/${n.newid}/1`),
-    collect<{ recipeid: string }>('/store/recipes', (r) => `/Recipe/${r.recipeid}/1`),
+    collect<{ newId: string }>('/store/news', (n) => `/NewsDetail/${n.newId}/1`),
+    collect<{ recipeId: string }>('/store/recipes', (r) => `/Recipe/${r.recipeId}/1`),
     collect<{ title: string }>('/store/issues', (i) => `/Issue/${toSlug(i.title)}/1`),
-    collect<{ eventid: string }>('/store/events', (e) => `/Events/${e.eventid}`),
+    collect<{ eventId: string }>('/store/events', (e) => `/Events/${e.eventId}`),
   ])
 
   return urls

@@ -96,10 +96,11 @@ public sealed class AuthService : IAuthService
 
     // ── Token helpers ──────────────────────────────────────────────────────────────
 
-    private static IEnumerable<Claim> BuildClaims(string role, string id, string name) =>
+    private static IEnumerable<Claim> BuildClaims(string role, string id, string? name) =>
     [
         new(ClaimTypes.NameIdentifier, id),
-        new(ClaimTypes.Name, name),
+        // Claim 的 value 不可為 null（否則丟 ArgumentNullException → 非預期狀態碼）；NULL 名稱以空字串代替。
+        new(ClaimTypes.Name, name ?? string.Empty),
         new(ClaimTypes.Role, role),
     ];
 
@@ -113,8 +114,12 @@ public sealed class AuthService : IAuthService
 
     // ── Password helpers ───────────────────────────────────────────────────────────
 
-    private static bool VerifyPassword(string input, string stored)
+    private static bool VerifyPassword(string input, string? stored)
     {
+        // DB 欄位可能為 NULL/空（舊系統明文密碼欄位有空值）；視為驗證失敗（回 401），
+        // 切勿讓 NULL 觸發 NullReferenceException 而回 500。
+        if (string.IsNullOrEmpty(stored)) return false;
+
         if (stored.StartsWith("pbkdf2:", StringComparison.Ordinal))
             return VerifyPbkdf2(input, stored);
         // 明文比對
@@ -127,10 +132,18 @@ public sealed class AuthService : IAuthService
         var parts = stored.Split(':');
         if (parts.Length != 4) return false;
         if (!int.TryParse(parts[1], out var iter)) return false;
-        var salt = Convert.FromBase64String(parts[2]);
-        var expected = Convert.FromBase64String(parts[3]);
-        var actual = Pbkdf2Hash(input, salt, iter);
-        return CryptographicOperations.FixedTimeEquals(actual, expected);
+        try
+        {
+            // 損毀的 base64（例如曾被截斷的雜湊）會丟 FormatException；視為驗證失敗而非 500。
+            var salt = Convert.FromBase64String(parts[2]);
+            var expected = Convert.FromBase64String(parts[3]);
+            var actual = Pbkdf2Hash(input, salt, iter);
+            return CryptographicOperations.FixedTimeEquals(actual, expected);
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
     }
 
     private static byte[] Pbkdf2Hash(string password, byte[] salt, int iterations)

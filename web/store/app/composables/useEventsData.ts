@@ -1,4 +1,4 @@
-// Events listing — port of MainMsController.Events (ViewBag.Events = IPagedList<Events>).
+// Events listing — GET /store/events?p= (PaginatedResponse<EventListItem>).
 export interface EventItem {
   eventid: string; title: string; photo?: string; summary?: string
   eventdate: string
@@ -10,16 +10,28 @@ export interface EventsData {
   totalPages: number
 }
 
+interface ApiEventListItem { eventId: string; title: string; summary: string; photo: string; eventDate: string }
+interface ApiPaged<T> { items: T[]; page: number; totalPages: number }
+
 export function useEventsData(p: number = 1) {
-  const config = useRuntimeConfig()
-  return useFetch<EventsData>(`${config.public.apiBase}/store/events`, {
+  const blobUrl = useRuntimeConfig().public.blobUrl as string
+  return useFetch(`${useRuntimeConfig().public.apiBase}/store/events`, {
     key: `events:${p}`,
     query: { p },
-    default: (): EventsData => ({ blobUrl: '', items: [], currentPage: p, totalPages: 1 }),
+    default: (): EventsData => ({ blobUrl, items: [], currentPage: p, totalPages: 1 }),
+    transform: (api: ApiPaged<ApiEventListItem>): EventsData => ({
+      blobUrl,
+      items: api.items.map(e => ({
+        eventid: e.eventId, title: e.title, photo: e.photo,
+        summary: e.summary, eventdate: ymd(e.eventDate),
+      })),
+      currentPage: api.page,
+      totalPages: api.totalPages,
+    }),
   })
 }
 
-// Event detail — port of MainMsController.EventsDetail (Model = Events + Eventphotos).
+// Event detail — GET /store/events/detail?eventid= (EventDetail + eventPhotos).
 export interface EventPhoto { sort: number; photo: string }
 export interface EventDetail {
   eventid: string; title: string; intro?: string
@@ -32,11 +44,29 @@ export interface EventDetailData {
   pageNumber: number
 }
 
+interface ApiEventDetail {
+  eventId: string; title: string; summary: string; intro: string; photo: string
+  keyword?: string | null; description?: string | null; eventDate: string; createDate: string; shortener?: string | null
+  eventPhotos: string[]
+}
+
 export function useEventDetailData(eventid: string, p: number = 1) {
-  const config = useRuntimeConfig()
-  return useFetch<EventDetailData>(`${config.public.apiBase}/store/events/detail`, {
+  const blobUrl = useRuntimeConfig().public.blobUrl as string
+  return useFetch(`${useRuntimeConfig().public.apiBase}/store/events/detail`, {
     key: `event-detail:${eventid}`,
     query: { eventid, p },
-    default: (): EventDetailData => ({ blobUrl: '', item: null, pageNumber: p }),
+    default: (): EventDetailData => ({ blobUrl, item: null, pageNumber: p }),
+    transform: (api: ApiEventDetail): EventDetailData => ({
+      blobUrl,
+      item: {
+        eventid: api.eventId,
+        title: api.title,
+        intro: api.intro,
+        eventdate: ymd(api.eventDate),
+        shortener: api.shortener ?? undefined,
+        photos: mapPhotos(api.eventPhotos),
+      },
+      pageNumber: p,
+    }),
   })
 }

@@ -34,6 +34,10 @@ export default defineNuxtConfig({
     public: {
       apiBase: 'http://localhost:7071/api',
       siteUrl,
+      // Azure Blob base for product/article images. The API returns bare filenames
+      // (legacy schema); pages prepend this exactly as legacy ViewBag.BlobUrl did
+      // (`<blob url>/<container>/`). Override per-env via NUXT_PUBLIC_BLOB_URL.
+      blobUrl: process.env.NUXT_PUBLIC_BLOB_URL || 'https://tfoodiesblob.blob.core.windows.net/tfoodies/',
     },
   },
 

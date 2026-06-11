@@ -2,7 +2,7 @@
 
 > 進度追蹤單。每完成一個增量就更新此檔。計畫全文：`/Users/tim/.claude/plans/reference-old-reference-card-woolly-bear.md`
 > 舊系統（唯讀參考）：`reference/old/`　·　正式站：https://www.tfoodies.com
-> 最後更新：2026-06-08（**後台 API ↔ Vue 前端全面接通**：修正 `PaginatedResponse<T>` 結構 + 參數順序 bug、加全域 camelCase JSON 政策、修正 6 個 Controller 列表端點的屬性命名；後台 SPA 所有分頁列表現可正確接收 API 資料）
+> 最後更新：2026-06-11（**前台 store API ↔ Nuxt 全面接通並實機驗證**：12 個內容 composable 改為 transform API camelCase→legacy view-model（blobUrl 注入 + yyyy-MM-dd 日期）；後端補齊舊系統像素級缺漏資料（product.capacity/isDisabled/sort、recipe.v、product-detail 關聯食譜+品牌 intro/storybgclass/isdisplay、recipe-detail 關聯商品、issue-detail 關聯商品/食譜/others、news-detail others、producttypes 分類頁、brand productCount→hasMore）；修正 store 4 個分頁端點 `PaginatedResponse.Create` 參數順序 bug；blobUrl 進 runtimeConfig；sitemap server route 改 camelCase。`func start` 對真實 DB 驗證全 12 端點皆回正確資料）
 
 ## 圖例
 ✅ 完成並驗證　🟡 進行中　⬜ 未開始　⛔ 被外部相依卡住
@@ -117,6 +117,19 @@ TFOODIES_CONNSTRING='Server=...;Database=tfoodies;User Id=...;Password=...;Trust
 | `IJwtTokenService` / `JwtTokenService`（HS256 + in-memory refresh token） | ✅ | Singleton；refresh token rotate |
 | `IAuthService` / `AuthService`（member/admin 登入 + PBKDF2 hash-on-login + 移除 itadmin 後門） | ✅ | 自動升級明文密碼 |
 | `AuthController`（POST /auth/login + /auth/refresh） | ✅ | |
+
+## Phase 2.3.1 — 前台 store API ↔ Nuxt 接通（完成並實機驗證）
+
+> 策略：後端 API 維持乾淨 camelCase，前台在 **composable transform** 內映射成 legacy view-model（欄位名 + blobUrl + `yyyy-MM-dd` 日期）；頁面與 `ProductCard` 完全不動（像素級保真）。共用 `app/utils/storeMap.ts`（`mapProduct`/`ymd`/`mapPhotos`/`mapRecipeRef`）。
+
+| 項目 | 狀態 | 備註 |
+|---|---|---|
+| 12 個內容 composable 改 transform 接 API | ✅ | home/products/productDetail/brand/news(+detail)/recipes(+detail)/issues(+detail)/events(+detail) |
+| 後端補齊像素級缺漏資料 | ✅ | `ProductListItem` 加 capacity/isDisabled/sort；`RecipeListItem` 加 v；ProductDetail 加關聯食譜（Recipeproducts）+ 品牌 intro/storybgclass/isdisplay；RecipeDetail 加關聯商品；IssueDetail 加關聯商品/食譜/others；NewsDetail 加 others；Products 端點改回 `{productTypes,currentType,products}`；BrandDetail 加 productCount→hasMore |
+| store 分頁端點 `PaginatedResponse.Create` 參數順序 bug | ✅ | 4 處 `(items,page,pageSize,total)`→`(items,total,page,pageSize)`；實測 news total=28/totalPages=3 |
+| blobUrl 進 `runtimeConfig.public`（`NUXT_PUBLIC_BLOB_URL` 可覆寫） | ✅ | 預設 `https://tfoodiesblob.blob.core.windows.net/tfoodies/`（同舊 ViewBag.BlobUrl） |
+| sitemap server route 改 camelCase 欄位 | ✅ | `__sitemap-urls.ts`：productTypes/newId/recipeId/eventId |
+| `func start` 對真實 DB 實機驗證 12 端點 | ✅ | 全回正確資料；junction（Recipeproducts/Issueproducts/Issuerecipes）+ `DECLARE @iid` issue 查詢驗證通過 |
 
 ## Phase 3 — 核心服務（大部分完成）
 

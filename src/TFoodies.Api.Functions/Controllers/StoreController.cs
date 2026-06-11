@@ -24,11 +24,13 @@ public sealed class StoreController
     }
 
     // GET /store/products[?producttypetitle=]
+    // Returns { productTypes, currentType, products } so the listing page can render the
+    // type tabs + the current type's SEO copy alongside the products.
     public async Task<IActionResult> GetProducts(RouteContext ctx)
     {
         var typeTitle = ctx.Request.Query["producttypetitle"].ToString();
-        var items = await _store.GetProductsAsync(string.IsNullOrWhiteSpace(typeTitle) ? null : typeTitle);
-        return ctx.Ok(items);
+        var page = await _store.GetProductsAsync(string.IsNullOrWhiteSpace(typeTitle) ? null : typeTitle);
+        return ctx.Ok(page);
     }
 
     // GET /store/products/detail?title=
@@ -54,7 +56,7 @@ public sealed class StoreController
     {
         var (page, pageSize) = ParsePaging(ctx);
         var (items, total) = await _store.GetNewsAsync(page, pageSize);
-        return ctx.OkPaged(PaginatedResponse<NewsListItem>.Create(items.ToList(), page, pageSize, total));
+        return ctx.OkPaged(PaginatedResponse<NewsListItem>.Create(items.ToList(), total, page, pageSize));
     }
 
     // GET /store/news/detail?newid=
@@ -72,7 +74,7 @@ public sealed class StoreController
         var (page, pageSize) = ParsePaging(ctx);
         var keyword = ctx.Request.Query["k"].ToString();
         var (items, total) = await _store.GetRecipesAsync(page, pageSize, string.IsNullOrWhiteSpace(keyword) ? null : keyword);
-        return ctx.OkPaged(PaginatedResponse<RecipeListItem>.Create(items.ToList(), page, pageSize, total));
+        return ctx.OkPaged(PaginatedResponse<RecipeListItem>.Create(items.ToList(), total, page, pageSize));
     }
 
     // GET /store/recipes/detail?recipeid=
@@ -90,7 +92,7 @@ public sealed class StoreController
         var (page, pageSize) = ParsePaging(ctx);
         var keyword = ctx.Request.Query["k"].ToString();
         var (items, total) = await _store.GetIssuesAsync(page, pageSize, string.IsNullOrWhiteSpace(keyword) ? null : keyword);
-        return ctx.OkPaged(PaginatedResponse<IssueListItem>.Create(items.ToList(), page, pageSize, total));
+        return ctx.OkPaged(PaginatedResponse<IssueListItem>.Create(items.ToList(), total, page, pageSize));
     }
 
     // GET /store/issues/detail?issuetitle=
@@ -107,7 +109,7 @@ public sealed class StoreController
     {
         var (page, pageSize) = ParsePaging(ctx);
         var (items, total) = await _store.GetEventsAsync(page, pageSize);
-        return ctx.OkPaged(PaginatedResponse<EventListItem>.Create(items.ToList(), page, pageSize, total));
+        return ctx.OkPaged(PaginatedResponse<EventListItem>.Create(items.ToList(), total, page, pageSize));
     }
 
     // GET /store/events/detail?eventid=

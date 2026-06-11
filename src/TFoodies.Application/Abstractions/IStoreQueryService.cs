@@ -3,7 +3,7 @@ namespace TFoodies.Application.Abstractions;
 public interface IStoreQueryService
 {
     Task<HomeData> GetHomeAsync(CancellationToken ct = default);
-    Task<IReadOnlyList<ProductListItem>> GetProductsAsync(string? typeTitle, CancellationToken ct = default);
+    Task<ProductsPage> GetProductsAsync(string? typeTitle, CancellationToken ct = default);
     Task<ProductDetail?> GetProductDetailAsync(string title, CancellationToken ct = default);
     Task<BrandDetail?> GetBrandDetailAsync(string brandTitle, CancellationToken ct = default);
     Task<(IReadOnlyList<NewsListItem> Items, int TotalCount)> GetNewsAsync(int page, int pageSize, CancellationToken ct = default);
@@ -29,9 +29,20 @@ public sealed record HomeData(
 public sealed record BannerItem(Guid BannerId, string? Title, string? Subtitle, string? Url, string Photo, int Style, int Sort);
 
 // ── Products ───────────────────────────────────────────────────────────────────
+// IsDisabled/Sort carried so related-product sections (recipe/issue detail) can
+// filter+order client-side exactly as the legacy views did.
 public sealed record ProductListItem(
     Guid ProductId, string Title, string? EnTitle, int Price, int? FixPrice,
-    string Photo, bool IsHot, bool IsNew, bool IsSet, int Added, string BrandTitle, string TypeTitle, string? Shortener);
+    string Photo, string? Capacity, bool IsHot, bool IsNew, bool IsSet, bool IsDisabled,
+    int Added, int Sort, string BrandTitle, string TypeTitle, string? Shortener);
+
+public sealed record ProductTypeItem(Guid ProductTypeId, string Title, string? Memo, string? Keyword, string? Description);
+
+// Products listing page = the type tabs + the current type (for SEO) + the products.
+public sealed record ProductsPage(
+    IReadOnlyList<ProductTypeItem> ProductTypes,
+    ProductTypeItem? CurrentType,
+    IReadOnlyList<ProductListItem> Products);
 
 public sealed record ProductDetail(
     Guid ProductId, string Title, string? EnTitle, string? Intro, string Memo,
@@ -40,9 +51,12 @@ public sealed record ProductDetail(
     string? Keyword, string? Description, string? Shortener,
     BrandSummary Brand, string TypeTitle,
     IReadOnlyList<string> Photos,
-    IReadOnlyList<ProductListItem> SetProducts);
+    IReadOnlyList<RecipeRef> Recipes);
 
-public sealed record BrandSummary(Guid BrandId, string Title, string? Logo);
+public sealed record BrandSummary(Guid BrandId, string Title, string? Logo, string? Intro, string? StoryBgClass, int IsDisplay);
+
+// Compact recipe reference used by product/issue detail "適合料理 / 查看食譜" sections.
+public sealed record RecipeRef(Guid RecipeId, string Title, string? RPhoto);
 
 // ── Brand ──────────────────────────────────────────────────────────────────────
 public sealed record BrandDetail(
@@ -52,6 +66,7 @@ public sealed record BrandDetail(
     string? StoryBgClass, string? StoryEnTitle, string? StoryChTitle, string? StoryMemo,
     string? PeopleTitle, string? PeopleSlogan, string? PeopleMemo, string? PeoplePhoto,
     string? Keyword, string? Description,
+    int ProductCount,
     IReadOnlyList<string> BrandPhotos,
     IReadOnlyList<ProductListItem> Products);
 
@@ -62,12 +77,15 @@ public sealed record NewsListItem(
 public sealed record NewsDetail(
     Guid NewId, string Title, string? Summary, string Photo, string Intro,
     string? ActivityDate, string? ActivitySchedule, DateTime PublishDate, string? Shortener,
-    IReadOnlyList<string> MediaUrls);
+    IReadOnlyList<string> MediaUrls,
+    IReadOnlyList<NewsRef> Others);
 
-// ── Recipes ───────────────────────────────────────────────────────────────────
+public sealed record NewsRef(Guid NewId, string Title, string Photo);
+
+// ── Recipes ─────────────────────────────────────────────────────────────────────
 public sealed record RecipeListItem(
     Guid RecipeId, string Title, int Duration, int Portion, string Intro,
-    string RPhoto, string Photo, string? Shortener);
+    string RPhoto, string Photo, string? V, string? Shortener);
 
 public sealed record RecipeDetail(
     Guid RecipeId, string Title, int Duration, int Portion, string Intro,
@@ -75,11 +93,12 @@ public sealed record RecipeDetail(
     string? Keyword, string? Description, string? Shortener,
     IReadOnlyList<RecipeIngredient> Ingredients,
     IReadOnlyList<RecipeSeasoning> Seasonings,
-    IReadOnlyList<RecipeStep> Steps);
+    IReadOnlyList<RecipeStep> Steps,
+    IReadOnlyList<ProductListItem> Products);
 
-public sealed record RecipeIngredient(string Name, string? Quantity);
-public sealed record RecipeSeasoning(string Name, string? Quantity);
-public sealed record RecipeStep(int Sort, string? Photo, string? Content);
+public sealed record RecipeIngredient(int Sort, string Title, string? Value);
+public sealed record RecipeSeasoning(int Sort, string Title, string? Value);
+public sealed record RecipeStep(int Sort, string Title, string? Value);
 
 // ── Issues ────────────────────────────────────────────────────────────────────
 public sealed record IssueListItem(
@@ -88,7 +107,12 @@ public sealed record IssueListItem(
 public sealed record IssueDetail(
     Guid IssueId, string Title, string Photo, string? Intro,
     string? Keyword, string? Description, DateTime CreateDate, bool IsPublish, string? Shortener,
-    IReadOnlyList<string> MediaUrls);
+    IReadOnlyList<string> MediaUrls,
+    IReadOnlyList<ProductListItem> Products,
+    IReadOnlyList<RecipeRef> Recipes,
+    IReadOnlyList<IssueRef> Others);
+
+public sealed record IssueRef(Guid IssueId, string Title, string Photo);
 
 // ── Events ────────────────────────────────────────────────────────────────────
 public sealed record EventListItem(

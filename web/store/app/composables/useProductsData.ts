@@ -1,24 +1,33 @@
-// Products listing — port of MainMsController.Products (ViewBag.Producttypes/Brands + Model.Products).
+// Products listing — GET /store/products[?producttypetitle=]. Adapts ProductsPage
+// (productTypes + currentType + products) into the legacy view-model.
 export interface ProductType { producttypeid: string; title: string; memo?: string }
-export interface ProductListItem {
-  productid: string; title: string; entitle?: string; capacity?: string
-  photo?: string; price: number; fixprice: number; isset?: boolean
-  brandid?: string; sort?: number
-}
 export interface ProductsData {
   blobUrl: string
   producttypes: ProductType[]
   currentType: ProductType | null
-  products: ProductListItem[]
+  products: ViewProduct[]
 }
 
+interface ApiProductType { productTypeId: string; title: string; memo?: string | null }
+interface ApiProductsPage {
+  productTypes: ApiProductType[]
+  currentType: ApiProductType | null
+  products: ApiProduct[]
+}
+
+const mapType = (t: ApiProductType): ProductType => ({ producttypeid: t.productTypeId, title: t.title, memo: t.memo ?? undefined })
+
 export function useProductsData(producttypetitle?: string) {
-  const config = useRuntimeConfig()
-  return useFetch<ProductsData>(`${config.public.apiBase}/store/products`, {
+  const blobUrl = useRuntimeConfig().public.blobUrl as string
+  return useFetch(`${useRuntimeConfig().public.apiBase}/store/products`, {
     key: `products:${producttypetitle ?? 'all'}`,
     query: producttypetitle ? { producttypetitle } : {},
-    default: (): ProductsData => ({
-      blobUrl: '', producttypes: [], currentType: null, products: [],
+    default: (): ProductsData => ({ blobUrl, producttypes: [], currentType: null, products: [] }),
+    transform: (api: ApiProductsPage): ProductsData => ({
+      blobUrl,
+      producttypes: api.productTypes.map(mapType),
+      currentType: api.currentType ? mapType(api.currentType) : null,
+      products: api.products.map(mapProduct),
     }),
   })
 }
