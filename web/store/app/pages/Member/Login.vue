@@ -263,6 +263,7 @@ async function submit() {
   margin: 0 0 0.9rem;
   font-size: 1.35rem;
   letter-spacing: 0.08em;
+  color: #fff;
 }
 
 .signup-inner p {
