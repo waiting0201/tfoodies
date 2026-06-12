@@ -69,6 +69,7 @@ param orderAtmPrefix string = '1943'
 
 // FISC 金流（FOCAS_WEBPOS；前端 form POST 導向刷卡，無加密金鑰，僅商店代號）
 // 商店代號非機密（form 本就會出現在前端 HTML），以 GitHub Variable 提供即可。
+// ActionUrl 預設為正式收單；要測試時以 GitHub var FISC_ACTION_URL 覆寫為 focas-test。
 param fiscActionUrl string = 'https://www.focas.fisc.com.tw/FOCAS_WEBPOS/online/'
 param fiscMerchantId string = ''
 param fiscTerminalId string = ''
