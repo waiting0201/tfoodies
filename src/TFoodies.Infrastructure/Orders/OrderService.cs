@@ -236,15 +236,19 @@ VALUES (NEWID(), @orderdetailid, @warehousestockid, @qty, @createdate)",
         using var multi = await conn.QueryMultipleAsync(@"
 SELECT o.orderid, o.ordercode, o.orderdate, o.total, o.freight,
        ISNULL(o.discount,0) AS discount,
-       o.paytype, o.paystatus, o.deliverstatus, o.invoicetype,
+       o.paytype, o.paystatus, o.paydate, o.deliverstatus, o.deliverdate, o.invoicetype,
        o.codeatm, o.expirepaydate,
-       o.recivername, o.recivermobile, o.reciveraddress
+       ISNULL(m.name,'')   AS buyername,
+       ISNULL(m.mobile,'') AS buyermobile,
+       o.recivername, o.recivermobile, o.reciveraddress, o.remark
 FROM Orders o
+LEFT JOIN Members m ON m.memberid = o.memberid
 WHERE o.ordercode = @orderCode;
 
-SELECT od.orderdetailid, od.productid, p.title AS productTitle,
+SELECT od.productid, p.title AS productTitle,
        ISNULL(p.photo,'') AS productPhoto,
-       od.qty, od.price, od.subtotal
+       od.qty, od.price, od.subtotal,
+       ISNULL(p.capacity,'') AS capacity, od.isgift
 FROM Orderdetails od
 JOIN Products p ON p.productid = od.productid
 JOIN Orders o2 ON o2.orderid = od.orderid
@@ -255,16 +259,22 @@ WHERE o2.ordercode = @orderCode;",
         if (header is null) return null;
 
         var lines = (await multi.ReadAsync<OrderLineRow>())
-            .Select(r => new OrderLineItem(r.productid, r.productTitle, r.productPhoto, r.qty, r.price, r.subtotal))
+            .Select(r => new OrderLineItem(r.productid, r.productTitle, r.productPhoto,
+                r.qty, r.price, r.subtotal, r.capacity, r.isgift))
             .ToList();
 
         return new OrderSummary(
             header.orderid, header.ordercode, header.orderdate,
             header.total, header.freight, header.discount,
-            (PayType)header.paytype, (PayStatus)header.paystatus, (DeliverStatus)header.deliverstatus,
+            (PayType)header.paytype, (PayStatus)header.paystatus,
+            header.paydate is { } pd ? DateOnly.FromDateTime(pd) : null,
+            (DeliverStatus)header.deliverstatus,
+            header.deliverdate is { } dd ? DateOnly.FromDateTime(dd) : null,
             (InvoiceType)header.invoicetype,
             header.codeatm, header.expirepaydate,
+            header.buyername, header.buyermobile,
             header.recivername, header.recivermobile, header.reciveraddress,
+            header.remark,
             lines);
     }
 
@@ -444,12 +454,16 @@ OUTPUT INSERTED.code;",
     private sealed record OrderHeaderRow(
         Guid orderid, string ordercode, DateOnly orderdate,
         int total, int freight, int discount,
-        int paytype, int paystatus, int deliverstatus, int invoicetype,
+        int paytype, int paystatus, DateTime? paydate,
+        int deliverstatus, DateTime? deliverdate, int invoicetype,
         string? codeatm, DateOnly? expirepaydate,
-        string recivername, string recivermobile, string reciveraddress);
+        string buyername, string buyermobile,
+        string recivername, string recivermobile, string reciveraddress,
+        string? remark);
     private sealed record OrderLineRow(
         Guid productid, string productTitle, string productPhoto,
-        int qty, int price, int subtotal);
+        int qty, int price, int subtotal,
+        string? capacity, int isgift);
     private sealed record OrderListRow(
         Guid orderid, string ordercode, DateOnly orderdate,
         int total, int paystatus, int deliverstatus);

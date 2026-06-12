@@ -115,7 +115,7 @@ async function applyDiscount() {
 
 // ── Freight / totals（顯示用；最終金額以後端為準）────────────────────────────────
 const FREIGHT_THRESHOLD = 2000
-const FREIGHT_FEE = 120
+const FREIGHT_FEE = 180
 const freight = computed(() => (cartStore.subtotal >= FREIGHT_THRESHOLD ? 0 : FREIGHT_FEE))
 const total = computed(() => Math.max(0, cartStore.subtotal + freight.value - discountAmount.value))
 const ntd = (n: number) => 'NT$ ' + new Intl.NumberFormat('zh-TW').format(Math.trunc(n))

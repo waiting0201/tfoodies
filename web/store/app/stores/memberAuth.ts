@@ -8,6 +8,16 @@ export interface MemberAuthState {
 
 const STORAGE_KEY = 'tfoodies.auth'
 
+// 後端 JWT 以 ClaimTypes.Name 簽發姓名，序列化後 claim key 為 `unique_name`（非 `name`）。
+function nameFromPayload(payload: Record<string, unknown>): string | undefined {
+  return (
+    (payload['unique_name'] as string) ??
+    (payload['name'] as string) ??
+    (payload['memberName'] as string) ??
+    undefined
+  )
+}
+
 function decodeJwtPayload(token: string): Record<string, unknown> {
   try {
     const parts = token.split('.')
@@ -36,9 +46,11 @@ export const useMemberAuthStore = defineStore('memberAuth', {
   actions: {
     // Restore a saved session on the client (login otherwise resets on every reload).
     // Expired JWTs are discarded so a stale token never looks "logged in".
+    // "記住帳號" (remember me) → localStorage (survives browser close, like the legacy
+    // 3-month `tfd` cookie); unchecked → sessionStorage (cleared when the tab closes).
     hydrate() {
       if (!import.meta.client) return
-      const raw = localStorage.getItem(STORAGE_KEY)
+      const raw = localStorage.getItem(STORAGE_KEY) ?? sessionStorage.getItem(STORAGE_KEY)
       if (!raw) return
       try {
         const saved = JSON.parse(raw) as MemberAuthState
@@ -46,31 +58,43 @@ export const useMemberAuthStore = defineStore('memberAuth', {
         const exp = decodeJwtPayload(saved.accessToken)['exp']
         if (typeof exp === 'number' && exp * 1000 < Date.now()) {
           localStorage.removeItem(STORAGE_KEY)
+          sessionStorage.removeItem(STORAGE_KEY)
           return
         }
         this.accessToken = saved.accessToken
-        this.memberName = saved.memberName ?? ''
+        // 從 token 重新導出姓名，修正舊版曾把手機號碼存進 memberName 的情況。
+        this.memberName = nameFromPayload(decodeJwtPayload(saved.accessToken)) ?? saved.memberName ?? ''
         this.memberId = saved.memberId ?? ''
       } catch {
         localStorage.removeItem(STORAGE_KEY)
+        sessionStorage.removeItem(STORAGE_KEY)
       }
     },
-    persist() {
+    persist(remember = true) {
       if (!import.meta.client) return
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      const payload = JSON.stringify({
         accessToken: this.accessToken,
         memberName: this.memberName,
         memberId: this.memberId,
-      }))
+      })
+      // Write to exactly one store so the other can't resurrect a stale session.
+      if (remember) {
+        localStorage.setItem(STORAGE_KEY, payload)
+        sessionStorage.removeItem(STORAGE_KEY)
+      } else {
+        sessionStorage.setItem(STORAGE_KEY, payload)
+        localStorage.removeItem(STORAGE_KEY)
+      }
     },
 
-    async login(mobile: string, password: string) {
+    async login(mobile: string, password: string, remember = true) {
       const config = useRuntimeConfig()
       const res = await $fetch<{ accessToken: string; memberName?: string }>(
         `${config.public.apiBase}/auth/login`,
         {
           method: 'POST',
-          body: { Role: 'member', Identifier: mobile, Password: password },
+          // API 以 camelCase 反序列化（大小寫敏感）；用 PascalCase 會被視為缺欄位回 400。
+          body: { role: 'member', identifier: mobile, password },
         },
       )
       this.accessToken = res.accessToken
@@ -81,19 +105,18 @@ export const useMemberAuthStore = defineStore('memberAuth', {
         (payload['memberId'] as string) ??
         (payload['nameid'] as string) ??
         ''
-      this.memberName =
-        res.memberName ??
-        (payload['name'] as string) ??
-        (payload['memberName'] as string) ??
-        mobile
-      this.persist()
+      this.memberName = res.memberName ?? nameFromPayload(payload) ?? mobile
+      this.persist(remember)
     },
 
     logout() {
       this.accessToken = null
       this.memberName = ''
       this.memberId = ''
-      if (import.meta.client) localStorage.removeItem(STORAGE_KEY)
+      if (import.meta.client) {
+        localStorage.removeItem(STORAGE_KEY)
+        sessionStorage.removeItem(STORAGE_KEY)
+      }
     },
   },
 })

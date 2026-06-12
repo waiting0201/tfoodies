@@ -20,6 +20,38 @@ public sealed class MemberProfileController
 
     public MemberProfileController(IDbConnectionFactory db) => _db = db;
 
+    // GET /member/profile — 載入會員資料（對齊舊系統 MemberMs/EditProfile）
+    public async Task<IActionResult> GetProfile(RouteContext ctx)
+    {
+        var memberId = RequireMemberId(ctx);
+        if (memberId is null) return ctx.Unauthorized("請先登入會員帳號。");
+
+        var ct = ctx.Request.HttpContext.RequestAborted;
+        using var conn = await _db.CreateOpenConnectionAsync(ct);
+
+        var row = await conn.QuerySingleOrDefaultAsync<ProfileRow>(@"
+SELECT m.name, m.mobile, m.email, m.gender, m.birthday, m.address, m.zipcodeid, z.city, z.area
+FROM   Members  m
+LEFT JOIN Zipcodes z ON z.zipcodeid = m.zipcodeid
+WHERE  m.memberid = @id",
+            new { id = memberId.Value });
+
+        if (row is null) return ctx.NotFound("找不到會員資料。");
+
+        return ctx.Ok(new
+        {
+            row.name,
+            row.mobile,
+            row.email,
+            row.gender,
+            birthday = row.birthday?.ToString("yyyy-MM-dd"),
+            row.address,
+            zipcodeId = row.zipcodeid,
+            row.city,
+            row.area,
+        });
+    }
+
     // PATCH /member/profile
     public async Task<IActionResult> UpdateProfile(RouteContext ctx)
     {
@@ -76,6 +108,32 @@ public sealed class MemberProfileController
         return ctx.Ok(new { message = "已更新" });
     }
 
+    // POST /member/password — 修改密碼（對齊舊 MemberMs/EditPassword：新密碼 + 確認，相符即更新）
+    public async Task<IActionResult> ChangePassword(RouteContext ctx)
+    {
+        var memberId = RequireMemberId(ctx);
+        if (memberId is null) return ctx.Unauthorized("請先登入會員帳號。");
+
+        var ct   = ctx.Request.HttpContext.RequestAborted;
+        var body = await ctx.TryReadBodyAsync<ChangePasswordRequest>(ct);
+        if (body is null) return ctx.BadRequest("Request body 格式不正確。");
+
+        var pwd = body.NewPassword?.Trim();
+        if (string.IsNullOrEmpty(pwd)) return ctx.BadRequest("請輸入新密碼。");
+        // Members.password 為 nvarchar(20)；超長會觸發 SQL 截斷例外（500），先擋下回 400。
+        if (pwd.Length > 20) return ctx.BadRequest("密碼長度不可超過 20 個字元。");
+        if (!string.Equals(pwd, body.ConfirmPassword, StringComparison.Ordinal))
+            return ctx.BadRequest("兩次輸入的密碼不一致。");
+
+        using var conn = await _db.CreateOpenConnectionAsync(ct);
+        // 舊系統密碼為明文（AuthService 亦以明文比對，因 nvarchar(20) 容不下 PBKDF2 雜湊）。
+        await conn.ExecuteAsync(
+            "UPDATE Members SET password = @pwd WHERE memberid = @id",
+            new { pwd, id = memberId.Value });
+
+        return ctx.Ok(new { message = "已更新" });
+    }
+
     // GET /member/wishlist
     public async Task<IActionResult> GetWishlist(RouteContext ctx)
     {
@@ -85,13 +143,14 @@ public sealed class MemberProfileController
         var ct = ctx.Request.HttpContext.RequestAborted;
         using var conn = await _db.CreateOpenConnectionAsync(ct);
 
+        // Memberproducts 僅有 (memberid, productid) 複合鍵，無建立時間欄位；商品圖直接取 Products.photo
+        // （對齊舊系統 MemberMs/Mylists 的 product.photo），以 title 排序確保輸出穩定。
         var items = await conn.QueryAsync<WishlistItem>(@"
-SELECT p.productid, p.title, p.price, p.fixprice, p.shortener, pp.filename
+SELECT p.productid, p.title, p.price, p.fixprice, p.shortener, p.photo
 FROM   Memberproducts mp
-JOIN   Products       p  ON  p.productid  = mp.productid
-LEFT JOIN Productphotos pp ON pp.productid = p.productid  AND pp.sort = 1
+JOIN   Products       p  ON  p.productid = mp.productid
 WHERE  mp.memberid = @id
-ORDER  BY mp.createdate DESC",
+ORDER  BY p.title",
             new { id = memberId.Value });
 
         return ctx.Ok(new { items });
@@ -110,18 +169,18 @@ ORDER  BY mp.createdate DESC",
 
         using var conn = await _db.CreateOpenConnectionAsync(ct);
 
+        // Memberproducts 為 (memberid, productid) 複合鍵的關聯表，無 PK/建立時間欄位。
         await conn.ExecuteAsync(@"
 IF NOT EXISTS (
     SELECT 1 FROM Memberproducts
     WHERE memberid = @memberid AND productid = @productid
 )
-INSERT INTO Memberproducts (memberproductid, productid, memberid, createdate)
-VALUES (NEWID(), @productid, @memberid, @createdate)",
+INSERT INTO Memberproducts (memberid, productid)
+VALUES (@memberid, @productid)",
             new
             {
                 memberid  = memberId.Value,
                 productid = body.ProductId.Value,
-                createdate = DateTime.UtcNow.AddHours(8),
             });
 
         return ctx.Ok(new { message = "已加入收藏" });
@@ -169,6 +228,20 @@ VALUES (NEWID(), @productid, @memberid, @createdate)",
         DateOnly? Birthday,
         int? Gender);
 
+    // birthday 為 date 欄位，Dapper 讀進建構子須用 DateTime?（DateOnly 僅限寫入參數/STJ body）。
+    private sealed record ProfileRow(
+        string  name,
+        string  mobile,
+        string? email,
+        int?    gender,
+        DateTime? birthday,
+        string? address,
+        int?    zipcodeid,
+        string? city,
+        string? area);
+
+    private sealed record ChangePasswordRequest(string? NewPassword, string? ConfirmPassword);
+
     private sealed record WishlistAddRequest(Guid? ProductId);
 
     private sealed record WishlistItem(
@@ -176,6 +249,6 @@ VALUES (NEWID(), @productid, @memberid, @createdate)",
         string title,
         int    price,
         int?   fixprice,
-        string shortener,
-        string? filename);
+        string? shortener,
+        string? photo);
 }

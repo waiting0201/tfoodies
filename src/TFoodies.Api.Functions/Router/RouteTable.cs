@@ -262,7 +262,9 @@ public class RouteTable
         Register<MemberAuthController>("POST", "auth/forgot-password/reset",                              (c, ctx) => c.ForgotPasswordReset(ctx));
 
         // ── Member Profile & Wishlist（需 JWT member）──────────────────────────
+        Register<MemberProfileController>("GET",    "member/profile",                                    (c, ctx) => c.GetProfile(ctx));
         Register<MemberProfileController>("PATCH",  "member/profile",                                    (c, ctx) => c.UpdateProfile(ctx));
+        Register<MemberProfileController>("POST",   "member/password",                                   (c, ctx) => c.ChangePassword(ctx));
         Register<MemberProfileController>("GET",    "member/wishlist",                                    (c, ctx) => c.GetWishlist(ctx));
         Register<MemberProfileController>("POST",   "member/wishlist",                                    (c, ctx) => c.AddWishlist(ctx));
         Register<MemberProfileController>("DELETE", @"member/wishlist/(?<productId>[^/]+)$",              (c, ctx) => c.RemoveWishlist(ctx));

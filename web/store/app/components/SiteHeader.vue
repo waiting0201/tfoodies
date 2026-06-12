@@ -17,12 +17,9 @@ const blobUrl = String(useRuntimeConfig().public.blobUrl)
 onMounted(() => cart.hydrate())
 
 // Login state from the member-auth store (hydrated app-wide by plugins/auth.client.ts).
+// 登入後 header 僅顯示會員圖示（點擊進入會員中心）；登出改由會員中心側欄處理。
 const memberAuth = useMemberAuthStore()
 const isLoggedIn = computed(() => memberAuth.isAuthenticated)
-function logout() {
-  memberAuth.logout()
-  navigateTo('/Member/Login')
-}
 
 // On an actual add-to-cart (addPulse — not hydrate), briefly slide the mini-cart open so the
 // user sees what was added, then auto-close. (Hover-to-open is disabled in the legacy-effects
@@ -53,10 +50,7 @@ watch(() => cart.addPulse, (now, prev) => {
         <div class="login-wrap">
           <div class="member">
             <template v-if="isLoggedIn">
-              <a href="/Member/Center" class="member-icon"></a>
-              <a href="javascript:;" class="logout" @click.prevent="logout">
-                <div class="small">登出</div>
-              </a>
+              <a href="/Member/Center" class="member-icon" title="會員中心"></a>
             </template>
             <template v-else>
               <a href="/Member/Login" class="member-icon" rel="nofollow"></a>
@@ -136,3 +130,40 @@ watch(() => cart.addPulse, (now, prev) => {
     <a id="btn_menu" href="javascript:;" class="sb-toggle-left"><img src="/content/images/common/mobile-menu.png" alt=""></a>
   </header>
 </template>
+
+<style scoped>
+/* 讓「登入/登出」文字與左側 member icon 上下置中對齊。
+   main.css 用 `#topnav .login-wrap .member{display:inline-block}`（含 ID，特異度 1,2,0）
+   壓過純 class 的覆寫，導致 .member 始終是 inline-block、flex 置中失效。
+   因此這裡同樣帶上 #topnav 取得 ID 特異度，scoped 屬性再 +1 才能贏過 legacy。*/
+/* 讓整個 .member 與 .shopping-cart 在 login-wrap 內垂直置中（對齊 header 列中線）。
+   覆寫 legacy `#topnav .login-wrap{display:block}` 與子元素 float。*/
+#topnav .login-wrap {
+  display: flex;
+  align-items: center;
+}
+
+#topnav .login-wrap .member {
+  display: flex;
+  align-items: center;
+  padding-top: 0;
+}
+
+#topnav .login-wrap .shopping-cart {
+  float: none;
+}
+
+#topnav .login-wrap .member .member-icon {
+  float: none;
+  top: 0;
+  margin-right: 5px;
+}
+
+#topnav .login-wrap .member a.logout {
+  display: flex;
+  align-items: center;
+  float: none;
+  padding: 0;
+  margin: 0;
+}
+</style>

@@ -77,18 +77,24 @@ public sealed record OrderSummary(
     int Discount,
     PayType PayType,
     PayStatus PayStatus,
+    DateOnly? PayDate,
     DeliverStatus DeliverStatus,
+    DateOnly? DeliverDate,
     InvoiceType InvoiceType,
     string? AtmCode,
     DateOnly? AtmExpiry,
+    string BuyerName,
+    string BuyerMobile,
     string ReceiverName,
     string ReceiverMobile,
     string ReceiverAddress,
+    string? Remark,
     IReadOnlyList<OrderLineItem> Lines);
 
 public sealed record OrderLineItem(
     Guid ProductId, string ProductTitle, string ProductPhoto,
-    int Qty, int Price, int Subtotal);
+    int Qty, int Price, int Subtotal,
+    string? Capacity, int IsGift);
 
 public sealed record OrderListItem(
     Guid OrderId, string OrderCode, DateOnly OrderDate,

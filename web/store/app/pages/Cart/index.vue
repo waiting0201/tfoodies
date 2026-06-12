@@ -10,7 +10,7 @@ const blobUrl = String(useRuntimeConfig().public.blobUrl)
 onMounted(() => cartStore.hydrate())
 
 const FREIGHT_THRESHOLD = 2000
-const FREIGHT_FEE = 120
+const FREIGHT_FEE = 180
 
 const freight = computed(() => (cartStore.subtotal >= FREIGHT_THRESHOLD ? 0 : FREIGHT_FEE))
 const total = computed(() => cartStore.subtotal + freight.value)

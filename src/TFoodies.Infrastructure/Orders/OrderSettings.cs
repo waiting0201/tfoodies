@@ -8,7 +8,7 @@ public sealed class OrderSettings
     public int FreightLimit { get; init; } = 2000;
 
     /// <summary>運費金額（NTD）</summary>
-    public int FreightAmount { get; init; } = 120;
+    public int FreightAmount { get; init; } = 180;
 
     /// <summary>ATM 付款到期天數</summary>
     public int AtmExpiryDays { get; init; } = 3;

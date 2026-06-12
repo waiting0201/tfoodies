@@ -184,7 +184,10 @@ Controllers/
   StoreController.cs         ← 前台商品/CMS（12 GET 端點，公開）
   AuthController.cs          ← POST /auth/login, /auth/refresh
   StoreOrderController.cs    ← POST /store/orders, GET /store/orders/{code}, POST /store/discount/apply
-  MemberController.cs        ← GET /member/orders（JWT member 身份）
+  MemberController.cs        ← GET /member/orders, /member/orders/{code}（JWT member 身份）
+  MemberProfileController.cs ← 會員中心（JWT member）：GET/PATCH /member/profile（對齊舊 MemberMs/EditProfile）、
+                                 POST /member/password（修改密碼，對齊舊 EditPassword：新密碼+確認相符即更新，明文存，限 20 字）、
+                                 GET/POST/DELETE /member/wishlist（我的收藏，對齊舊 Mylists；Memberproducts 僅 memberid+productid 複合鍵、圖取 Products.photo）
   PaymentNotifyController.cs ← POST /store/payment/notify（公開 webhook）
   Admin/
     OrderAdminController.cs      ← /admin/orders（OrderMs RBAC）
