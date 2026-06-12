@@ -63,6 +63,25 @@
 | 台灣 GCIS 公司登記 | `Libs.GetCompany*` | 統編查詢 |
 | globalmyb2b 證券 API | 前台 `IncomeMsController` | ATM 對帳 |
 
+## 通知信清單 (Email Notifications)
+
+> 系統所有「寄送 Email」情境集中於此。SMS（三竹簡訊）為獨立管線，見上表，與 email 無關。
+> 共用寄信方法：舊系統 `Libs.SendMail`；新系統 `IEmailService.SendAsync`（實作 `Infrastructure/Email/SmtpEmailService.cs`，皆走 Sendinblue/Brevo SMTP relay，固定 BCC 營運信箱）。
+> 版型慣例：新系統信件採純 table + inline-style、相容 Outlook/Gmail，共用品牌視覺（主色 `#26B7BC`、深色 `#156467`）。
+
+| 情境 | 主旨 | 觸發點（新系統） | 觸發點（舊系統） | 內容重點 |
+|---|---|---|---|---|
+| **訂單成立通知** | `食在呼 TFoodies–訂單通知 {ordercode}` | `StoreOrderController.PlaceOrder` 成功後 best-effort 寄送，版型 `BuildOrderMailHtml`（POST `/store/orders`） | `MainMsController.cs:529`（`ShoppingSuccess`） | 訂單編號、訂購日期、付款方式、金額摘要（小計/運費/折扣/應付總額）；ATM 付款時附匯款卡（013 國泰世華、虛擬帳號、金額、繳款截止日）。收件者為 `BuyerEmail`，無 email 則不寄。 |
+| **付款完成通知** | `食在呼 TFoodies–付款完成通知 {ordercode}` | `PaymentNotifyController.Notify` 金流授權成功、**首次**標記為已付款時寄送，版型 `BuildPaidMailHtml`（POST `/store/payment/notify`） | 舊系統**無**（付款完成不寄 email） | 付款成功確認、訂單編號、信用卡末四碼、付款時間、實付金額。收件者取自 `Members.email`（JOIN）。**冪等**：Fisc 重送時 `MarkOrderPaidAsync` 回 null，不重複寄信/開票。電子發票另行開立。 |
+| **忘記密碼通知** | `食在呼 TFoodies–忘記密碼通知` | `MemberAuthController.ForgotPassword`，版型 `BuildResetMailHtml`（POST `/auth/forgot-password`） | `AjaxController.cs:702`（`PasswordSend`） | 比對 mobile+email→產生亂數新密碼→更新 DB→寄出明文新密碼，請其登入後自行修改。新系統寄送失敗回 422。 |
+
+**設計注意**：
+- 寄訂單通知信為 **best-effort**：`SendAsync` 內部已 catch 並回傳 `false`，寄信失敗**不影響**下單成功回應（不像舊系統 `SendMail` 失敗無限遞迴）。
+- 新系統 `PlaceOrderResult` 不含商品明細，故訂單通知信僅呈現金額摘要（對齊舊系統，舊信亦未列明細）；明細請於會員中心查詢。
+- **電子發票**由 ezPay/NewebPay 金流商以 `BuyerEmail` 代為寄送，非本系統 `SendMail`/`SendAsync`，故不列於本表。
+- 「付款完成通知」為**新系統新增**（舊系統付款完成不寄信），於 Fisc 金流 webhook 首次標記已付款時觸發，與發票開立共用 `paid != null` 冪等判斷。
+- 舊系統「註冊」「出貨通知」**皆未寄 email**；如新系統需擴充，於此表補列。
+
 ## ⚠️ 技術債 / 安全（移轉重點清單）
 
 1. **機密全明文且寫死**：SQL `sa` 密碼、Azure Blob key、三竹/SMTP 帳密、reCAPTCHA secret、ezPay HashKey/IV、DES cookie key(`16816888`)/IV(`88888888`)。

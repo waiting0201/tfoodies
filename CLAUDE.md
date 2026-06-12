@@ -48,6 +48,7 @@
 - `BaseService` 為死碼、CRUD 重複；`Refounds` 拼字錯誤已固化於 schema。
 
 ## 慣例
+- **Claude 一律以繁體中文回覆**（對話與說明文字）。
 - `reference/old/` 為**唯讀**舊系統參考，請勿修改。
 - 新文件以繁體中文撰寫，置於 `docs/`，並在本表登錄。
 - 引用程式碼用 `檔案:行號`（相對 `reference/old/`）。
