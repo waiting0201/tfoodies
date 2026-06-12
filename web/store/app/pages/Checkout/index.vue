@@ -12,10 +12,44 @@ const { cities, loadCities, loadAreas } = useZipcodes()
 const isLoggedIn = computed(() => memberAuth.isAuthenticated)
 const DONATION_ORG = '信星集團愛星慈善基金會'
 
+// 登入會員的訂購人資料（對齊舊系統 ShoppingProfile：姓名/手機/地址/縣市+郵遞區號預帶）。
+interface MemberProfile {
+  name: string
+  mobile: string
+  email: string | null
+  address: string | null
+  zipcodeId: number | null
+  city: string | null
+}
+
+let prefilling = false
+async function prefillBuyerFromMember() {
+  try {
+    const profile = await $fetch<MemberProfile>(`${config.public.apiBase}/member/profile`, {
+      headers: { Authorization: `Bearer ${memberAuth.accessToken}` },
+    })
+    prefilling = true
+    form.buyerName = profile.name || memberAuth.memberName || ''
+    form.buyerMobile = profile.mobile || ''
+    form.buyerEmail = profile.email ?? ''
+    form.buyerAddress = profile.address ?? ''
+    if (profile.city) {
+      form.buyerCity = profile.city
+      buyerAreas.value = await loadAreas(profile.city)
+      form.buyerZipcodeId = profile.zipcodeId
+    }
+  } catch {
+    // 取不到 profile 時退回 token 內的姓名，至少帶入姓名（舊系統最低限度）。
+    if (memberAuth.memberName) form.buyerName = memberAuth.memberName
+  } finally {
+    prefilling = false
+  }
+}
+
 onMounted(async () => {
   cartStore.hydrate()
   await loadCities()
-  if (isLoggedIn.value && memberAuth.memberName) form.buyerName = memberAuth.memberName
+  if (isLoggedIn.value) await prefillBuyerFromMember()
 })
 
 // ── Form state ────────────────────────────────────────────────────────────────
@@ -48,6 +82,7 @@ const buyerAreas = ref<{ zipcodeId: number; area: string }[]>([])
 const receiverAreas = ref<{ zipcodeId: number; area: string }[]>([])
 
 watch(() => form.buyerCity, async (city) => {
+  if (prefilling) return   // 預帶會員資料時由 prefill 自行設定區域與 zipcodeId
   form.buyerZipcodeId = null
   buyerAreas.value = await loadAreas(city)
 })
@@ -102,7 +137,8 @@ async function applyDiscount() {
   try {
     const res = await $fetch<{ discountCode: string; discountAmount: number }>(
       `${config.public.apiBase}/store/discount/apply`,
-      { method: 'POST', body: { DiscountCode: form.discountCode.trim(), OrderSubtotal: cartStore.subtotal } },
+      // API 以 camelCase 大小寫敏感反序列化；PascalCase 會被當缺欄位回 400（同 login/profile 慣例）。
+      { method: 'POST', body: { discountCode: form.discountCode.trim(), orderSubtotal: cartStore.subtotal } },
     )
     appliedCode.value = res.discountCode
     discountAmount.value = res.discountAmount
@@ -154,30 +190,31 @@ async function submitOrder() {
       ? `${form.birthYear}-${String(form.birthMonth).padStart(2, '0')}-${String(form.birthDay).padStart(2, '0')}`
       : null
 
+    // 後端以 camelCase 大小寫敏感反序列化；鍵名必須 camelCase（PascalCase 會綁成 null → 400）。
     const body: Record<string, unknown> = {
-      Lines: cartStore.items.map((i) => ({ ProductId: i.productId, Qty: i.quantity })),
-      BuyerName: form.buyerName.trim(),
-      BuyerMobile: form.buyerMobile.trim(),
-      BuyerEmail: form.buyerEmail.trim() || null,
-      BuyerZipcodeId: form.buyerZipcodeId,
-      BuyerAddress: form.buyerAddress.trim() || null,
-      Gender: isLoggedIn.value ? null : form.gender,
-      Password: isLoggedIn.value ? null : form.password,
-      Birthday: birthday,
-      ReceiverName: form.receiverName.trim(),
-      ReceiverMobile: form.receiverMobile.trim(),
-      ReceiverZipcodeId: form.receiverZipcodeId,
-      ReceiverAddress: form.receiverAddress.trim(),
-      ReceiverTime: form.receiverTime,
-      PayType: form.payType,
-      InvoiceType: form.invoiceType,
-      CompanyTitle: form.invoiceType === 3 ? form.companyTitle.trim() : null,
-      CompanyNumber: form.invoiceType === 3 ? form.companyNumber.trim() : null,
-      LoveCode: null,
-      CarrierType: null,
-      CarrierNum: null,
-      DiscountCode: appliedCode.value || null,
-      Remark: form.remark.trim() || null,
+      lines: cartStore.items.map((i) => ({ productId: i.productId, qty: i.quantity })),
+      buyerName: form.buyerName.trim(),
+      buyerMobile: form.buyerMobile.trim(),
+      buyerEmail: form.buyerEmail.trim() || null,
+      buyerZipcodeId: form.buyerZipcodeId,
+      buyerAddress: form.buyerAddress.trim() || null,
+      gender: isLoggedIn.value ? null : form.gender,
+      password: isLoggedIn.value ? null : form.password,
+      birthday: birthday,
+      receiverName: form.receiverName.trim(),
+      receiverMobile: form.receiverMobile.trim(),
+      receiverZipcodeId: form.receiverZipcodeId,
+      receiverAddress: form.receiverAddress.trim(),
+      receiverTime: form.receiverTime,
+      payType: form.payType,
+      invoiceType: form.invoiceType,
+      companyTitle: form.invoiceType === 3 ? form.companyTitle.trim() : null,
+      companyNumber: form.invoiceType === 3 ? form.companyNumber.trim() : null,
+      loveCode: null,
+      carrierType: null,
+      carrierNum: null,
+      discountCode: appliedCode.value || null,
+      remark: form.remark.trim() || null,
     }
 
     const headers: Record<string, string> = {}
@@ -235,7 +272,7 @@ async function submitOrder() {
               <h2 class="card-title">訂購人資訊</h2>
               <div class="field">
                 <label><span class="must">*</span>姓名</label>
-                <input v-model="form.buyerName" class="input" maxlength="20" placeholder="請輸入姓名">
+                <input v-model="form.buyerName" class="input" maxlength="20" placeholder="請輸入姓名" :readonly="isLoggedIn">
               </div>
               <div class="field">
                 <label><span class="must">*</span>手機號碼</label>
@@ -276,11 +313,12 @@ async function submitOrder() {
               <div class="field">
                 <label>聯絡地址</label>
                 <div class="addr-row">
-                  <select v-model="form.buyerCity" class="input"><option value="">縣市</option><option v-for="c in cities" :key="c" :value="c">{{ c }}</option></select>
-                  <select v-model.number="form.buyerZipcodeId" class="input" :disabled="!form.buyerCity"><option :value="null">鄉鎮市區</option><option v-for="a in buyerAreas" :key="a.zipcodeId" :value="a.zipcodeId">{{ a.area }}</option></select>
+                  <select v-model="form.buyerCity" class="input" :disabled="isLoggedIn"><option value="">縣市</option><option v-for="c in cities" :key="c" :value="c">{{ c }}</option></select>
+                  <select v-model.number="form.buyerZipcodeId" class="input" :disabled="isLoggedIn || !form.buyerCity"><option :value="null">鄉鎮市區</option><option v-for="a in buyerAreas" :key="a.zipcodeId" :value="a.zipcodeId">{{ a.area }}</option></select>
                 </div>
-                <input v-model="form.buyerAddress" class="input" placeholder="請填寫詳細地址（勿填郵政信箱）">
+                <input v-model="form.buyerAddress" class="input" placeholder="請填寫詳細地址（勿填郵政信箱）" :readonly="isLoggedIn">
               </div>
+              <p v-if="isLoggedIn" class="descript hint">訂購人資訊取自您的會員資料，如需修改請至<a href="/Member/Profile">會員中心 › 會員資料</a>。</p>
             </div>
 
             <!-- 收件人資訊 -->
@@ -382,9 +420,8 @@ async function submitOrder() {
               <div class="sum-total"><span>應付金額</span><strong>{{ ntd(total) }}</strong></div>
 
               <label class="agree descript">
-                <input type="checkbox" v-model="form.agree">
-                我已閱讀並同意
-                <a href="/Terms" target="_blank">服務條款</a> 與 <a href="/Policy" target="_blank">隱私權政策</a>
+                <input type="checkbox" v-model="form.agree" class="agree-cb">
+                <span class="agree-text">我已閱讀並同意<a href="/Terms" target="_blank">服務條款</a>與<a href="/Policy" target="_blank">隱私權政策</a></span>
               </label>
 
               <p v-if="submitError" class="submit-err">{{ submitError }}</p>
@@ -458,6 +495,9 @@ async function submitOrder() {
 .checkout-form :deep(.input:focus), .checkout-form textarea.input:focus { outline: none; border-color: #26b7bc; }
 .checkout-form :deep(select.input) { appearance: none; background: #fff url(/content/images/arrow_select.png) right .7em center/10px no-repeat; padding-right: 2em; cursor: pointer; }
 .checkout-form :deep(.input:disabled) { background: #f6f6f6; color: #aaa; cursor: not-allowed; }
+/* 登入會員的訂購人欄位為唯讀，視覺與 disabled 一致（灰底、不可改）。 */
+.checkout-form :deep(.input[readonly]) { background: #f6f6f6; color: #888; cursor: not-allowed; border-color: #ececec; }
+.checkout-form :deep(.input[readonly]:focus) { border-color: #ececec; }
 
 .addr-row, .birth-row { display: flex; gap: .6em; margin-bottom: .6em; }
 .birth-row { margin-bottom: 0; }
@@ -509,10 +549,12 @@ async function submitOrder() {
 }
 .sum-total strong { color: #1d8e92; font-size: 1.5em; }
 
-/* (2) 同意條款維持單行 */
-.agree { display: block; white-space: nowrap; margin: 1.2em 0; color: #888; font-size: .8em; cursor: pointer; }
-.agree input { margin-right: .3em; vertical-align: middle; }
-.agree a { color: #1d8e92; text-decoration: underline; }
+/* (2) 同意條款：checkbox 對齊首行，文字可自然換行（窄螢幕 RWD 不溢出） */
+.agree { display: flex; align-items: center; gap: .45em; margin: 1.2em 0; color: #888; font-size: .8em; cursor: pointer; }
+/* 覆寫 main.css 全域 input[type=checkbox] 的 padding:0 1em / margin:1em（會把方塊推歪） */
+.agree .agree-cb { flex: 0 0 auto; margin: 0; padding: 0; }
+.agree .agree-text { line-height: 1.6; }
+.agree a { color: #1d8e92; text-decoration: underline; white-space: nowrap; }
 
 .submit-err { color: #d0021b; font-size: .85em; margin: 0 0 .8em; }
 /* (3) 確認送出 / 回上一步 等寬、左右邊緣對齊（清除 legacy .btn 的左右 margin）*/

@@ -106,6 +106,7 @@ public sealed class StoreOrderController
         public string? Validate()
         {
             if (Lines is null || Lines.Count == 0) return "購物車不能為空。";
+            if (string.IsNullOrWhiteSpace(BuyerName)) return "缺少 buyerName 欄位。";
             if (string.IsNullOrWhiteSpace(BuyerMobile)) return "缺少 buyerMobile 欄位。";
             if (string.IsNullOrWhiteSpace(ReceiverName)) return "缺少 receiverName 欄位。";
             if (string.IsNullOrWhiteSpace(ReceiverMobile)) return "缺少 receiverMobile 欄位。";

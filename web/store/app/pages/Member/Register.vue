@@ -24,11 +24,12 @@ async function submit() {
   try {
     await $fetch(`${config.public.apiBase}/auth/register`, {
       method: 'POST',
+      // API 以 camelCase 大小寫敏感反序列化；PascalCase 會被當缺欄位回 400（同 login/profile 慣例）。
       body: {
-        Mobile: form.mobile.trim(),
-        Name: form.name.trim(),
-        Email: form.email.trim() || undefined,
-        Password: form.password,
+        mobile: form.mobile.trim(),
+        name: form.name.trim(),
+        email: form.email.trim() || undefined,
+        password: form.password,
       },
     })
     await navigateTo('/Member/Login')

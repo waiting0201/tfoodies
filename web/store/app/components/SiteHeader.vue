@@ -60,11 +60,13 @@ watch(() => cart.addPulse, (now, prev) => {
             </template>
           </div>
           <div class="shopping-cart">
-            <a href="/Cart" class="cart-icon"></a>
-            <!-- 購物車有商品時才顯示 badge（.add-active 讓 .addnumber 由 display:none 變 block）-->
-            <div class="addnumber" :class="{ 'add-active': cart.count > 0 }">
-              <div class="addsmall">{{ cart.count }}</div>
-            </div>
+            <!-- badge 放進 cart-icon 內：錨定 32×26 的圖示本身（跨斷點固定），不受 .shopping-cart
+                 各斷點不同 padding 影響，確保數字置中、位置一致。99+ 自動變膠囊。-->
+            <a href="/Cart" class="cart-icon">
+              <span class="addnumber" :class="{ 'add-active': cart.count > 0 }">
+                <span class="addsmall">{{ cart.count > 99 ? '99+' : cart.count }}</span>
+              </span>
+            </a>
             <div class="cart-content">
               <!-- <div class="triangle"></div> -->
               <div class="buy-item-wrap">
@@ -165,5 +167,71 @@ watch(() => cart.addPulse, (now, prev) => {
   float: none;
   padding: 0;
   margin: 0;
+}
+
+/* ── 購物車數量 badge 重新設計 ──────────────────────────────
+   舊版 .addnumber 錨定在帶 padding 的 .shopping-cart 上（各斷點 padding 不同），
+   且數字用 line-height/固定寬置中，導致歪斜、多位數溢出。
+   改為錨定固定尺寸的 .cart-icon，flex 置中，min-width 讓多位數變膠囊。*/
+.shopping-cart .cart-icon {
+  position: relative;
+  overflow: visible;
+}
+
+.shopping-cart .cart-icon .addnumber {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  display: none;
+  /* width:auto 覆蓋 legacy 固定 20px，讓 min-width/height 接管才會是正圓 */
+  width: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  background-color: #ea5520;
+  opacity: 1;
+  /* 與綠色 header 區隔、避免貼著圖示糊在一起 */
+  box-shadow: 0 0 0 2px #fff;
+  pointer-events: none;
+}
+
+.shopping-cart .cart-icon .addnumber.add-active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shopping-cart .cart-icon .addnumber .addsmall {
+  width: auto;
+  height: auto;
+  line-height: 1;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  vertical-align: baseline;
+}
+
+/* 維持原本 hover 變深的互動 */
+.shopping-cart:hover .cart-icon .addnumber {
+  background-color: #d8430f;
+}
+
+/* 小螢幕（手機）圖示稍小，badge 同步縮一點避免過於突出 */
+@media (max-width: 767px) {
+  .shopping-cart .cart-icon .addnumber {
+    top: -7px;
+    right: -9px;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    /* 手機 header 為綠底，白色描邊會露出一圈，移除之 */
+    box-shadow: none;
+  }
+  .shopping-cart .cart-icon .addnumber .addsmall {
+    font-size: 10px;
+  }
 }
 </style>

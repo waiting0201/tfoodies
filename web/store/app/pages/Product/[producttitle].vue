@@ -14,7 +14,13 @@ const onSale = computed(() => p.value && p.value.fixprice > p.value.price)
 // ported, so the quantity +/- and 加入購物車 controls were inert). Drive them via the
 // pinia cart store instead.
 const cartStore = useCartStore()
-onMounted(() => cartStore.hydrate())
+const memberAuth = useMemberAuthStore()
+const config = useRuntimeConfig()
+onMounted(() => {
+  cartStore.hydrate()
+  memberAuth.hydrate()
+  refreshFavedState()
+})
 
 const qty = ref(1)
 const decQty = () => { qty.value = Math.max(1, qty.value - 1) }
@@ -40,6 +46,69 @@ function addToCart() {
   // Brief pulse on the header cart badge (mirrors legacy `.addnumber.add-active`).
   justAdded.value = true
   setTimeout(() => { justAdded.value = false }, 1200)
+}
+
+// 收藏 (wishlist) wiring. Legacy ProductDetail.cshtml relied on jQuery `.mylistbtn.one('click')`
+// (Views/Shared/_Scripts.cshtml) which wasn't ported, so the heart button was inert. Drive the
+// new API instead: POST/DELETE /member/wishlist (TFoodies.Api.Functions MemberProfileController).
+const authHeader = (): Record<string, string> =>
+  memberAuth.accessToken ? { Authorization: `Bearer ${memberAuth.accessToken}` } : {}
+
+const faved = ref(false)
+const favoriting = ref(false)
+
+// 加入收藏成功時的浮動通知，3 秒後自動消失。
+const toast = ref('')
+let toastTimer: ReturnType<typeof setTimeout> | undefined
+function showToast(msg: string) {
+  toast.value = msg
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { toast.value = '' }, 3000)
+}
+onBeforeUnmount(() => { if (toastTimer) clearTimeout(toastTimer) })
+
+// Reflect existing favourites so the heart loads in the right state (and click toggles correctly).
+async function refreshFavedState() {
+  const prod = p.value
+  if (!prod || !memberAuth.isAuthenticated) { faved.value = false; return }
+  try {
+    const res = await $fetch<{ items: { productid: string }[] }>(
+      `${config.public.apiBase}/member/wishlist`,
+      { headers: authHeader() },
+    )
+    faved.value = !!res.items?.some((i) => i.productid === prod.productid)
+  } catch {
+    faved.value = false
+  }
+}
+
+async function toggleFavorite() {
+  const prod = p.value
+  if (!prod || favoriting.value) return
+  if (!memberAuth.isAuthenticated) {
+    await navigateTo('/Member/Login')
+    return
+  }
+  favoriting.value = true
+  const next = !faved.value
+  try {
+    if (next) {
+      await $fetch(`${config.public.apiBase}/member/wishlist`, {
+        method: 'POST',
+        headers: authHeader(),
+        body: { productId: prod.productid },
+      })
+    } else {
+      await $fetch(`${config.public.apiBase}/member/wishlist/${prod.productid}`, {
+        method: 'DELETE',
+        headers: authHeader(),
+      })
+    }
+    faved.value = next
+    showToast(next ? '成功加入收藏！' : '已取消收藏')
+  } finally {
+    favoriting.value = false
+  }
 }
 
 const siteUrl = String(useRuntimeConfig().public.siteUrl).replace(/\/+$/, '')
@@ -139,7 +208,14 @@ useJsonLd(() => {
             <div class="buybtn-wrap">
               <a v-if="p.added > 0" href="javascript:;" class="btn outline-btn solidhover js-add-cart" :data-productid="p.productid" :data-title="p.title" @click.prevent="addToCart">{{ justAdded ? '已加入購物車' : '加入購物車' }}</a>
               <a v-else href="javascript:;" class="btn outline-btn solidhover popup-contact" :data-productid="p.productid">到貨通知我</a>
-              <a href="javascript:;" class="btn outline-btn solidhover mylistbtn" :data-productid="p.productid">
+              <a
+                href="javascript:;"
+                class="btn outline-btn solidhover mylistbtn"
+                :class="{ 'is-faved': faved, 'is-busy': favoriting }"
+                :data-productid="p.productid"
+                :title="faved ? '取消收藏' : '加入收藏'"
+                @click.prevent="toggleFavorite"
+              >
                 <div class="love"></div>
               </a>
             </div>
@@ -223,5 +299,52 @@ useJsonLd(() => {
         </div>
       </div>
     </div>
+    <Transition name="fav-toast">
+      <div v-if="toast" class="fav-toast" role="status" aria-live="polite">{{ toast }}</div>
+    </Transition>
   </main>
 </template>
+
+<style scoped>
+/* 已收藏狀態：沿用 .solidhover 的填色語意，讓愛心持續呈現選取樣式。 */
+.mylistbtn.is-faved {
+  background-color: #26b7bc;
+  border-color: #26b7bc;
+}
+
+.mylistbtn.is-faved .love {
+  filter: brightness(0) invert(1);
+}
+
+.mylistbtn.is-busy {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* 加入收藏的浮動通知 */
+.fav-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 2.5rem;
+  transform: translateX(-50%);
+  z-index: 1000;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  color: #fff;
+  background: rgba(38, 183, 188, 0.96);
+  border-radius: 999px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+
+.fav-toast-enter-active,
+.fav-toast-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fav-toast-enter-from,
+.fav-toast-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 0.75rem);
+}
+</style>
