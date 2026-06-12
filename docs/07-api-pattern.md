@@ -160,7 +160,9 @@ GET  /health                        → ApiRouter 直接回傳（不走 pipeline
 GET  /store/home                    → 首頁資料（banners / hotProducts / news / recipes / issues）
 GET  /store/products                → 商品列表（?producttypetitle=）
 GET  /store/products/detail         → 商品詳情（?title=）
+GET  /store/brands                  → 品牌選單清單（isdisplay=1 依 sort；導覽列「品牌系列」下拉）
 GET  /store/brands/detail           → 品牌詳情（?brandtitle=）
+GET  /store/brands/products         → 品牌系列商品分頁（?brandtitle=&skip=&take=；「More」無限載入）
 GET  /store/news                    → 消息列表（?p=）
 GET  /store/news/detail             → 消息詳情（?newid=&p=）
 GET  /store/recipes                 → 料理列表（?p=&k=）

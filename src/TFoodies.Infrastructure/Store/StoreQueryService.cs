@@ -166,6 +166,38 @@ ORDER BY r.sort;";
 
     // ── Brand ─────────────────────────────────────────────────────────────────────
 
+    // 導覽列下拉用：上線中的品牌（isdisplay=1），依 sort 排序。對應舊 BaseController.OnActionExecuted。
+    public async Task<IReadOnlyList<BrandMenuItem>> GetBrandsAsync(CancellationToken ct = default)
+    {
+        using var conn = await _db.CreateOpenConnectionAsync(ct);
+        var brands = await conn.QueryAsync<BrandMenuItem>(
+            "SELECT brandid AS BrandId, title AS Title, logo AS Logo FROM Brands WHERE isdisplay = 1 ORDER BY sort;");
+        return brands.ToList();
+    }
+
+    // 品牌頁「More」無限捲動：跳過 skip 筆後取 take 筆，多抓 1 筆判斷是否還有更多。
+    // 對應舊 AjaxController.GetBrandMoreProducts（ORDER BY sort DESC、isdisabled=0）。
+    public async Task<(IReadOnlyList<ProductListItem> Products, bool HasMore)> GetBrandProductsAsync(
+        string brandTitleSlug, int skip, int take, CancellationToken ct = default)
+    {
+        var dbTitle = Slug.ToTitle(brandTitleSlug);
+        skip = Math.Max(0, skip);
+        take = Math.Clamp(take, 1, 48);
+        using var conn = await _db.CreateOpenConnectionAsync(ct);
+
+        var sql = $@"
+SELECT {ProductColumns}
+{ProductJoins}
+WHERE b.title = @dbTitle AND p.isdisabled = 0
+ORDER BY p.sort DESC
+OFFSET @skip ROWS FETCH NEXT @takePlus ROWS ONLY;";
+
+        var rows = (await conn.QueryAsync<ProductRow>(sql, new { dbTitle, skip, takePlus = take + 1 })).ToList();
+        var hasMore = rows.Count > take;
+        var products = rows.Take(take).Select(MapProduct).ToList();
+        return (products, hasMore);
+    }
+
     public async Task<BrandDetail?> GetBrandDetailAsync(string brandTitleSlug, CancellationToken ct = default)
     {
         var dbTitle = Slug.ToTitle(brandTitleSlug);

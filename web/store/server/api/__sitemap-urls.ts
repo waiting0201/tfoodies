@@ -3,8 +3,8 @@
 // returns one entry per content URL. Static routes (/, /Products, /News, ...) are collected
 // automatically by the module from the pages directory, so only DB-driven URLs live here.
 //
-// Brand detail pages are intentionally omitted: the Store API has no brand-list endpoint
-// (only /store/brands/detail), and brand pages are reachable via product pages.
+// Brand detail pages: enumerated from /store/brands (isdisplay=1, the same list that feeds
+// the 「品牌系列」nav menu), so each on-sale brand micro-site gets indexed.
 
 interface Paged<T> { items: T[]; totalPages: number }
 
@@ -58,6 +58,13 @@ export default defineSitemapEventHandler(async () => {
   )
   for (const t of products.productTypes) urls.push({ loc: `/Products/${encodeURIComponent(t.title)}` })
   for (const p of products.products) urls.push({ loc: `/Product/${toSlug(p.title)}` })
+
+  // Brand micro-sites (on-sale only; same source as the 品牌系列 nav menu).
+  const brands = await safe(
+    () => $fetch<{ title: string }[]>(`${apiBase}/store/brands`),
+    [],
+  )
+  for (const b of brands) urls.push({ loc: `/Brand/${toSlug(b.title)}` })
 
   await Promise.all([
     collect<{ newId: string }>('/store/news', (n) => `/NewsDetail/${n.newId}/1`),

@@ -42,6 +42,13 @@ public sealed class StoreController
         return detail is null ? ctx.NotFound("找不到商品。") : ctx.Ok(detail);
     }
 
+    // GET /store/brands — 導覽列「品牌系列」下拉清單（isdisplay=1，依 sort）。
+    public async Task<IActionResult> GetBrands(RouteContext ctx)
+    {
+        var brands = await _store.GetBrandsAsync();
+        return ctx.Ok(brands);
+    }
+
     // GET /store/brands/detail?brandtitle=
     public async Task<IActionResult> GetBrandDetail(RouteContext ctx)
     {
@@ -49,6 +56,17 @@ public sealed class StoreController
         if (string.IsNullOrWhiteSpace(brandTitle)) return ctx.BadRequest("缺少 brandtitle 參數。");
         var detail = await _store.GetBrandDetailAsync(brandTitle);
         return detail is null ? ctx.NotFound("找不到品牌。") : ctx.Ok(detail);
+    }
+
+    // GET /store/brands/products?brandtitle=&skip=4&take=4 — 品牌頁「More」分頁載入系列商品。
+    public async Task<IActionResult> GetBrandProducts(RouteContext ctx)
+    {
+        var brandTitle = ctx.Request.Query["brandtitle"].ToString();
+        if (string.IsNullOrWhiteSpace(brandTitle)) return ctx.BadRequest("缺少 brandtitle 參數。");
+        int.TryParse(ctx.Request.Query["skip"].ToString(), out var skip);
+        int.TryParse(ctx.Request.Query["take"].ToString(), out var take);
+        var (products, hasMore) = await _store.GetBrandProductsAsync(brandTitle, skip, take > 0 ? take : 4);
+        return ctx.Ok(new { products, hasMore });
     }
 
     // GET /store/news[?p=1]

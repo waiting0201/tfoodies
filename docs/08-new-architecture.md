@@ -363,10 +363,12 @@ web/store/app/
      __sitemap-urls.ts    ← @nuxtjs/sitemap 動態來源：runtime 查 Store list API 彙整內容 URL
 ```
 
+**全站導覽（品牌系列）**：`layouts/default.vue` 於 SSR 階段 `await useBrandsMenu()`（打 `GET /store/brands`，回 isdisplay=1 依 sort 的品牌），把清單同時餵給 `SiteHeader`（桌面 mega-nav `.navContent`）與 `MobileMenu`（行動側欄 `.slide-brand-series`）。品牌 `<li>` 因此於首屏 HTML 內，hydration 後載入的 legacy `main.js` 才綁得到展開/hover 行為（對齊舊 `BaseController.OnActionExecuted` 填 `ViewBag.Brands`）。品牌頁系列商品「More」改以 Vue 處理：`Brand/[brandtitle].vue` 初始 4 筆，點 More 以 `$fetch('/store/brands/products?skip=&take=4')` append 並更新 `hasMore`（取代舊 `Ajax/GetBrandMoreProducts` 回傳 partial 字串）。
+
 **SEO 機制**：
 - **meta**：每頁呼叫 `useSeo()`（詳情頁帶 og:image=blob 圖、canonical=`shortener` 或站台 URL）。
 - **JSON-LD**：商品=`Product`(offers/price/TWD/availability)、News/Recipe/Issue/Event=`Article`、詳情頁附 `BreadcrumbList`。
-- **sitemap.xml**：`@nuxtjs/sitemap`，靜態路由自動收錄，動態內容由 `server/api/__sitemap-urls.ts` 於 runtime 查 API（品牌頁因無 list API 暫不納入）。
+- **sitemap.xml**：`@nuxtjs/sitemap`，靜態路由自動收錄，動態內容由 `server/api/__sitemap-urls.ts` 於 runtime 查 API（含商品/型錄/消息/料理/綠誌/活動，以及 `GET /store/brands` 列出的上線品牌頁）。
 - **robots.txt**：`@nuxtjs/robots` 產生（不再有靜態檔），`Disallow: /Member/ /Cart /Checkout /Order/` 並自動附 `Sitemap:`；被 disallow 的頁面自動補 `noindex` meta。
 
 **部署**：Docker 化（`web/store/Dockerfile`，多階段 → `node .output/server/index.mjs`，port 3000）→ **Azure Container Apps**（scale-to-zero 省成本，冷啟動如影響 SEO 改 minReplicas=1）。CI `.github/workflows/store.yml`：`az acr build` → `az containerapp update`。API base 由 Container App env `NUXT_PUBLIC_API_BASE` 注入。

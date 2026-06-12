@@ -5,7 +5,9 @@ public interface IStoreQueryService
     Task<HomeData> GetHomeAsync(CancellationToken ct = default);
     Task<ProductsPage> GetProductsAsync(string? typeTitle, CancellationToken ct = default);
     Task<ProductDetail?> GetProductDetailAsync(string title, CancellationToken ct = default);
+    Task<IReadOnlyList<BrandMenuItem>> GetBrandsAsync(CancellationToken ct = default);
     Task<BrandDetail?> GetBrandDetailAsync(string brandTitle, CancellationToken ct = default);
+    Task<(IReadOnlyList<ProductListItem> Products, bool HasMore)> GetBrandProductsAsync(string brandTitle, int skip, int take, CancellationToken ct = default);
     Task<(IReadOnlyList<NewsListItem> Items, int TotalCount)> GetNewsAsync(int page, int pageSize, CancellationToken ct = default);
     Task<NewsDetail?> GetNewsDetailAsync(Guid newId, CancellationToken ct = default);
     Task<(IReadOnlyList<RecipeListItem> Items, int TotalCount)> GetRecipesAsync(int page, int pageSize, string? keyword, CancellationToken ct = default);
@@ -59,6 +61,9 @@ public sealed record BrandSummary(Guid BrandId, string Title, string? Logo, stri
 public sealed record RecipeRef(Guid RecipeId, string Title, string? RPhoto);
 
 // ── Brand ──────────────────────────────────────────────────────────────────────
+// 導覽列「品牌系列」下拉選單用：僅 isdisplay=1，依 sort 排序（對應舊 BaseController.ViewBag.Brands）。
+public sealed record BrandMenuItem(Guid BrandId, string Title, string? Logo);
+
 public sealed record BrandDetail(
     Guid BrandId, string Title, string? Subtitle, string? Logo, string? Banner,
     string? PatternEnTitle, string? PatternChTitle, string? PartnerVideo, string? PatternMemo, string? PatternClass,

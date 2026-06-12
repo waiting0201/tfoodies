@@ -6,6 +6,34 @@ const brandtitle = computed(() => String(route.params.brandtitle ?? ''))
 const { data } = await useBrandData(brandtitle.value)
 const b = computed(() => data.value.brand)
 
+// 系列商品「More」分頁載入（取代舊 jQuery $.post + _PartialProductList 字串）。
+// 初始 4 筆由 useBrandData 帶入；之後以 skip/take=4 向 /store/brands/products 取得並 append。
+const apiBase = String(useRuntimeConfig().public.apiBase)
+const products = ref<ViewProduct[]>([...data.value.products])
+const hasMore = ref(data.value.hasMore)
+const loading = ref(false)
+
+// SSR data 在 client 端切換品牌時會更新 → 重置清單。
+watch(data, (d) => {
+  products.value = [...d.products]
+  hasMore.value = d.hasMore
+})
+
+async function loadMore() {
+  if (loading.value || !hasMore.value) return
+  loading.value = true
+  try {
+    const res = await $fetch<{ products: ApiProduct[]; hasMore: boolean }>(
+      `${apiBase}/store/brands/products`,
+      { query: { brandtitle: brandtitle.value, skip: products.value.length, take: 4 } },
+    )
+    products.value.push(...res.products.map(mapProduct))
+    hasMore.value = res.hasMore
+  } finally {
+    loading.value = false
+  }
+}
+
 const ogImage = computed(() => {
   const photo = b.value?.banner ?? b.value?.logo
   return photo ? data.value.blobUrl + photo : undefined
@@ -108,12 +136,14 @@ useSeo(() => ({
         </div>
         <div class="four-column clr product_list">
           <ProductCard
-            v-for="p in data.products" :key="p.productid"
+            v-for="p in products" :key="p.productid"
             :product="p" :blob-url="data.blobUrl" :promote-sliding="true"
           />
         </div>
-        <div v-if="data.hasMore" class="centered more">
-          <a href="javascript:;" class="outline-btn moreA" :data-brandtitle="brandtitle" data-skip="4" rel="nofollow">More</a>
+        <div v-if="hasMore" class="centered more">
+          <a href="javascript:;" class="outline-btn moreA" :class="{ 'is-loading': loading }" rel="nofollow" @click="loadMore">
+            {{ loading ? '載入中…' : 'More' }}
+          </a>
         </div>
       </div>
     </section>
