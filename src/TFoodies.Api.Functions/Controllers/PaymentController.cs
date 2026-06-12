@@ -1,0 +1,171 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using TFoodies.Api.Functions.Router;
+using TFoodies.Application.Abstractions;
+using TFoodies.Domain.Enums;
+using TFoodies.Infrastructure.Payments.Fisc;
+
+namespace TFoodies.Api.Functions.Controllers;
+
+/// <summary>
+/// 財金 FISC FOCAS_WEBPOS 信用卡金流端點（對齊舊系統 + 技術手冊 v2.7）。
+///   POST /store/payment/create  — 取得刷卡 form 欄位（前端 auto-submit 至財金刷卡頁）
+///   POST /store/payment/return  — AuthResURL：持卡人刷卡後財金以 form 導回，處理後 302 回前台
+///   POST /store/payment/notify  — 主動通知：財金背景 POST AuthResp 字串（補償，冪等）
+/// 全部公開，不需 JWT。
+/// </summary>
+public sealed class PaymentController
+{
+    private readonly IOrderService _orders;
+    private readonly IPaymentCompletionService _completion;
+    private readonly FiscOptions _fisc;
+
+    public PaymentController(
+        IOrderService orders, IPaymentCompletionService completion, IOptions<FiscOptions> fisc)
+    {
+        _orders = orders;
+        _completion = completion;
+        _fisc = fisc.Value;
+    }
+
+    // POST /store/payment/create
+    public async Task<IActionResult> CreatePayment(RouteContext ctx)
+    {
+        var ct = ctx.Request.HttpContext.RequestAborted;
+
+        var body = await ctx.TryReadBodyAsync<CreatePaymentRequest>(ct);
+        if (body is null || string.IsNullOrWhiteSpace(body.OrderCode))
+            return ctx.BadRequest("缺少 orderCode 欄位。");
+
+        var summary = await _orders.GetOrderAsync(body.OrderCode.Trim(), ct);
+        if (summary is null) return ctx.NotFound("找不到該訂單");
+
+        if (summary.PayType != PayType.CreditCard)
+            return ctx.BadRequest("此訂單非信用卡付款，無法發起刷卡。");
+        if (summary.PayStatus != PayStatus.Unpaid)
+            return ctx.Conflict("訂單已付款或目前狀態不可發起刷卡。");
+
+        var payable = summary.Total + summary.Freight - summary.Discount;
+
+        // WEBPOS hidden 欄位（手冊 3.1.1）。purchAmt 由後端權威計算，避免前端竄改。
+        var fields = new Dictionary<string, string>
+        {
+            ["MerchantID"]   = _fisc.MerchantID,
+            ["TerminalID"]   = _fisc.TerminalID,
+            ["merID"]        = _fisc.MerID,
+            ["MerchantName"] = _fisc.MerchantName,
+            ["lidm"]         = summary.OrderCode,
+            ["purchAmt"]     = payable.ToString(),
+            ["AutoCap"]      = "1",            // 自動轉入請款檔
+            ["AuthResURL"]   = _fisc.AuthResUrl,
+            ["PayType"]      = "0",            // 一般交易
+            ["enCodeType"]   = "UTF-8",
+        };
+
+        return ctx.Ok(new CreatePaymentResponse(_fisc.ActionUrl, fields));
+    }
+
+    // POST /store/payment/return（AuthResURL）
+    public async Task<IActionResult> Return(RouteContext ctx)
+    {
+        var ct = ctx.Request.HttpContext.RequestAborted;
+        var form = await ReadFormSafeAsync(ctx, ct);
+        var result = ParseFields(form);
+
+        if (result.IsSuccess && !string.IsNullOrEmpty(result.Lidm))
+            await _completion.MarkPaidAsync(result.Lidm, result.LastPan4, result.TxnRef, ct);
+
+        // 無論成功失敗都導回前台結果頁，由前台呈現付款結果。
+        var paid = result.IsSuccess ? "1" : "0";
+        var url = $"{_fisc.StoreSuccessUrl}?code={Uri.EscapeDataString(result.Lidm)}&paid={paid}";
+        return new RedirectResult(url);
+    }
+
+    // POST /store/payment/notify（主動通知，AuthResp 字串）
+    public async Task<IActionResult> Notify(RouteContext ctx)
+    {
+        var ct = ctx.Request.HttpContext.RequestAborted;
+
+        var form = await ReadFormSafeAsync(ctx, ct);
+        var authResp = form.GetValueOrDefault("AuthResp");
+        if (string.IsNullOrEmpty(authResp))
+            authResp = await ReadRawBodyAsync(ctx, ct); // 後援：body 即 AuthResp 字串
+
+        var result = ParseAuthResp(authResp);
+        if (result.IsSuccess && !string.IsNullOrEmpty(result.Lidm))
+            await _completion.MarkPaidAsync(result.Lidm, result.LastPan4, result.TxnRef, ct);
+
+        // 財金期待 http 200，未回 200 會重試最多 3 次。
+        return ctx.Ok(new { received = true, orderNumber = result.Lidm, paid = result.IsSuccess });
+    }
+
+    // ── 解析 ──────────────────────────────────────────────────────────────────────
+
+    // status=="0" 且 authCode 非空 = 授權成功（手冊 3.1.2 / 3.4.3）。
+    private static WebposResult ParseFields(IReadOnlyDictionary<string, string> f)
+    {
+        var status   = f.GetValueOrDefault("status");
+        var authCode = f.GetValueOrDefault("authCode");
+        var lidm     = f.GetValueOrDefault("lidm") ?? "";
+        var lastPan4 = f.GetValueOrDefault("lastPan4");
+        var xid      = f.GetValueOrDefault("xid");
+
+        var success = status == "0" && !string.IsNullOrWhiteSpace(authCode);
+        var txnRef  = $"FISC authCode:{authCode} xid:{xid}";
+        return new WebposResult(success, lidm, lastPan4, txnRef);
+    }
+
+    // 主動通知字串：AuthResp={status=0, authCode=123456, lidm=..., lastPan4=9104, ...}
+    private static WebposResult ParseAuthResp(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return new WebposResult(false, "", null, "");
+
+        var s = raw.Trim();
+        var eq = s.IndexOf('=');
+        if (s.StartsWith("AuthResp", StringComparison.OrdinalIgnoreCase) && eq >= 0)
+            s = s[(eq + 1)..];
+        s = s.Trim().Trim('{', '}');
+
+        var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var i = pair.IndexOf('=');
+            if (i <= 0) continue;
+            dict[pair[..i].Trim()] = pair[(i + 1)..].Trim();
+        }
+        return ParseFields(dict);
+    }
+
+    private static async Task<IReadOnlyDictionary<string, string>> ReadFormSafeAsync(RouteContext ctx, CancellationToken ct)
+    {
+        try
+        {
+            if (!ctx.Request.HasFormContentType) return new Dictionary<string, string>();
+            var form = await ctx.Request.ReadFormAsync(ct);
+            return form.ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
+        }
+        catch
+        {
+            return new Dictionary<string, string>();
+        }
+    }
+
+    private static async Task<string> ReadRawBodyAsync(RouteContext ctx, CancellationToken ct)
+    {
+        try
+        {
+            using var reader = new StreamReader(ctx.Request.Body);
+            return await reader.ReadToEndAsync(ct);
+        }
+        catch
+        {
+            return "";
+        }
+    }
+
+    // ── DTOs ──────────────────────────────────────────────────────────────────────
+
+    private sealed record CreatePaymentRequest(string? OrderCode);
+    private sealed record CreatePaymentResponse(string ActionUrl, IReadOnlyDictionary<string, string> Fields);
+    private sealed record WebposResult(bool IsSuccess, string Lidm, string? LastPan4, string TxnRef);
+}

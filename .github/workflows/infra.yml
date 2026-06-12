@@ -48,7 +48,13 @@ jobs:
               smtpPassword='${{ secrets.SMTP_PASSWORD }}' \
               smtpUsername='${{ vars.SMTP_USERNAME }}' \
               blobBaseUrl='${{ vars.BLOB_BASE_URL }}' \
-              blobContainerName='${{ vars.BLOB_CONTAINER || 'tfoodies' }}'
+              blobContainerName='${{ vars.BLOB_CONTAINER || 'tfoodies' }}' \
+              fiscMerchantId='${{ vars.FISC_MERCHANT_ID }}' \
+              fiscTerminalId='${{ vars.FISC_TERMINAL_ID }}' \
+              fiscMerId='${{ vars.FISC_MER_ID }}' \
+              fiscMerchantName='${{ vars.FISC_MERCHANT_NAME || 'TFoodies' }}' \
+              fiscActionUrl='${{ vars.FISC_ACTION_URL || 'https://www.focas.fisc.com.tw/FOCAS_WEBPOS/online/' }}' \
+              fiscAuthResUrl='${{ vars.FISC_AUTH_RES_URL || 'https://tfoodies-api.azurewebsites.net/api/store/payment/return' }}'
       - name: Deploy
         run: |
           az deployment group create \
@@ -64,4 +70,10 @@ jobs:
               smtpPassword='${{ secrets.SMTP_PASSWORD }}' \
               smtpUsername='${{ vars.SMTP_USERNAME }}' \
               blobBaseUrl='${{ vars.BLOB_BASE_URL }}' \
-              blobContainerName='${{ vars.BLOB_CONTAINER || 'tfoodies' }}'
+              blobContainerName='${{ vars.BLOB_CONTAINER || 'tfoodies' }}' \
+              fiscMerchantId='${{ vars.FISC_MERCHANT_ID }}' \
+              fiscTerminalId='${{ vars.FISC_TERMINAL_ID }}' \
+              fiscMerId='${{ vars.FISC_MER_ID }}' \
+              fiscMerchantName='${{ vars.FISC_MERCHANT_NAME || 'TFoodies' }}' \
+              fiscActionUrl='${{ vars.FISC_ACTION_URL || 'https://www.focas.fisc.com.tw/FOCAS_WEBPOS/online/' }}' \
+              fiscAuthResUrl='${{ vars.FISC_AUTH_RES_URL || 'https://tfoodies-api.azurewebsites.net/api/store/payment/return' }}'

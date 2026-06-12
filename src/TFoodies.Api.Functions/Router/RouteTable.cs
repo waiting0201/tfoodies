@@ -249,8 +249,10 @@ public class RouteTable
         Register<ProductAdminController>("PUT",    @"admin/tags/(?<id>[^/]+)$",                           (c, ctx) => c.UpdateTag(ctx));
         Register<ProductAdminController>("DELETE", @"admin/tags/(?<id>[^/]+)$",                           (c, ctx) => c.DeleteTag(ctx));
 
-        // ── Payment Notify（公開，金流 webhook）───────────────────────────────
-        Register<PaymentNotifyController>("POST", "store/payment/notify",                                 (c, ctx) => c.Notify(ctx));
+        // ── Payment（公開，財金 WEBPOS 信用卡金流）─────────────────────────────
+        Register<PaymentController>("POST", "store/payment/create",                                       (c, ctx) => c.CreatePayment(ctx));
+        Register<PaymentController>("POST", "store/payment/return",                                       (c, ctx) => c.Return(ctx));
+        Register<PaymentController>("POST", "store/payment/notify",                                       (c, ctx) => c.Notify(ctx));
 
         // ── Admin Auth ──────────────────────────────────────────────────────────
         Register<AdminAuthController>("POST", "auth/admin/login",                                         (c, ctx) => c.Login(ctx));

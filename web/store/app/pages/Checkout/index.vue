@@ -227,6 +227,29 @@ async function submitOrder() {
     cartStore.items = []
     cartStore.persist()
 
+    // 信用卡：發起財金 FISC WEBPOS 刷卡。後端回傳 form action 與欄位，動態建表單
+    // auto-submit 將使用者整頁導向財金刷卡頁；刷卡結果由財金導回 /store/payment/return。
+    if (form.payType === 1) {
+      const init = await $fetch<{ actionUrl: string; fields: Record<string, string> }>(
+        `${config.public.apiBase}/store/payment/create`,
+        { method: 'POST', body: { orderCode: res.orderCode } },
+      )
+      const f = document.createElement('form')
+      f.method = 'post'
+      f.action = init.actionUrl
+      f.acceptCharset = 'UTF-8'
+      for (const [k, v] of Object.entries(init.fields)) {
+        const i = document.createElement('input')
+        i.type = 'hidden'
+        i.name = k
+        i.value = v ?? ''
+        f.appendChild(i)
+      }
+      document.body.appendChild(f)
+      f.submit()
+      return
+    }
+
     const query: Record<string, string> = { code: res.orderCode }
     if (res.atmCode) query.atm = res.atmCode
     if (res.atmExpiry) query.atmExpiry = res.atmExpiry

@@ -5,6 +5,7 @@ using TFoodies.Application.Abstractions;
 using TFoodies.Infrastructure.Auth;
 using TFoodies.Infrastructure.CodeNumbers;
 using TFoodies.Infrastructure.Invoicing.EzPay;
+using TFoodies.Infrastructure.Payments;
 using TFoodies.Infrastructure.Payments.Fisc;
 using TFoodies.Infrastructure.Persistence;
 using TFoodies.Infrastructure.Permissions;
@@ -69,14 +70,11 @@ public static class DependencyInjection
         services.AddScoped<IDiscountService, DiscountService>();
         services.AddScoped<IOrderService, OrderService>();
 
-        // ── Payment gateway（Singleton — HttpClient pool） ────────────────────────
+        // ── Payment：財金 WEBPOS 設定 + 付款完成共用服務（Scoped）───────────────────
+        // WEBPOS 為前端 form POST 導向刷卡，後端不需 HttpClient/加密；付款成功處理
+        // （標記已付款/建 Income/寄信/開發票）由 /return 與 /notify 共用此服務。
         services.Configure<FiscOptions>(configuration.GetSection(FiscOptions.SectionName));
-        services.AddSingleton<FiscMessageCodec>(sp =>
-        {
-            var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<FiscOptions>>().Value;
-            return FiscMessageCodec.FromHex(opts.VerificationKeyHex, opts.FieldKeyHex);
-        });
-        services.AddHttpClient<IPaymentGateway, FiscPaymentGateway>();
+        services.AddScoped<IPaymentCompletionService, PaymentCompletionService>();
 
         // ── Invoice service（Singleton — HttpClient pool） ────────────────────────
         services.Configure<EzPayOptions>(configuration.GetSection(EzPayOptions.SectionName));

@@ -70,7 +70,7 @@ tests/
 - `IDbConnectionFactory` — Dapper 連線工廠（`CreateConnection()`）
 - `ICodeNumberService` — 原子單號產生（9 種 CodeKind，MERGE HOLDLOCK）
 - `IStockAllocator` / `AllocationResult` / `StockPick` — FIFO 庫存揀貨
-- `IPaymentGateway` / `IInvoiceService` — 金流/電子發票 port
+- `IPaymentCompletionService` / `IInvoiceService` — 付款完成處理（標記已付款+Income+寄信+發票）/電子發票 port
 - `IAuthService` — 會員/管理員登入（回傳 JWT token pair）
 - `IJwtTokenService` — HS256 token 產生/驗證/刷新
 - `IDiscountService` / `DiscountResult` — 折扣碼驗證 + 折扣金額計算
@@ -98,10 +98,9 @@ Auth/
   JwtSettings.cs               ← HS256 key/issuer/audience/expiry
   JwtTokenService.cs           ← IJwtTokenService（Singleton，無狀態 JWT refresh token，重啟/多副本可驗證）
   AuthService.cs               ← IAuthService（PBKDF2 hash-on-login，自動升級明文）
-Payments/Fisc/
-  FiscMessageCodec.cs          ← 智付通 HMAC-SHA256 + AES-GCM codec
-  FiscOptions.cs
-  FiscPaymentGateway.cs        ← IPaymentGateway（HttpClient）
+Payments/
+  PaymentCompletionService.cs  ← IPaymentCompletionService（標記已付款+Income+寄信+發票，WEBPOS 兩路徑共用）
+  Fisc/FiscOptions.cs          ← 財金 WEBPOS 設定（ActionUrl/商店代號/AuthResUrl/StoreSuccessUrl）
 Invoicing/EzPay/
   EzPayCodec.cs                ← 藍新 AES-256-CBC + SHA256 codec
   EzPayOptions.cs
@@ -197,7 +196,9 @@ Controllers/
   MemberProfileController.cs ← 會員中心（JWT member）：GET/PATCH /member/profile（對齊舊 MemberMs/EditProfile）、
                                  POST /member/password（修改密碼，對齊舊 EditPassword：新密碼+確認相符即更新，明文存，限 20 字）、
                                  GET/POST/DELETE /member/wishlist（我的收藏，對齊舊 Mylists；Memberproducts 僅 memberid+productid 複合鍵、圖取 Products.photo）
-  PaymentNotifyController.cs ← POST /store/payment/notify（公開 webhook）
+  PaymentController.cs       ← 財金 WEBPOS 信用卡金流（公開）：POST /store/payment/create（前端 auto-submit 刷卡 form）、
+                                 POST /store/payment/return（AuthResURL 導回，處理後 302 回前台 Success）、
+                                 POST /store/payment/notify（主動通知補償，冪等）
   Admin/
     OrderAdminController.cs      ← /admin/orders（OrderMs RBAC）
                                    GET /admin/orders, GET /admin/orders/{code}

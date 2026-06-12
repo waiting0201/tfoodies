@@ -1,20 +1,34 @@
 <script setup lang="ts">
-useHead({ title: '訂單成立' })
-
 const route = useRoute()
 const orderCode = computed(() => String(route.query.code ?? ''))
 const atmAccount = computed(() => String(route.query.atm ?? ''))
 const atmExpiry = computed(() => String(route.query.atmExpiry ?? ''))
 const isAtm = computed(() => !!atmAccount.value)
+
+// 信用卡刷卡導回會帶 paid=1|0；非信用卡（一般下單成功）則無此參數。
+const paidParam = computed(() => String(route.query.paid ?? ''))
+const isCardReturn = computed(() => paidParam.value !== '')
+const cardFailed = computed(() => isCardReturn.value && paidParam.value !== '1')
+
+const heading = computed(() => (cardFailed.value ? '付款未完成' : '訂單成立'))
+const lead = computed(() =>
+  cardFailed.value
+    ? '您的信用卡授權未成功，訂單已為您保留，您可至會員中心重新付款。'
+    : isCardReturn.value
+      ? '付款完成，感謝您的購買！我們已收到您的訂單。'
+      : '感謝您的購買，我們已收到您的訂單。',
+)
+
+useHead({ title: heading })
 </script>
 
 <template>
   <main id="main">
     <section class="tallsection clr">
       <div class="restrict-wide allpadding">
-        <div class="order-success">
+        <div class="order-success" :class="{ 'order-success--failed': cardFailed }">
           <div class="order-success__icon" aria-hidden="true">
-            <svg viewBox="0 0 52 52" width="44" height="44">
+            <svg v-if="!cardFailed" viewBox="0 0 52 52" width="44" height="44">
               <path
                 fill="none"
                 stroke="#fff"
@@ -24,10 +38,20 @@ const isAtm = computed(() => !!atmAccount.value)
                 d="M14 27l8 8 16-18"
               />
             </svg>
+            <svg v-else viewBox="0 0 52 52" width="44" height="44">
+              <path
+                fill="none"
+                stroke="#fff"
+                stroke-width="4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M17 17l18 18M35 17L17 35"
+              />
+            </svg>
           </div>
 
-          <h1 class="order-success__title">訂單成立</h1>
-          <p class="order-success__lead">感謝您的購買，我們已收到您的訂單。</p>
+          <h1 class="order-success__title">{{ heading }}</h1>
+          <p class="order-success__lead">{{ lead }}</p>
 
           <div v-if="orderCode" class="order-success__code">
             <span class="order-success__code-label">訂單編號</span>
@@ -83,6 +107,11 @@ const isAtm = computed(() => !!atmAccount.value)
   border-radius: 50%;
   background: #26b7bc;
   box-shadow: 0 6px 18px rgba(38, 183, 188, 0.3);
+}
+
+.order-success--failed .order-success__icon {
+  background: #e0584f;
+  box-shadow: 0 6px 18px rgba(224, 88, 79, 0.3);
 }
 
 .order-success__title {

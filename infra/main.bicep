@@ -67,15 +67,15 @@ param orderFreightAmount string = '120'
 param orderAtmExpiryDays string = '3'
 param orderAtmPrefix string = '1943'
 
-// FISC 金流（尚未啟用；有正式金鑰時填對應 GitHub Secret/Variable）
-param fiscBaseUrl string = 'https://www.focas.fisc.com.tw/FOCAS_WS/API20/V1/FISCII'
+// FISC 金流（FOCAS_WEBPOS；前端 form POST 導向刷卡，無加密金鑰，僅商店代號）
+// 商店代號非機密（form 本就會出現在前端 HTML），以 GitHub Variable 提供即可。
+param fiscActionUrl string = 'https://www.focas.fisc.com.tw/FOCAS_WEBPOS/online/'
 param fiscMerchantId string = ''
 param fiscTerminalId string = ''
-param fiscAcqBank string = ''
-@secure()
-param fiscVerificationKeyHex string = ''
-@secure()
-param fiscFieldKeyHex string = ''
+param fiscMerId string = ''
+param fiscMerchantName string = 'TFoodies'
+// 授權結果回傳網址（AuthResURL）= 本 Function App 的 /return 端點；須與財金後台註冊一致。
+param fiscAuthResUrl string = 'https://tfoodies-api.azurewebsites.net/api/store/payment/return'
 
 // ezPay 電子發票（尚未啟用；有正式金鑰時填對應 GitHub Secret/Variable）
 param ezpayBaseUrl string = 'https://inv.ezpay.com.tw/Api'
@@ -182,13 +182,14 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'Smtp__EnableSsl', value: smtpEnableSsl }
         { name: 'Smtp__Bcc__0', value: smtpBcc0 }
         { name: 'Smtp__Bcc__1', value: smtpBcc1 }
-        // FISC 金流
-        { name: 'Fisc__BaseUrl', value: fiscBaseUrl }
-        { name: 'Fisc__MerchantId', value: fiscMerchantId }
-        { name: 'Fisc__TerminalId', value: fiscTerminalId }
-        { name: 'Fisc__AcqBank', value: fiscAcqBank }
-        { name: 'Fisc__VerificationKeyHex', value: fiscVerificationKeyHex }
-        { name: 'Fisc__FieldKeyHex', value: fiscFieldKeyHex }
+        // FISC 金流（FOCAS_WEBPOS）。StoreSuccessUrl 由 siteUrl 自動組。
+        { name: 'Fisc__ActionUrl', value: fiscActionUrl }
+        { name: 'Fisc__MerchantID', value: fiscMerchantId }
+        { name: 'Fisc__TerminalID', value: fiscTerminalId }
+        { name: 'Fisc__MerID', value: fiscMerId }
+        { name: 'Fisc__MerchantName', value: fiscMerchantName }
+        { name: 'Fisc__AuthResUrl', value: fiscAuthResUrl }
+        { name: 'Fisc__StoreSuccessUrl', value: '${siteUrl}/Order/Success' }
         // ezPay 電子發票
         { name: 'EzPay__BaseUrl', value: ezpayBaseUrl }
         { name: 'EzPay__MerchantId', value: ezpayMerchantId }
