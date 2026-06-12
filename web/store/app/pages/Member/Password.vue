@@ -95,7 +95,10 @@ async function submit() {
 
 <style scoped>
 .mc-title {
-  margin: 0 0 1.5rem;
+  max-width: 460px;
+  margin: 0 auto 1.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eef4f4;
   font-size: 1.2rem;
   letter-spacing: 0.06em;
   color: #156467;
@@ -103,6 +106,7 @@ async function submit() {
 
 .pw {
   max-width: 460px;
+  margin: 0 auto;
 }
 
 .pw-field {
@@ -122,8 +126,10 @@ async function submit() {
 .pw-field input {
   width: 100%;
   box-sizing: border-box;
-  padding: 0.6rem 0.8rem;
+  height: 42px;
+  padding: 0 0.8rem;
   font-size: 0.92rem;
+  line-height: 1.5;
   color: #393939;
   border: 1px solid #e1e1e1;
   border-radius: 8px;

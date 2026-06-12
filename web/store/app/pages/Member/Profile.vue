@@ -187,7 +187,7 @@ async function submit() {
         </div>
       </div>
 
-      <div class="pf-field">
+      <div class="pf-field pf-field--addr">
         <label>聯絡地址</label>
         <div class="pf-row">
           <select v-model="form.city" @change="onCityChange">
@@ -215,7 +215,10 @@ async function submit() {
 
 <style scoped>
 .mc-title {
-  margin: 0 0 1.5rem;
+  max-width: 520px;
+  margin: 0 auto 1.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eef4f4;
   font-size: 1.2rem;
   letter-spacing: 0.06em;
   color: #156467;
@@ -229,18 +232,20 @@ async function submit() {
 
 .pf {
   max-width: 520px;
+  margin: 0 auto;
 }
 
 .pf-field {
   display: grid;
   grid-template-columns: 96px 1fr;
   align-items: start;
-  gap: 1rem;
+  column-gap: 1rem;
+  row-gap: 0;
   margin-bottom: 1.3rem;
 }
 
 .pf-field > label {
-  padding-top: 0.65rem;
+  padding-top: 0.75rem;
   font-size: 0.88rem;
   color: #3e3e3e;
   letter-spacing: 0.04em;
@@ -251,8 +256,10 @@ async function submit() {
 .pf-field select {
   width: 100%;
   box-sizing: border-box;
-  padding: 0.6rem 0.8rem;
+  height: 42px;
+  padding: 0 0.8rem;
   font-size: 0.92rem;
+  line-height: 1.5;
   color: #393939;
   border: 1px solid #e1e1e1;
   border-radius: 8px;
@@ -277,8 +284,9 @@ async function submit() {
 
 .pf-radios {
   display: flex;
+  align-items: center;
   gap: 1.5rem;
-  padding-top: 0.55rem;
+  height: 42px;
 }
 
 .pf-radio {
@@ -300,7 +308,17 @@ async function submit() {
 .pf-row select { flex: 1; }
 
 .pf-addr {
-  margin-top: 0.6rem;
+  grid-column: 2;
+  margin-top: 0.1rem;
+}
+
+/* 聯絡地址整組（縣市列 + 詳細地址）視為一個區塊，label 垂直置中 */
+.pf-field--addr {
+  align-items: center;
+}
+
+.pf-field--addr > label {
+  padding-top: 0;
 }
 
 .pf-msg {
@@ -343,5 +361,6 @@ async function submit() {
   }
   .pf-field > label { padding-top: 0; }
   .pf-static { padding: 0.2rem 0; }
+  .pf-addr { grid-column: 1; }
 }
 </style>
