@@ -205,6 +205,17 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
 // ---------- 前台 store：Container Registry + Container App (Nuxt SSR) ----------
 param siteUrl string = 'https://www.tfoodies.com'
 
+// 自訂網域：寫進 bicep 才能在每次整包部署時保留 ingress binding，
+// 否則 az deployment group create 的 PUT 會把手動綁定（az containerapp hostname bind）洗掉。
+// 值預設為實際生產網域；空字串=不綁定（dev/驗證用）。詳見 docs/11-store-deployment.md §C。
+@description('前台 Container App 自訂網域（空=不綁定）')
+param storeCustomDomain string = 'tfoodies-store.4webdemo.com'
+
+// 引用「既有」受管憑證（已 Succeeded），避免重建與重新 DNS 驗證。
+// 此名稱由 az 自動產生且穩定（自動續期會原地更新、不改名）。
+@description('既有受管憑證名稱；空=不綁定網域')
+param storeCertName string = 'tfoodies-store.4webdemo.com-tfoodies-260611010259'
+
 // CI 會以實際映像覆蓋；首次建立用公開 placeholder 以避免 image-not-found。
 var storePlaceholderImage = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 
@@ -231,6 +242,12 @@ resource caEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
   properties: {}
 }
 
+// 既有受管憑證（不由本範本建立）；僅在綁定網域時引用其 id。
+resource storeCert 'Microsoft.App/managedEnvironments/managedCertificates@2024-03-01' existing = if (!empty(storeCustomDomain) && !empty(storeCertName)) {
+  parent: caEnv
+  name: storeCertName
+}
+
 resource storeApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'tfoodies-store'
   location: location
@@ -242,6 +259,14 @@ resource storeApp 'Microsoft.App/containerApps@2024-03-01' = {
         external: true
         targetPort: 3000
         transport: 'auto'
+        // 自訂網域 binding 必須寫在這裡，否則整包部署會清掉手動綁定。
+        customDomains: empty(storeCustomDomain) || empty(storeCertName) ? [] : [
+          {
+            name: storeCustomDomain
+            bindingType: 'SniEnabled'
+            certificateId: storeCert.id
+          }
+        ]
       }
       registries: [
         {
