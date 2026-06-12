@@ -74,6 +74,22 @@ function reinitSliders() {
   if ($('#tabber').length && $.fn.tabber) {
     try { $('#tabber').tabber({ anchor: '.tabber-anchor', content: '.tabber-content' }) } catch { /* idempotent enough */ }
   }
+
+  // Scroll-reveal: `.page` blocks start at opacity:0 (main.css) and the legacy onScreen plugin
+  // adds `.onScreen` to fade them in when scrolled into view. main.js binds this ONCE on first
+  // load, so a `.page` block rendered by a later SPA navigation (e.g. /Reports reached from the
+  // nav menu) never gets bound and stays invisible. Re-bind per navigation here — `remove` first
+  // (namespaced scroll.onScreen handler) so listeners don't accumulate — then trigger a scroll so
+  // above-the-fold blocks reveal immediately without waiting for the user to scroll.
+  const fn = $.fn as Record<string, unknown> | undefined
+  if (fn && fn.onScreen) {
+    const pages = $('.page')
+    if (pages.length) {
+      try { pages.onScreen('remove') } catch { /* not yet bound */ }
+      pages.onScreen({ toggleClass: 'onScreen', tolerance: 100 })
+      $(window as unknown as string).trigger('scroll')
+    }
+  }
 }
 
 function loadMainJs(): Promise<void> {

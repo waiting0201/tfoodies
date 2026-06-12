@@ -365,6 +365,10 @@ web/store/app/
 
 **全站導覽（品牌系列）**：`layouts/default.vue` 於 SSR 階段 `await useBrandsMenu()`（打 `GET /store/brands`，回 isdisplay=1 依 sort 的品牌），把清單同時餵給 `SiteHeader`（桌面 mega-nav `.navContent`）與 `MobileMenu`（行動側欄 `.slide-brand-series`）。品牌 `<li>` 因此於首屏 HTML 內，hydration 後載入的 legacy `main.js` 才綁得到展開/hover 行為（對齊舊 `BaseController.OnActionExecuted` 填 `ViewBag.Brands`）。品牌頁系列商品「More」改以 Vue 處理：`Brand/[brandtitle].vue` 初始 4 筆，點 More 以 `$fetch('/store/brands/products?skip=&take=4')` append 並更新 `hasMore`（取代舊 `Ajax/GetBrandMoreProducts` 回傳 partial 字串）。
 
+**靜態頁**：`Reports.vue`（檢驗報告，路由 `/Reports`）為純靜態圖牆（舊 `MainMs/Reports`，無 model），1:1 移植 markup + `useSeo()`，圖檔在 `public/content/images/section/`。
+
+**捲動進場（`.page` 區塊）**：`.page` 預設 `opacity:0`（main.css），靠 legacy onScreen 外掛捲到視窗內加 `.onScreen` 淡入。`main.js` 只在首次載入綁一次，後續經由 SPA 換頁渲染的 `.page` 不會被綁、永久隱形。`plugins/legacy-effects.client.ts` 的 `reinitSliders()` 於每次 `page:finish` 重綁（先 `onScreen('remove')` 卸載具名 `scroll.onScreen` handler 避免累積），並 `trigger('scroll')` 讓首屏區塊立即顯示。影響所有用 `.page` 的頁（Reports、News/Recipes/Issues/Events 列表、活動詳情）。
+
 **SEO 機制**：
 - **meta**：每頁呼叫 `useSeo()`（詳情頁帶 og:image=blob 圖、canonical=`shortener` 或站台 URL）。
 - **JSON-LD**：商品=`Product`(offers/price/TWD/availability)、News/Recipe/Issue/Event=`Article`、詳情頁附 `BreadcrumbList`。
