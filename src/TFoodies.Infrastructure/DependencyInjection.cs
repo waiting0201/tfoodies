@@ -11,6 +11,7 @@ using TFoodies.Infrastructure.Permissions;
 using TFoodies.Infrastructure.Inventory;
 using TFoodies.Infrastructure.Orders;
 using TFoodies.Infrastructure.Sms;
+using TFoodies.Infrastructure.Email;
 using TFoodies.Infrastructure.Blob;
 using TFoodies.Infrastructure.Store;
 
@@ -92,6 +93,10 @@ public static class DependencyInjection
         services.Configure<MitakeSmsOptions>(configuration.GetSection(MitakeSmsOptions.SectionName));
         services.AddHttpClient(nameof(MitakeSmsService));
         services.AddSingleton<ISmsService, MitakeSmsService>();
+
+        // ── Email service（SMTP，Singleton — 無狀態） ─────────────────────────────
+        services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.SectionName));
+        services.AddSingleton<IEmailService, SmtpEmailService>();
 
         // ── Blob Storage（Singleton — BlobContainerClient 是 thread-safe）────────
         services.Configure<AzureBlobOptions>(configuration.GetSection(AzureBlobOptions.SectionName));

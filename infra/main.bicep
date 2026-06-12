@@ -48,6 +48,18 @@ param blobContainerName string = 'tfoodies'
 param blobBaseUrl string = ''
 param smsUsername string = ''
 param smsApiUrl string = 'https://sms.mitake.com.tw/b2c/mtk/SmSend'
+
+// SMTP（忘記密碼寄送新密碼用；smtpPassword 為機密，其餘非機密走預設）
+@secure()
+param smtpPassword string = ''
+param smtpHost string = 'smtp-relay.sendinblue.com'
+param smtpPort string = '587'
+param smtpUsername string = ''
+param smtpFromAddress string = 'noreply@tfoodies.com'
+param smtpFromName string = '食在呼 TFoodies'
+param smtpEnableSsl string = 'true'
+param smtpBcc0 string = 'hi@tfoodies.com'
+param smtpBcc1 string = 'angela@tfoodies.com'
 param jwtExpiryMinutes string = '60'
 param jwtRefreshExpiryDays string = '30'
 param orderFreightLimit string = '2000'
@@ -160,6 +172,16 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'Sms__Username', value: smsUsername }
         { name: 'Sms__Password', value: smsPassword }
         { name: 'Sms__ApiUrl', value: smsApiUrl }
+        // SMTP（忘記密碼寄信）
+        { name: 'Smtp__Host', value: smtpHost }
+        { name: 'Smtp__Port', value: smtpPort }
+        { name: 'Smtp__Username', value: smtpUsername }
+        { name: 'Smtp__Password', value: smtpPassword }
+        { name: 'Smtp__FromAddress', value: smtpFromAddress }
+        { name: 'Smtp__FromName', value: smtpFromName }
+        { name: 'Smtp__EnableSsl', value: smtpEnableSsl }
+        { name: 'Smtp__Bcc__0', value: smtpBcc0 }
+        { name: 'Smtp__Bcc__1', value: smtpBcc1 }
         // FISC 金流
         { name: 'Fisc__BaseUrl', value: fiscBaseUrl }
         { name: 'Fisc__MerchantId', value: fiscMerchantId }

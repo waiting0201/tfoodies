@@ -19,7 +19,7 @@ TFoodies 採**多專案分層**，原因：
 
 | 考量 | 說明 |
 |---|---|
-| 規模 | 72 張資料表（vs 報價 ~20 張）、5 個整合（金流/發票/Blob/SMS/MongoDB）、複雜業務規則（FIFO 庫存、原子單號、VAT） |
+| 規模 | 72 張資料表（vs 報價 ~20 張）、6 個整合（金流/發票/Blob/SMS/Email/MongoDB）、複雜業務規則（FIFO 庫存、原子單號、VAT） |
 | 可測試性 | Domain/Application 不依賴任何基礎設施，可跑純 unit test，不需要 DB 或 Azure 模擬 |
 | 可替換性 | Infrastructure 可以換（例如：把 EF Core 換成純 Dapper），不影響 Application 層 |
 | 強制相依方向 | csproj 的 `ProjectReference` 限制了誰能呼叫誰，防止 Controller 直接存取 DbContext |
@@ -119,6 +119,11 @@ Inventory/
 Permissions/
   SqlAdminPermissionService.cs ← IAdminPermissionService（Lims/AdminLims RBAC）
                                   ⚠ namespace=Permissions（避免 CS0118 'Admin' 衝突）
+Sms/
+  MitakeSmsService.cs          ← ISmsService（三竹簡訊，具名 HttpClient）
+Email/
+  SmtpEmailService.cs          ← IEmailService（SMTP，Singleton；對齊舊 Libs.SendMail/Sendinblue，
+                                  但失敗回 false 不無限遞迴；BCC 可設定，appsettings:Smtp）
 Store/
   StoreQueryService.cs         ← IStoreQueryService（Dapper 讀；12 前台查詢）
 DependencyInjection.cs         ← AddInfrastructure()，對外唯一入口
@@ -183,6 +188,10 @@ Helpers/
 Controllers/
   StoreController.cs         ← 前台商品/CMS（12 GET 端點，公開）
   AuthController.cs          ← POST /auth/login, /auth/refresh
+  MemberAuthController.cs    ← 會員認證延伸（公開）：POST /auth/register（註冊）、
+                                 POST /auth/forgot-password（忘記密碼，對齊舊 Ajax/PasswordSend：
+                                 比對 mobile+email → 產生 6 碼亂數新密碼 → PBKDF2 雜湊存檔 →
+                                 IEmailService 寄送新密碼至信箱）
   StoreOrderController.cs    ← POST /store/orders, GET /store/orders/{code}, POST /store/discount/apply
   MemberController.cs        ← GET /member/orders, /member/orders/{code}（JWT member 身份）
   MemberProfileController.cs ← 會員中心（JWT member）：GET/PATCH /member/profile（對齊舊 MemberMs/EditProfile）、

@@ -45,6 +45,8 @@ jobs:
               appInsightsConnectionString='${{ secrets.APPINSIGHTS_CONNECTION_STRING }}' \
               smsPassword='${{ secrets.SMS_PASSWORD }}' \
               smsUsername='${{ vars.SMS_USERNAME }}' \
+              smtpPassword='${{ secrets.SMTP_PASSWORD }}' \
+              smtpUsername='${{ vars.SMTP_USERNAME }}' \
               blobBaseUrl='${{ vars.BLOB_BASE_URL }}' \
               blobContainerName='${{ vars.BLOB_CONTAINER || 'tfoodies' }}'
       - name: Deploy
@@ -59,5 +61,7 @@ jobs:
               appInsightsConnectionString='${{ secrets.APPINSIGHTS_CONNECTION_STRING }}' \
               smsPassword='${{ secrets.SMS_PASSWORD }}' \
               smsUsername='${{ vars.SMS_USERNAME }}' \
+              smtpPassword='${{ secrets.SMTP_PASSWORD }}' \
+              smtpUsername='${{ vars.SMTP_USERNAME }}' \
               blobBaseUrl='${{ vars.BLOB_BASE_URL }}' \
               blobContainerName='${{ vars.BLOB_CONTAINER || 'tfoodies' }}'

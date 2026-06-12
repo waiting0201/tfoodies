@@ -258,8 +258,7 @@ public class RouteTable
 
         // ── Member Auth（公開，無需登入）────────────────────────────────────────
         Register<MemberAuthController>("POST", "auth/register",                                           (c, ctx) => c.Register(ctx));
-        Register<MemberAuthController>("POST", "auth/forgot-password/send",                               (c, ctx) => c.ForgotPasswordSend(ctx));
-        Register<MemberAuthController>("POST", "auth/forgot-password/reset",                              (c, ctx) => c.ForgotPasswordReset(ctx));
+        Register<MemberAuthController>("POST", "auth/forgot-password",                                    (c, ctx) => c.ForgotPassword(ctx));
 
         // ── Member Profile & Wishlist（需 JWT member）──────────────────────────
         Register<MemberProfileController>("GET",    "member/profile",                                    (c, ctx) => c.GetProfile(ctx));
