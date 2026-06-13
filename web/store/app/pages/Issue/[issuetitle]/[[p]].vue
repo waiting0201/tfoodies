@@ -1,6 +1,7 @@
 <script setup lang="ts">
-// Port of reference/old/tfoodies/Views/MainMs/IssueDetail.cshtml.
-// URL: /Issue/{issuetitle}/{p?}  — issuetitle uses hyphen↔slash convention (same as Product).
+// Issue detail (綠誌). Functionality ported from reference/old/tfoodies/Views/MainMs/IssueDetail.cshtml
+// (breadcrumb, title, share, date, intro, other articles, related products, recipes); interface
+// redesigned into a tidier two-column article layout. URL: /Issue/{issuetitle}/{p?}
 const route = useRoute()
 const slug = computed(() => String(route.params.issuetitle ?? ''))
 const issuetitle = computed(() => urlSlugToTitle(slug.value))
@@ -10,6 +11,8 @@ const item = computed(() => data.value.item)
 
 const siteUrl = String(useRuntimeConfig().public.siteUrl).replace(/\/+$/, '')
 const ogImage = computed(() => (item.value?.photo ? data.value.blobUrl + item.value.photo : undefined))
+const shareUrl = computed(() =>
+  item.value?.shortener || `${siteUrl}/Issue/${slug.value}/${pageNum.value}`)
 
 useSeo(() => ({
   title: item.value?.title ?? '綠誌',
@@ -35,56 +38,52 @@ useJsonLd(() => {
     ]),
   ]
 })
+
+const others = computed(() =>
+  data.value.others.map(o => ({ href: `/Issue/${titleToUrlSlug(o.title)}`, photo: o.photo, label: o.title })))
+const sortedProducts = computed(() =>
+  data.value.products.filter(p => !p.isdisabled).sort((a, b) => b.sort - a.sort))
 </script>
 
 <template>
-  <main id="main">
+  <main id="main" class="article-detail">
     <section class="restrict-wide allpadding">
-      <div class="locate">
-        <p>
-          <a :href="`/Issues/${data.pageNumber}`" class="descript">健康生活/</a>
-          <a href="javascript:;" class="descript main">{{ item?.title }}</a>
-        </p>
+      <nav class="crumb">
+        <a :href="`/Issues/${data.pageNumber}`">健康生活</a>
+        <span class="crumb__sep">/</span>
+        <span class="crumb__current">{{ item?.title }}</span>
+      </nav>
+    </section>
+
+    <section v-if="item" class="restrict-wide allpadding">
+      <div class="layout">
+        <article class="article none-copy" oncopy="return false;">
+          <header class="article__head">
+            <h1 class="article__title">{{ item.title }}</h1>
+            <ul class="meta">
+              <li v-if="item.createdate" class="meta__chip meta__chip--date">{{ item.createdate }}</li>
+            </ul>
+            <ArticleShare :url="shareUrl" :title="item.title" />
+            <div class="article__divider"></div>
+          </header>
+
+          <div class="prose" v-html="item.intro"></div>
+
+          <div class="back">
+            <a :href="`/Issues/${data.pageNumber}`" class="back__btn">返回</a>
+          </div>
+        </article>
+
+        <ArticleAside heading="其他文章" :items="others" :blob-url="data.blobUrl" />
       </div>
     </section>
 
-    <section v-if="item" class="allpadding clr section">
-      <div class="restrict-wide">
-        <div class="article-left none-copy" oncopy="return false;">
-          <div class="timeline">
-            <h1>{{ item.title }}</h1>
-            <p class="inline">{{ item.createdate }}</p>
-          </div>
-          <section class="allsection" v-html="item.intro"></section>
-          <div class="centered more">
-            <a :href="`/Issues/${data.pageNumber}`" class="outline-btn">返回</a>
-          </div>
-        </div>
-
-        <div class="article-right">
-          <div class="other"><h2>其他文章</h2></div>
-          <a
-            v-for="other in data.others" :key="other.issueid"
-            :href="`/Issue/${titleToUrlSlug(other.title)}`"
-            class="other-article"
-          >
-            <img :src="data.blobUrl + (other.photo ?? '')">
-            <p class="centered">{{ other.title }}</p>
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <div class="centered more btn-show">
-      <a :href="`/Issues/${data.pageNumber}`" class="outline-btn">返回</a>
-    </div>
-
-    <section v-if="item && data.products.length" class="gray-bg allsection">
+    <section v-if="item && sortedProducts.length" class="gray-bg allsection">
       <div class="restrict-wide allpadding">
-        <div class="adstitle"><h2 class="main">購買相關商品</h2></div>
+        <h2 class="section-title">購買相關商品</h2>
         <div class="responsive promoteSlider clr">
           <ProductCard
-            v-for="p in data.products.filter(p => !p.isdisabled).sort((a,b) => b.sort - a.sort)"
+            v-for="p in sortedProducts"
             :key="p.productid"
             :product="p" :blob-url="data.blobUrl" :promote-sliding="true"
           />
@@ -94,17 +93,15 @@ useJsonLd(() => {
 
     <section v-if="item && data.recipes.length" class="allsection">
       <div class="restrict-wide allpadding">
-        <div class="adstitle"><h2 class="main">查看食譜</h2></div>
-        <div class="three-column clr">
+        <h2 class="section-title">查看食譜</h2>
+        <div class="recipe-grid">
           <a
             v-for="r in data.recipes.slice(0, 3)" :key="r.recipeid"
             :href="`/Recipe/${r.recipeid}/1`"
-            class="blog-wrap"
+            class="recipe-card"
           >
-            <div class="article-single centered">
-              <div class="article-pic"><img :src="data.blobUrl + (r.rphoto ?? '')" :alt="r.title"></div>
-              <div class="article-title">{{ r.title }}</div>
-            </div>
+            <div class="recipe-card__pic"><img :src="data.blobUrl + (r.rphoto ?? '')" :alt="r.title" loading="lazy"></div>
+            <div class="recipe-card__title">{{ r.title }}</div>
           </a>
         </div>
       </div>

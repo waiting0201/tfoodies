@@ -1,6 +1,7 @@
 <script setup lang="ts">
-// Port of reference/old/tfoodies/Views/MainMs/NewsDetail.cshtml.
-// URL: /NewsDetail/{newid}/{p?}
+// News detail. Functionality ported from reference/old/tfoodies/Views/MainMs/NewsDetail.cshtml
+// (breadcrumb, title, activity time/schedule, share, publish date, intro, other news);
+// interface redesigned into a tidier two-column article layout. URL: /NewsDetail/{newid}/{p?}
 const route = useRoute()
 const newid = computed(() => String(route.params.newid ?? ''))
 const pageNum = computed(() => Number(route.params.p ?? 1))
@@ -9,6 +10,8 @@ const item = computed(() => data.value.item)
 
 const siteUrl = String(useRuntimeConfig().public.siteUrl).replace(/\/+$/, '')
 const ogImage = computed(() => (item.value?.photo ? data.value.blobUrl + item.value.photo : undefined))
+const shareUrl = computed(() =>
+  item.value?.shortener || `${siteUrl}/NewsDetail/${newid.value}/${pageNum.value}`)
 
 useSeo(() => ({
   title: item.value?.title ?? '最新消息',
@@ -34,56 +37,44 @@ useJsonLd(() => {
     ]),
   ]
 })
+
+const others = computed(() =>
+  data.value.others.map(o => ({ href: `/NewsDetail/${o.newid}`, photo: o.photo, label: o.title })))
 </script>
 
 <template>
-  <main id="main">
+  <main id="main" class="article-detail">
     <section class="restrict-wide allpadding">
-      <div class="locate">
-        <p>
-          <a :href="`/News/${data.pageNumber}`" class="descript">最新消息/</a>
-          <a href="javascript:;" class="descript main">{{ item?.title }}</a>
-        </p>
-      </div>
+      <nav class="crumb">
+        <a :href="`/News/${data.pageNumber}`">最新消息</a>
+        <span class="crumb__sep">/</span>
+        <span class="crumb__current">{{ item?.title }}</span>
+      </nav>
     </section>
 
-    <section v-if="item" class="allpadding clr section">
-      <div class="restrict-wide">
-        <div class="article-left">
-          <div class="timeline">
-            <h1>{{ item.title }}</h1>
-            <div v-if="item.activitydate" class="clr">
-              <div class="inline"><div class="time-tag">活動時間</div></div>
-              <div class="inline">{{ item.activitydate }}</div>
-            </div>
-            <div v-if="item.activityschedule" class="clr">
-              <div class="inline"><div class="time-tag">活動時程</div></div>
-              <div class="inline">{{ item.activityschedule }}</div>
-            </div>
-            <p class="inline">{{ item.publishdate }}</p>
-          </div>
-          <section class="allsection" v-html="item.intro"></section>
-          <div class="centered more">
-            <a :href="`/News/${data.pageNumber}`" class="outline-btn">返回列表</a>
-          </div>
-        </div>
+    <section v-if="item" class="restrict-wide allpadding">
+      <div class="layout">
+        <article class="article">
+          <header class="article__head">
+            <h1 class="article__title">{{ item.title }}</h1>
+            <ul class="meta">
+              <li v-if="item.publishdate" class="meta__chip meta__chip--date">{{ item.publishdate }}</li>
+              <li v-if="item.activitydate" class="meta__chip"><span class="meta__tag">活動時間</span>{{ item.activitydate }}</li>
+              <li v-if="item.activityschedule" class="meta__chip"><span class="meta__tag">活動時程</span>{{ item.activityschedule }}</li>
+            </ul>
+            <ArticleShare :url="shareUrl" :title="item.title" />
+            <div class="article__divider"></div>
+          </header>
 
-        <div class="article-right">
-          <div class="other"><h2>其他消息</h2></div>
-          <a
-            v-for="other in data.others" :key="other.newid"
-            :href="`/NewsDetail/${other.newid}`"
-            class="other-article"
-          >
-            <img :src="data.blobUrl + (other.photo ?? '')">
-            <p class="centered">{{ other.title }}</p>
-          </a>
-        </div>
+          <div class="prose" v-html="item.intro"></div>
+
+          <div class="back">
+            <a :href="`/News/${data.pageNumber}`" class="back__btn">返回列表</a>
+          </div>
+        </article>
+
+        <ArticleAside heading="其他消息" :items="others" :blob-url="data.blobUrl" />
       </div>
     </section>
-
-    <div class="centered more btn-show">
-      <a :href="`/News/${data.pageNumber}`" class="outline-btn">返回列表</a>
-    </div>
   </main>
 </template>

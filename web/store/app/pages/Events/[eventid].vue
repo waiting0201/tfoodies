@@ -1,6 +1,7 @@
 <script setup lang="ts">
-// Port of reference/old/tfoodies/Views/MainMs/EventsDetail.cshtml.
-// URL: /Events/{eventid}
+// Events detail (活動花絮). Functionality ported from reference/old/tfoodies/Views/MainMs/EventsDetail.cshtml
+// (back link, title, event date, share, intro, photo gallery with lightbox); interface redesigned
+// into a tidier gallery layout, the legacy magnificPopup replaced by a native Vue lightbox. URL: /Events/{eventid}
 const route = useRoute()
 const eventid = computed(() => String(route.params.eventid ?? ''))
 const pageNum = computed(() => Number(route.query.p ?? 1))
@@ -12,6 +13,8 @@ const ogImage = computed(() => {
   const photo = item.value?.photos?.[0]?.photo
   return photo ? data.value.blobUrl + photo : undefined
 })
+const shareUrl = computed(() =>
+  item.value?.shortener || `${siteUrl}/Events/${eventid.value}`)
 
 useSeo(() => ({
   title: item.value?.title ?? '活動花絮',
@@ -37,56 +40,79 @@ useJsonLd(() => {
     ]),
   ]
 })
+
+// 相片牆燈箱（取代舊系統 magnificPopup）
+const photos = computed(() => item.value?.photos ?? [])
+const lightboxIndex = ref(-1)
+const lightboxOpen = computed(() => lightboxIndex.value >= 0)
+const currentPhoto = computed(() => photos.value[lightboxIndex.value])
+
+function openLightbox(i: number) { lightboxIndex.value = i }
+function closeLightbox() { lightboxIndex.value = -1 }
+function prevPhoto() { lightboxIndex.value = (lightboxIndex.value - 1 + photos.value.length) % photos.value.length }
+function nextPhoto() { lightboxIndex.value = (lightboxIndex.value + 1) % photos.value.length }
+
+function onKey(e: KeyboardEvent) {
+  if (!lightboxOpen.value) return
+  if (e.key === 'Escape') closeLightbox()
+  else if (e.key === 'ArrowLeft') prevPhoto()
+  else if (e.key === 'ArrowRight') nextPhoto()
+}
+onMounted(() => window.addEventListener('keydown', onKey))
+onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 </script>
 
 <template>
-  <main id="main">
-    <section class="allpadding clr tallsection">
-      <div class="restrict-wide">
-        <div class="clr">
-          <div class="pull-left">
-            <a :href="`/Events?p=${data.pageNumber}`" class="back">
-              <div class="inline">&#60;</div>
-              <div class="inline">返回活動花絮列表</div>
-            </a>
-          </div>
-        </div>
+  <main id="main" class="events-detail">
+    <section class="restrict-wide allpadding">
+      <nav class="crumb">
+        <a :href="`/Events?p=${data.pageNumber}`" class="crumb__back">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+          返回活動花絮列表
+        </a>
+      </nav>
+    </section>
+
+    <section v-if="item" class="restrict-wide allpadding">
+      <header class="article__head none-copy" oncopy="return false;">
+        <h1 class="article__title">{{ item.title }}</h1>
+        <ul class="meta">
+          <li v-if="item.eventdate" class="meta__chip"><span class="meta__tag">活動時間</span>{{ item.eventdate }}</li>
+        </ul>
+        <ArticleShare :url="shareUrl" :title="item.title" />
+        <div class="article__divider"></div>
+      </header>
+
+      <div v-if="item.intro" class="prose none-copy" oncopy="return false;" v-html="item.intro"></div>
+
+      <div v-if="photos.length" class="gallery">
+        <button
+          v-for="(photo, i) in photos" :key="photo.sort"
+          type="button" class="gallery__item"
+          :aria-label="`放大第 ${i + 1} 張照片`"
+          @click="openLightbox(i)"
+        >
+          <img :src="data.blobUrl + photo.photo" :alt="`${item.title} 活動照片 ${i + 1}`" loading="lazy">
+        </button>
+      </div>
+
+      <div class="back">
+        <a :href="`/Events?p=${data.pageNumber}`" class="back__btn">返回列表</a>
       </div>
     </section>
 
-    <section v-if="item" class="allpadding clr section">
-      <div class="restrict-wide">
-        <div oncopy="return false;" class="article-left none-copy">
-          <div class="timeline">
-            <h1>{{ item.title }}</h1>
-            <div class="clr">
-              <div class="inline"><div class="time-tag">活動時間</div></div>
-              <div class="inline">{{ item.eventdate }}</div>
-            </div>
+    <Teleport to="body">
+      <Transition name="lightbox-fade">
+        <div v-if="lightboxOpen" class="events-detail">
+          <div class="lightbox" @click.self="closeLightbox">
+            <button type="button" class="lightbox__close" aria-label="關閉" @click="closeLightbox">&times;</button>
+            <button v-if="photos.length > 1" type="button" class="lightbox__btn lightbox__btn--prev" aria-label="上一張" @click="prevPhoto">&#8249;</button>
+            <img v-if="currentPhoto" :src="data.blobUrl + currentPhoto.photo" :alt="`${item?.title} 活動照片`" class="lightbox__img">
+            <button v-if="photos.length > 1" type="button" class="lightbox__btn lightbox__btn--next" aria-label="下一張" @click="nextPhoto">&#8250;</button>
+            <div v-if="photos.length > 1" class="lightbox__count">{{ lightboxIndex + 1 }} / {{ photos.length }}</div>
           </div>
         </div>
-      </div>
-      <div class="restrict-wide">
-        <p class="darkgray" v-html="item.intro"></p>
-      </div>
-      <div class="restrict-wide">
-        <div class="photo-wrapper clr page popup-gallery">
-          <a
-            v-for="photo in item.photos" :key="photo.sort"
-            :href="data.blobUrl + photo.photo"
-            title=""
-            class="photo"
-          >
-            <div
-              :style="{ backgroundImage: `url(${data.blobUrl}${photo.photo})` }"
-              class="article-pic"
-            >
-              <img src="/content/images/section/photo-block.png">
-            </div>
-          </a>
-        </div>
-      </div>
-      <div class="centered more"><a href="#wrapper" class="outline-btn">TOP</a></div>
-    </section>
+      </Transition>
+    </Teleport>
   </main>
 </template>

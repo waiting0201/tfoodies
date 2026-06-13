@@ -26,6 +26,10 @@ export default defineNuxtConfig({
 
   modules: ['@pinia/nuxt', '@nuxtjs/sitemap', '@nuxtjs/robots'],
 
+  // 文章詳細頁（最新消息/綠誌/小知識/活動花絮）重新設計的共用樣式。
+  // 選擇器全部收斂在 .article-detail / .events-detail 命名空間下，不影響 legacy main.css。
+  css: ['~/assets/css/article-detail.css'],
+
   // Shared by @nuxtjs/sitemap, @nuxtjs/robots and useSeo() canonical/og:url.
   site: {
     url: siteUrl,

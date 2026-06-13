@@ -1,6 +1,7 @@
 <script setup lang="ts">
-// Port of reference/old/tfoodies/Views/MainMs/KnowledgeDetail.cshtml.
-// URL: /Knowledge/{knowledgeid}/{p?}  — detail keyed by knowledgeid (Guid), same as Recipe.
+// Knowledge detail (小知識). Functionality ported from reference/old/tfoodies/Views/MainMs/KnowledgeDetail.cshtml
+// (breadcrumb, question, share, date, answer, other articles); interface redesigned into a tidier
+// two-column article layout. URL: /Knowledge/{knowledgeid}/{p?}
 const route = useRoute()
 const knowledgeid = computed(() => String(route.params.knowledgeid ?? ''))
 const pageNum = computed(() => Number(route.params.p ?? 1))
@@ -9,6 +10,8 @@ const item = computed(() => data.value.item)
 
 const siteUrl = String(useRuntimeConfig().public.siteUrl).replace(/\/+$/, '')
 const ogImage = computed(() => (item.value?.photo ? data.value.blobUrl + item.value.photo : undefined))
+const shareUrl = computed(() =>
+  item.value?.shortener || `${siteUrl}/Knowledge/${knowledgeid.value}/${pageNum.value}`)
 
 useSeo(() => ({
   title: item.value?.question ?? '小知識',
@@ -34,48 +37,42 @@ useJsonLd(() => {
     ]),
   ]
 })
+
+const others = computed(() =>
+  data.value.others.map(o => ({ href: `/Knowledge/${o.knowledgeid}`, photo: o.photo, label: o.question })))
 </script>
 
 <template>
-  <main id="main">
+  <main id="main" class="article-detail">
     <section class="restrict-wide allpadding">
-      <div class="locate">
-        <p>
-          <a :href="`/Knowledges/${data.pageNumber}`" class="descript">小知識/</a>
-          <a href="javascript:;" class="descript main">{{ item?.question }}</a>
-        </p>
-      </div>
+      <nav class="crumb">
+        <a :href="`/Knowledges/${data.pageNumber}`">小知識</a>
+        <span class="crumb__sep">/</span>
+        <span class="crumb__current">{{ item?.question }}</span>
+      </nav>
     </section>
 
-    <section v-if="item" class="allpadding clr section">
-      <div class="restrict-wide">
-        <div class="article-left none-copy" oncopy="return false;">
-          <div class="timeline">
-            <h1>{{ item.question }}</h1>
-            <p class="inline">{{ item.createdate }}</p>
-          </div>
-          <section class="allsection" v-html="item.answer"></section>
-          <div class="centered more">
-            <a :href="`/Knowledges/${data.pageNumber}`" class="outline-btn">返回</a>
-          </div>
-        </div>
+    <section v-if="item" class="restrict-wide allpadding">
+      <div class="layout">
+        <article class="article none-copy" oncopy="return false;">
+          <header class="article__head">
+            <h1 class="article__title">{{ item.question }}</h1>
+            <ul class="meta">
+              <li v-if="item.createdate" class="meta__chip meta__chip--date">{{ item.createdate }}</li>
+            </ul>
+            <ArticleShare :url="shareUrl" :title="item.question" />
+            <div class="article__divider"></div>
+          </header>
 
-        <div class="article-right">
-          <div class="other"><h2>其他文章</h2></div>
-          <a
-            v-for="other in data.others" :key="other.knowledgeid"
-            :href="`/Knowledge/${other.knowledgeid}`"
-            class="other-article"
-          >
-            <img :src="data.blobUrl + (other.photo ?? '')">
-            <p class="centered">{{ other.question }}</p>
-          </a>
-        </div>
+          <div class="prose" v-html="item.answer"></div>
+
+          <div class="back">
+            <a :href="`/Knowledges/${data.pageNumber}`" class="back__btn">返回</a>
+          </div>
+        </article>
+
+        <ArticleAside heading="其他文章" :items="others" :blob-url="data.blobUrl" />
       </div>
     </section>
-
-    <div class="centered more btn-show">
-      <a :href="`/Knowledges/${data.pageNumber}`" class="outline-btn">返回</a>
-    </div>
   </main>
 </template>

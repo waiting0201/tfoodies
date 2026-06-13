@@ -70,6 +70,7 @@
 ## 顧客功能地圖
 - **瀏覽**：首頁、Products(`/Products`,`/Products/{type}`)、ProductDetail(`/Product/{title}`)、Brand(`/Brand/{title}`)+無限捲動。
 - **內容行銷**：News / Events / Recipes / Issues(綠誌) / Knowledges(小知識/FAQ) / Blogs / Reports / GreenIssues / About。
+  - 🆕 新 store 四個詳細頁（`NewsDetail`/`EventsDetail`/`IssueDetail`/`KnowledgeDetail`）已重新設計成秀氣整齊的卡片式版面（teal 設計語彙，與 `RecipeDetail` 一致），功能對齊舊系統：麵包屑、標題、日期/活動 chips、分享、內文、其他文章側欄；綠誌另含相關商品/食譜；活動花絮改為相片牆＋原生燈箱（取代 magnificPopup）。共用樣式置於 `web/store/app/assets/css/article-detail.css`（命名空間 `.article-detail`/`.events-detail`），共用元件 `ArticleShare.vue`(FB/LINE/複製)、`ArticleAside.vue`(其他文章側欄)。
 - **購物車**：Session `Session["myCart"]` = `List<CartItem>`（見 `Commons/Cart.cs`）；增刪改走 Ajax；mini-cart 於 `_Header`/`_PartialCartItem`；庫存以 `Products.added` 把關。
 - **結帳流程**：`ShoppingCart`(檢視+折扣碼→`GetDiscountCode`) → `ShoppingProfile`(訂購/收件；手機唯一性`Checkmobile`；統編查詢；郵遞`GetZipcodeByCity`) → 送 **`Ajax/PostOrder`** → 成功 JS 導向 `ShoppingSuccess?lidm={ordercode}`。訪客自動建會員。信用卡由金流回呼 `ShoppingSuccess`/`MemberMs/PayResult`。定價於 `Commons/General.cs`：`GetFreight`(滿 2000 免運)、`GetDiscount`(折扣%/折價固定、效期/一次性)、`GetAmountPrice`。
 - **會員/帳戶**：結帳隱式註冊；登入 `Login`→`Ajax/Login`(reCAPTCHA+記住我)；忘記密碼 `Forget`→`Ajax/PasswordSend`。會員中心 `MemberMs/*`。Session key：`IsLogin`、`MemberID`、`Username`。
