@@ -547,6 +547,33 @@ SELECT photo FROM Eventphotos WHERE eventid = @eventId ORDER BY sort;";
             row.keyword, row.description, row.eventdate, row.createdate, row.shortener, photos);
     }
 
+    // ── Shopping guide (購物說明 / 會員常見問題) ──────────────────────────────────
+    // 全部分類 + 其底下問答，一次撈回（資料量小、無分頁，對應舊 PageMs/Howtobuy）。
+    // answer 為 ntext，需 CAST 為 nvarchar(max) 才能由 Dapper 正確讀取。
+    public async Task<IReadOnlyList<ShoppingGuideType>> GetShoppingGuideAsync(CancellationToken ct = default)
+    {
+        using var conn = await _db.CreateOpenConnectionAsync(ct);
+
+        var sql = @"
+SELECT questiontypeid, title, sort FROM Questiontypes ORDER BY sort, title;
+SELECT questionid, questiontypeid, title, CAST(answer AS nvarchar(max)) AS answer, sort
+FROM Questions ORDER BY sort, title;";
+
+        using var multi = await conn.QueryMultipleAsync(sql);
+
+        var types = (await multi.ReadAsync<QuestiontypeRow>()).ToList();
+        var questions = (await multi.ReadAsync<QuestionRow>()).ToList();
+
+        return types
+            .Select(t => new ShoppingGuideType(
+                t.questiontypeid, t.title, t.sort,
+                questions
+                    .Where(q => q.questiontypeid == t.questiontypeid)
+                    .Select(q => new ShoppingGuideQuestion(q.questionid, q.title, q.answer, q.sort))
+                    .ToList()))
+            .ToList();
+    }
+
     // ── Mapping helpers ───────────────────────────────────────────────────────────
 
     private static ProductListItem MapProduct(ProductRow r) =>
@@ -579,4 +606,6 @@ SELECT photo FROM Eventphotos WHERE eventid = @eventId ORDER BY sort;";
     private sealed record BlogRow(Guid blogid, string title, string photo, string link);
     private sealed record EventRow(Guid eventid, string title, string summary, string photo, DateTime eventdate, DateTime createdate, string? shortener);
     private sealed record EventDetailRow(Guid eventid, string title, string summary, string intro, string photo, string? keyword, string? description, DateTime eventdate, DateTime createdate, string? shortener);
+    private sealed record QuestiontypeRow(Guid questiontypeid, string title, int sort);
+    private sealed record QuestionRow(Guid questionid, Guid questiontypeid, string title, string answer, int sort);
 }

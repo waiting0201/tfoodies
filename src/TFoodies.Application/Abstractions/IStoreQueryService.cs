@@ -19,6 +19,7 @@ public interface IStoreQueryService
     Task<IReadOnlyList<BlogItem>> GetBlogsAsync(CancellationToken ct = default);
     Task<(IReadOnlyList<EventListItem> Items, int TotalCount)> GetEventsAsync(int page, int pageSize, CancellationToken ct = default);
     Task<EventDetail?> GetEventDetailAsync(Guid eventId, CancellationToken ct = default);
+    Task<IReadOnlyList<ShoppingGuideType>> GetShoppingGuideAsync(CancellationToken ct = default);
 }
 
 // ── Home ───────────────────────────────────────────────────────────────────────
@@ -145,3 +146,12 @@ public sealed record EventDetail(
     Guid EventId, string Title, string Summary, string Intro, string Photo,
     string? Keyword, string? Description, DateTime EventDate, DateTime CreateDate, string? Shortener,
     IReadOnlyList<string> EventPhotos);
+
+// ── Shopping guide (購物說明 / 會員常見問題 FAQ) ─────────────────────────────────
+// 前台 /PageMs/Howtobuy：依分類分組的問答。answer 為富文本 HTML（v-html 呈現）。
+public sealed record ShoppingGuideType(
+    Guid QuestiontypeId, string Title, int Sort,
+    IReadOnlyList<ShoppingGuideQuestion> Questions);
+
+public sealed record ShoppingGuideQuestion(
+    Guid QuestionId, string Title, string Answer, int Sort);

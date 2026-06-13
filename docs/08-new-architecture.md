@@ -2,7 +2,10 @@
 
 > 本文描述**新系統**（.NET 9 重構）的多專案分層設計。
 > 舊系統架構見 [docs/01-architecture.md](01-architecture.md)。
-> 上次更新：2026-06-10（SettingMs 購物說明移轉：新增 ShoppingGuideAdminController + 前端 shopping-guide/ 四個 view，
+> 上次更新：2026-06-13（前台頁尾法務/客服頁移轉：新增 web/store pages/PageMs/ 五頁修復頁尾 404——
+> Contact/Terms/Policy/Disclaimer 純靜態，Howtobuy 購物說明 FAQ 打新增的 GET /store/shopping-guide
+> ＝ StoreQueryService.GetShoppingGuideAsync 一次撈回 Questiontypes+Questions 分組，前端 ?questiontypeid= 切分類）。
+> 先前：2026-06-10（SettingMs 購物說明移轉：新增 ShoppingGuideAdminController + 前端 shopping-guide/ 四個 view，
 > 對應 DB Lims 既有 Questiontypes/Questions 兩選單；分類+明細兩層 CRUD，皆硬刪（FK CASCADE），answer 富文本由 HtmlEditor 處理。
 > 先前：InventoryMs 完整移轉：拆三獨立選單頁對齊 DB Lims——倉儲維護/入庫維護/移庫維護；
 > 入庫維護全套（採購連動、需申報/不需申報、通知號查重、CheckPurchaseStatus 推進採購狀態），
@@ -124,7 +127,7 @@ Email/
   SmtpEmailService.cs          ← IEmailService（SMTP，Singleton；對齊舊 Libs.SendMail/Sendinblue，
                                   但失敗回 false 不無限遞迴；BCC 可設定，appsettings:Smtp）
 Store/
-  StoreQueryService.cs         ← IStoreQueryService（Dapper 讀；12 前台查詢）
+  StoreQueryService.cs         ← IStoreQueryService（Dapper 讀；13 前台查詢；含 GetShoppingGuideAsync 購物說明 FAQ）
 DependencyInjection.cs         ← AddInfrastructure()，對外唯一入口
 ```
 
@@ -185,7 +188,7 @@ Helpers/
   JwtHelper.cs               ← Bearer token 解析
   AdminGuard.cs              ← 後台 RBAC 守衛（RequireAdmin / AuthorizeAsync）
 Controllers/
-  StoreController.cs         ← 前台商品/CMS（12 GET 端點，公開）
+  StoreController.cs         ← 前台商品/CMS（13 GET 端點，公開；含 GET /store/shopping-guide 購物說明 FAQ）
   AuthController.cs          ← POST /auth/login, /auth/refresh
   MemberAuthController.cs    ← 會員認證延伸（公開）：POST /auth/register（註冊）、
                                  POST /auth/forgot-password（忘記密碼，對齊舊 Ajax/PasswordSend：
@@ -351,6 +354,9 @@ web/admin/src/
 ```
 web/store/app/
 ├─ pages/                  ← 檔案式路由（/Product/{slug}、/NewsDetail/{id}/{p?} …，對齊舊 URL）
+│    PageMs/               ← 頁尾法務/客服頁（對齊舊 PageMsController URL /PageMs/*）：
+│                             Contact/Terms/Policy/Disclaimer 純靜態；Howtobuy 購物說明 FAQ
+│                             （打 GET /store/shopping-guide，?questiontypeid= 切分類，前端淺導覽）
 ├─ composables/
 │    useSeo.ts             ← useSeo()：包 useSeoMeta，補齊 description/og:*/twitter/canonical（無圖 fallback favicon）
 │                             + useJsonLd()：注入 application/ld+json

@@ -1,0 +1,53 @@
+<script setup lang="ts">
+// Port of reference/old/tfoodies/Views/PageMs/Terms.cshtml (PageMs/Terms action).
+// URL: /PageMs/Terms — 網站使用條款，純靜態內容頁。
+useSeo(() => ({
+  title: '網站使用條款',
+  description: '食在呼 TFoodies 網站使用條款、智慧財產聲明與使用限制。',
+  type: 'website',
+}))
+</script>
+
+<template>
+  <main id="main">
+    <section class="allpadding clr section">
+      <div id="all-policy" class="restrict">
+        <div class="menu-wrapper">
+          <div class="menu-container">
+            <div class="center">
+              <div class="pattern"><img src="/content/images/section/paypattern.png"></div>
+              <h1 class="main">網站使用條款</h1>
+              <ul>
+                <li><a href="#terms-account">網站使用條款</a></li>
+                <li><a href="#terms-intellect">智慧財產聲明</a></li>
+                <li><a href="#terms-restrict">使用限制</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="rights-wrapper">
+          <div class="rights-container">
+            <div id="terms-account" class="content-block">
+              <h2>網站使用條款</h2>
+              <div class="horizon-line"></div>
+              <p>
+                很高興您來訪食在呼 TFoodies網站(https://www.tfoodies.com/ ，內容簡稱本網站)，本網站來自庭富國際有限公司的電子商務服務。<br>非常歡迎您使用我們的網路購物服務，在購物前請詳閱下述使用條款內容，如您已行註冊、購物服務，意即您已閱讀條款並同意與了解本網站提供的條款項目。本網站有權隨時修改條款內容，並更新於本網站內使用條款內容，不另行會員的個別通知。使用本網站服務需年滿二十歲，如您尚未滿二十歲，請由您的家長與監護人一同詳閱本網站使用條款內容，同意後方可行使購物服務。若您(與您的法定代理人)不贊同條款內的規範與修訂，請勿使用本網站的服務或立即停止使用。如對於條款有任何疑問，煩請與我們連絡(E-mail
+                或 線上客服)。
+              </p>
+            </div>
+            <div id="terms-intellect" class="content-block">
+              <h2>智慧財產聲明</h2>
+              <div class="horizon-line"></div>
+              <p>本網站僅授權您進行登錄、使用購物服務。本網站所有的內容、圖片、文字、設計(商品攝影、商品包裝、CIS標幟、網站架構設計等)及其名稱標示均為本網站智慧財產，未經本網站正式書面同意，不得轉載、修改、或任意其他行為使用，舉含包括複製、轉載、轉售等營利用途，均不得為之</p>
+            </div>
+            <div id="terms-restrict" class="content-block">
+              <h2>使用限制</h2>
+              <div class="horizon-line"></div>
+              <p>1.如您提供的基本資料不正確、非本人資料、冒用他人或其他機關單位，本網站有權力終止您使用本網站的服務。<br>2.您於本網站發表之言論、圖片、個人資訊，或透過本網站發表均屬於您個人的行為，本網站不對其真實性與個人聲名代表本網站等，均不負任何責任。<br>3.您同意本網站會對於您違反使用條款的損害進行索賠訴訟。<br>4.如您的帳號遭到冒用，請立即告知本網站，將協助為您重新設定開通帳號使用，並釐清冒用情形。<br>5.未經本人同意則盜刷或冒用金融帳號、無故到貨付款未取貨多次、謾罵、竊盜、仿冒、散播病毒等違法情形，本網站有權不需經由您的同意即停止您的使用資格。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</template>

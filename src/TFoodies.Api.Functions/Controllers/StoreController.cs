@@ -165,6 +165,13 @@ public sealed class StoreController
         return detail is null ? ctx.NotFound("找不到活動。") : ctx.Ok(detail);
     }
 
+    // GET /store/shopping-guide — 購物說明 / 會員常見問題（依分類分組，前台 /PageMs/Howtobuy）
+    public async Task<IActionResult> GetShoppingGuide(RouteContext ctx)
+    {
+        var types = await _store.GetShoppingGuideAsync();
+        return ctx.Ok(types);
+    }
+
     private static (int page, int pageSize) ParsePaging(RouteContext ctx)
     {
         int.TryParse(ctx.Request.Query["p"].ToString(), out var p);

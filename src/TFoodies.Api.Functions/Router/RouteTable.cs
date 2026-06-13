@@ -59,6 +59,7 @@ public class RouteTable
         Register<StoreController>("GET", "store/blogs",            (c, ctx) => c.GetBlogs(ctx));
         Register<StoreController>("GET", "store/events/detail",    (c, ctx) => c.GetEventDetail(ctx));
         Register<StoreController>("GET", "store/events",           (c, ctx) => c.GetEvents(ctx));
+        Register<StoreController>("GET", "store/shopping-guide",   (c, ctx) => c.GetShoppingGuide(ctx));
 
         // ── Store 下單 ──────────────────────────────────────────────────────
         Register<StoreOrderController>("POST", "store/discount/apply", (c, ctx) => c.ApplyDiscount(ctx));
