@@ -361,11 +361,10 @@ function goEdit(type: CmsTab, id: string) {
 .toolbar { display: flex; justify-content: flex-end; margin-bottom: 0.75rem; }
 
 /* Card */
-.card { background: #fff; border-radius: 10px; border: 1px solid var(--tf-color-border); overflow: hidden; }
+.card { background: #fff; border-radius: 10px; border: 1px solid var(--tf-color-border); overflow: auto; }
 
 /* Table */
-.data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-.data-table th { background: var(--tf-color-primary); color: #fff; text-align: left; padding: 0.6rem 0.75rem; font-weight: 600; font-size: 0.875rem; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; min-width: 720px; }.data-table th { background: var(--tf-color-primary); color: #fff; text-align: left; padding: 0.6rem 0.75rem; font-weight: 600; font-size: 0.875rem; }
 .data-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--tf-color-border); vertical-align: middle; }
 .data-table tbody tr:hover { background: #f8fbf8; }
 .action-cell { white-space: nowrap; display: flex; gap: 0.4rem; justify-content: flex-end; align-items: center; }

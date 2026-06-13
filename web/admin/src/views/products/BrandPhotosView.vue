@@ -198,9 +198,8 @@ onMounted(async () => {
 .add-form__row { display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-end; }
 .add-form__btn-field { flex-shrink:0; }
 
-.card { background:#fff; border-radius:10px; border:1px solid var(--tf-color-border); overflow:hidden; }
-.data-table { width:100%; border-collapse:collapse; font-size:0.875rem; }
-.data-table th { background:var(--tf-color-primary); color:#fff; text-align:left; padding:0.65rem 0.75rem; font-size:0.875rem; font-weight:600; white-space:nowrap; }
+.card { background:#fff; border-radius:10px; border:1px solid var(--tf-color-border); overflow:auto; }
+.data-table { width:100%; border-collapse:collapse; font-size:0.875rem; min-width: 720px; }.data-table th { background:var(--tf-color-primary); color:#fff; text-align:left; padding:0.65rem 0.75rem; font-size:0.875rem; font-weight:600; white-space:nowrap; }
 .action-th { width:90px; }
 .data-table td { padding:0.65rem 0.9rem; border-bottom:1px solid var(--tf-color-border); vertical-align:middle; color:#334155; }
 .data-table__row:last-child td { border-bottom:none; }

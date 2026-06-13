@@ -456,10 +456,9 @@ onMounted(loadAccounts)
 .admins__muted  { color: var(--tf-color-muted); }
 
 /* ── 表格卡片 ── */
-.card { background: #fff; border-radius: 10px; border: 1px solid var(--tf-color-border); overflow: hidden; }
+.card { background: #fff; border-radius: 10px; border: 1px solid var(--tf-color-border); overflow: auto; }
 
-.data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-.data-table th {
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; min-width: 720px; }.data-table th {
   background: var(--tf-color-primary);
   color: #fff;
   text-align: left;

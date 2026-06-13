@@ -171,7 +171,7 @@ onMounted(query)
 .bs__warn { margin-top: 1rem; color: #dc2626; font-size: 0.85rem; font-weight: 600; }
 
 /* Card */
-.card { background: #fff; border-radius: 10px; border: 1px solid var(--tf-color-border); overflow: hidden; }
+.card { background: #fff; border-radius: 10px; border: 1px solid var(--tf-color-border); overflow: auto; }
 
 /* Two-column layout */
 .bs__columns { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
@@ -215,8 +215,7 @@ onMounted(query)
 .result-title { font-size: 0.9rem; font-weight: 600; color: #334155; }
 
 /* Tables */
-.data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-.data-table td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--tf-color-border); vertical-align: middle; color: #334155; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; min-width: 720px; }.data-table td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--tf-color-border); vertical-align: middle; color: #334155; }
 .data-table__row:hover td { background: #f8faf8; }
 .num-cell { text-align: right; }
 .font-mono { font-family: 'IBM Plex Mono', monospace; }

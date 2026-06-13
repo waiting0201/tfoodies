@@ -33,7 +33,7 @@
 
 ## ⚠️ 黃金規則：View 根元素不加 padding
 
-`AdminLayout <main class="p-6">` 是**唯一頁面邊距來源**。所有 view 的根元素不得加任何 `padding`。
+`AdminLayout <main class="p-4 md:p-6">` 是**唯一頁面邊距來源**（手機 1rem、md 以上 1.5rem）。所有 view 的根元素不得加任何 `padding`。
 
 ```html
 <!-- ✅ 正確 -->
@@ -646,11 +646,18 @@ SVG 尺寸一律用 `style="width:1.25rem;height:1.25rem"`，不用 Tailwind `w-
 - **表單 view**：語意通用名，如 `.form-card`、`.form-row`、`.label`、`.input`（scoped 已隔離）。
 - `<style scoped>` 已隔離作用域，無需擔心命名衝突。
 
-### 表格 RWD
+### 表格 RWD（已全站套用，新清單頁沿用）
+清單頁的表格一律用 `.card` 包住，並讓 `.card` 在窄螢幕水平捲動、`.data-table` 設 `min-width`：
 ```css
-.xxx__table-wrap { overflow-x: auto; }
-.xxx__table { min-width: 640px; }
+.card { background:#fff; border-radius:10px; border:1px solid var(--tf-color-border); overflow: auto; }  /* 不可用 overflow:hidden，否則窄螢幕裁切表格 */
+.data-table { width:100%; border-collapse:collapse; font-size:0.875rem; min-width: 720px; }              /* 欄多時可調大 */
 ```
+> 既有 44 個清單頁已批次套用此規則（`.card overflow:auto` + `.data-table min-width`），新頁直接照抄即可。
+
+### 版面外殼 RWD（`AdminLayout.vue`）
+- 側欄 `w-60 fixed`，`md:` 以下為 **off-canvas 抽屜**：預設 `-translate-x-full` 隱藏，`md:translate-x-0` 常駐；以 `sidebarOpen` 控制 `translate-x-0` 滑入。
+- topbar 在 `md:` 以下顯示 **漢堡按鈕**（`md:hidden`）開啟側欄；換頁（`watch route.path`）與點遮罩會自動收合。
+- 主區 `md:ml-60`（手機不留側欄寬）、topbar `px-4 md:px-6`、`食在呼 ERP /` 麵包屑前綴與使用者 chip 於 `sm:` 以下隱藏。
 
 ### 斷點
 | Prefix | 最小寬度 |
@@ -660,7 +667,7 @@ SVG 尺寸一律用 `style="width:1.25rem;height:1.25rem"`，不用 Tailwind `w-
 | `lg:` | 1024px |
 | `xl:` | 1280px |
 
-後台最低支援寬度：768px（`md:`）。
+後台最低支援寬度：**375px**（一般手機）。`md:`（768px）為「側欄常駐／off-canvas」的分界。
 
 ---
 

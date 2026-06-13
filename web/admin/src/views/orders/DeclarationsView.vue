@@ -191,7 +191,7 @@ onMounted(() => {
 .declarations__card { margin-bottom: 0; }
 .declarations__table-wrap { overflow-x: auto; }
 
-.card { background: #fff; border-radius: 10px; border: 1px solid var(--tf-color-border); overflow: hidden; }
+.card { background: #fff; border-radius: 10px; border: 1px solid var(--tf-color-border); overflow: auto; }
 .data-table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 0.875rem; }
 .data-table th { background: var(--tf-color-primary); color: #fff; text-align: left; padding: 0.65rem 0.75rem; font-size: 0.875rem; font-weight: 600; white-space: nowrap; }
 .data-table td { padding: 0.65rem 0.9rem; border-bottom: 1px solid var(--tf-color-border); vertical-align: middle; color: #334155; }

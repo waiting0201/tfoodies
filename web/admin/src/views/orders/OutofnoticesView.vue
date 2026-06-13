@@ -218,7 +218,7 @@ onMounted(load)
 .outofnotices__alert { background: #fde8e8; color: #c0392b; border: 1px solid #f5c6c6; border-radius: 4px; padding: 0.7rem 1rem; margin-bottom: 1rem; font-size: 0.875rem; }
 
 .outofnotices__table-wrap { overflow-x: auto; }
-.card { background: #fff; border-radius: 10px; border: 1px solid var(--tf-color-border); overflow: hidden; }
+.card { background: #fff; border-radius: 10px; border: 1px solid var(--tf-color-border); overflow: auto; }
 .data-table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 0.875rem; }
 .data-table th { background: var(--tf-color-primary); color: #fff; text-align: left; padding: 0.65rem 0.75rem; font-size: 0.875rem; font-weight: 600; white-space: nowrap; }
 .action-th { width: 160px; }

@@ -188,7 +188,7 @@ onMounted(query)
 .stmt__title { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem; letter-spacing: -0.02em; }
 
 /* Card */
-.card { background: #fff; border-radius: 10px; border: 1px solid var(--tf-color-border); overflow: hidden; }
+.card { background: #fff; border-radius: 10px; border: 1px solid var(--tf-color-border); overflow: auto; }
 
 /* 篩選列（依 docs/10 規範） */
 .stmt__filters { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; align-items: center; }
@@ -233,8 +233,7 @@ onMounted(query)
 .result-count { font-size: 0.8rem; color: #94a3b8; font-family: 'IBM Plex Mono', monospace; }
 
 /* Tables */
-.data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-.data-table th { background: var(--tf-color-primary); color: #fff; text-align: left; padding: 0.65rem 1rem; border-bottom: 1px solid #e2e8f0; font-size: 0.875rem; font-weight: 600; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; min-width: 720px; }.data-table th { background: var(--tf-color-primary); color: #fff; text-align: left; padding: 0.65rem 1rem; border-bottom: 1px solid #e2e8f0; font-size: 0.875rem; font-weight: 600; }
 .num-th { text-align: right; }
 .data-table td { padding: 0.6rem 1rem; border-bottom: 1px solid var(--tf-color-border); vertical-align: middle; color: #334155; }
 .data-table__row:hover td { background: #f8faf8; }

@@ -236,11 +236,10 @@ async function confirmDelete() {
 .page-title { font-size: 1.5rem; font-weight: 700; color: var(--tf-color-primary-dark); letter-spacing: -0.02em; margin: 0; font-family: var(--tf-font-heading, inherit); }
 
 /* Card */
-.card { background: #fff; border-radius: 10px; border: 1px solid var(--tf-color-border); overflow: hidden; }
+.card { background: #fff; border-radius: 10px; border: 1px solid var(--tf-color-border); overflow: auto; }
 
 /* Tables */
-.data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-.data-table th { background: var(--tf-color-primary); color: #fff; text-align: left; padding: 0.65rem 0.9rem; font-size: 0.875rem; font-weight: 600; white-space: nowrap; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; min-width: 720px; }.data-table th { background: var(--tf-color-primary); color: #fff; text-align: left; padding: 0.65rem 0.9rem; font-size: 0.875rem; font-weight: 600; white-space: nowrap; }
 .action-th { width: 130px; }
 .data-table td { padding: 0.65rem 0.9rem; border-bottom: 1px solid var(--tf-color-border); vertical-align: middle; color: #334155; }
 .data-table__row:last-child td { border-bottom: none; }

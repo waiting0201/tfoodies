@@ -349,8 +349,7 @@ onMounted(loadMembers)
 
 /* ── 訂單表格 ── */
 .arform__table-wrap { overflow-x: auto; margin-bottom: 0.75rem; }
-.data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-.data-table th { background: var(--tf-color-primary); color: #fff; text-align: left; padding: 0.65rem 0.75rem; font-size: 0.875rem; font-weight: 600; white-space: nowrap; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; min-width: 720px; }.data-table th { background: var(--tf-color-primary); color: #fff; text-align: left; padding: 0.65rem 0.75rem; font-size: 0.875rem; font-weight: 600; white-space: nowrap; }
 .data-table td { padding: 0.65rem 0.9rem; border-bottom: 1px solid var(--tf-color-border); vertical-align: middle; color: #334155; }
 .data-table__row:last-child td { border-bottom: none; }
 

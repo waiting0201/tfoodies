@@ -106,9 +106,8 @@ onMounted(query)
 .filter-input--month { flex: 0 0 auto; width: 11rem; }
 
 /* ── 表格卡片 ── */
-.card { background: #fff; border-radius: 10px; border: 1px solid var(--tf-color-border); overflow: hidden; }
-.data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-.data-table th {
+.card { background: #fff; border-radius: 10px; border: 1px solid var(--tf-color-border); overflow: auto; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; min-width: 720px; }.data-table th {
   background: var(--tf-color-primary);
   color: #fff; text-align: left;
   padding: 0.65rem 0.75rem;

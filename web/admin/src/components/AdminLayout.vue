@@ -196,8 +196,14 @@ function toggleGroup(group: NavGroup) {
   openGroup.value = isGroupOpen(group) ? '__none__' : group.label
 }
 
-// 換頁後回到「跟隨 active 群組」模式（剛點進去的群組保持展開）
-watch(() => route.path, () => { openGroup.value = null })
+// 換頁後回到「跟隨 active 群組」模式（剛點進去的群組保持展開）；手機上同時收合側欄
+watch(() => route.path, () => {
+  openGroup.value = null
+  sidebarOpen.value = false
+})
+
+// ─── 手機 off-canvas 側欄開合 ────────────────────────────────────────────────
+const sidebarOpen = ref(false)
 
 // 麵包屑：找出當前 active 的子項目標籤
 const activeLabel = computed<string>(() => {
@@ -217,8 +223,18 @@ onMounted(loadMenu)
 <template>
   <div class="flex min-h-screen bg-slate-50 font-sans">
 
+    <!-- ── 手機遮罩（側欄開啟時） ─────────────────────────────────── -->
+    <div
+      v-if="sidebarOpen"
+      class="fixed inset-0 z-30 bg-slate-900/50 md:hidden"
+      @click="sidebarOpen = false"
+    />
+
     <!-- ── Sidebar ──────────────────────────────────────────────── -->
-    <aside class="w-60 shrink-0 bg-slate-900 flex flex-col fixed inset-y-0 left-0 z-30">
+    <aside
+      class="w-60 shrink-0 bg-slate-900 flex flex-col fixed inset-y-0 left-0 z-40 transition-transform duration-200 md:translate-x-0"
+      :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+    >
 
       <!-- Brand -->
       <div class="px-5 py-5 border-b border-slate-800">
@@ -341,18 +357,28 @@ onMounted(loadMenu)
     </aside>
 
     <!-- ── Main area ─────────────────────────────────────────────── -->
-    <div class="flex-1 flex flex-col min-w-0 ml-60">
+    <div class="flex-1 flex flex-col min-w-0 md:ml-60">
 
       <!-- Topbar -->
-      <header class="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 sticky top-0 z-20">
-        <div class="flex items-center gap-2 text-slate-500 text-sm">
-          <span class="text-slate-400">食在呼 ERP</span>
-          <span class="text-slate-300">/</span>
-          <span class="text-slate-700 font-medium">{{ activeLabel }}</span>
+      <header class="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 z-20">
+        <div class="flex items-center gap-2 text-slate-500 text-sm min-w-0">
+          <!-- 手機漢堡：開啟側欄 -->
+          <button
+            @click="sidebarOpen = true"
+            class="md:hidden text-slate-500 hover:text-slate-700 -ml-1 mr-1 p-1 rounded shrink-0"
+            aria-label="開啟選單"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <span class="text-slate-400 hidden sm:inline">食在呼 ERP</span>
+          <span class="text-slate-300 hidden sm:inline">/</span>
+          <span class="text-slate-700 font-medium truncate">{{ activeLabel }}</span>
         </div>
 
-        <div class="flex items-center gap-3">
-          <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5">
+        <div class="flex items-center gap-2 md:gap-3 shrink-0">
+          <div class="hidden sm:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5">
             <div class="w-5 h-5 rounded-full bg-[#26b7bc]/15 flex items-center justify-center">
               <span class="text-[#156467] text-[10px] font-semibold">
                 {{ auth.username?.charAt(0)?.toUpperCase() || 'A' }}
@@ -374,7 +400,7 @@ onMounted(loadMenu)
       </header>
 
       <!-- Page content -->
-      <main class="flex-1 p-6 overflow-auto">
+      <main class="flex-1 p-4 md:p-6 overflow-auto">
         <RouterView />
       </main>
     </div>
