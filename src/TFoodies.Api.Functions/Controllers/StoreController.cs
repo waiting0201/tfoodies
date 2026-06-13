@@ -10,7 +10,8 @@ namespace TFoodies.Api.Functions.Controllers;
 /// </summary>
 public sealed class StoreController
 {
-    private const int DefaultPageSize = 10;
+    // 前台內容清單一律三欄網格，每頁 9 筆（3×3）才不會多出落單的第 10 筆。
+    private const int DefaultPageSize = 9;
 
     private readonly IStoreQueryService _store;
 
@@ -120,6 +121,31 @@ public sealed class StoreController
         if (string.IsNullOrWhiteSpace(issueTitle)) return ctx.BadRequest("缺少 issuetitle 參數。");
         var detail = await _store.GetIssueDetailAsync(issueTitle);
         return detail is null ? ctx.NotFound("找不到綠誌。") : ctx.Ok(detail);
+    }
+
+    // GET /store/knowledges[?p=1&k=]
+    public async Task<IActionResult> GetKnowledges(RouteContext ctx)
+    {
+        var (page, pageSize) = ParsePaging(ctx);
+        var keyword = ctx.Request.Query["k"].ToString();
+        var (items, total) = await _store.GetKnowledgesAsync(page, pageSize, string.IsNullOrWhiteSpace(keyword) ? null : keyword);
+        return ctx.OkPaged(PaginatedResponse<KnowledgeListItem>.Create(items.ToList(), total, page, pageSize));
+    }
+
+    // GET /store/knowledges/detail?knowledgeid=
+    public async Task<IActionResult> GetKnowledgeDetail(RouteContext ctx)
+    {
+        var raw = ctx.Request.Query["knowledgeid"].ToString();
+        if (!Guid.TryParse(raw, out var knowledgeId)) return ctx.BadRequest("knowledgeid 格式不正確。");
+        var detail = await _store.GetKnowledgeDetailAsync(knowledgeId);
+        return detail is null ? ctx.NotFound("找不到小知識。") : ctx.Ok(detail);
+    }
+
+    // GET /store/blogs
+    public async Task<IActionResult> GetBlogs(RouteContext ctx)
+    {
+        var items = await _store.GetBlogsAsync();
+        return ctx.Ok(items);
     }
 
     // GET /store/events[?p=1]

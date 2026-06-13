@@ -70,6 +70,7 @@ export default defineSitemapEventHandler(async () => {
     collect<{ newId: string }>('/store/news', (n) => `/NewsDetail/${n.newId}/1`),
     collect<{ recipeId: string }>('/store/recipes', (r) => `/Recipe/${r.recipeId}/1`),
     collect<{ title: string }>('/store/issues', (i) => `/Issue/${toSlug(i.title)}/1`),
+    collect<{ knowledgeId: string }>('/store/knowledges', (k) => `/Knowledge/${k.knowledgeId}/1`),
     collect<{ eventId: string }>('/store/events', (e) => `/Events/${e.eventId}`),
   ])
 

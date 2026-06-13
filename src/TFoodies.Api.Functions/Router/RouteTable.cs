@@ -54,6 +54,9 @@ public class RouteTable
         Register<StoreController>("GET", "store/recipes",          (c, ctx) => c.GetRecipes(ctx));
         Register<StoreController>("GET", "store/issues/detail",    (c, ctx) => c.GetIssueDetail(ctx));
         Register<StoreController>("GET", "store/issues",           (c, ctx) => c.GetIssues(ctx));
+        Register<StoreController>("GET", "store/knowledges/detail", (c, ctx) => c.GetKnowledgeDetail(ctx));
+        Register<StoreController>("GET", "store/knowledges",       (c, ctx) => c.GetKnowledges(ctx));
+        Register<StoreController>("GET", "store/blogs",            (c, ctx) => c.GetBlogs(ctx));
         Register<StoreController>("GET", "store/events/detail",    (c, ctx) => c.GetEventDetail(ctx));
         Register<StoreController>("GET", "store/events",           (c, ctx) => c.GetEvents(ctx));
 

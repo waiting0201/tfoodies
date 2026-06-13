@@ -1,0 +1,52 @@
+<script setup lang="ts">
+// Port of reference/old/tfoodies/Views/MainMs/About.cshtml (MainMs/About action).
+// URL: /TFoodies — 關於我們，純靜態內容頁（舊系統無 DB 資料，只設 SEO meta）。
+useSeo(() => ({
+  title: '關於我們',
+  description: '來自澳洲莊園級橄欖油，從產地到餐桌，新鮮直送！澳洲原瓶原裝進口，多項品質驗證，品油師安全把關。特級初榨橄欖油富含 omega-9、單元不飽和脂肪酸、橄欖多酚，適合各式料理，煎、煮、炒、炸皆宜。',
+  type: 'website',
+}))
+</script>
+
+<template>
+  <main id="main">
+    <section
+      style="background-image:url(/content/images/banner/about.jpg)"
+      class="brandbanner greenissue about allpadding"
+    >
+      <h1 class="heading">食在呼理念-澳洲樂霸橄欖油-健康安心</h1>
+    </section>
+
+    <section class="gray-bg clr allsection">
+      <div class="restrict-wide allpadding">
+        <div class="about-article">
+          <div class="about-article-style">
+            <h2>對家人的愛-無價</h2>
+            <div class="article-block"></div>
+            <p class="content">食在呼創辦人- Angela，兩個孩子的媽，堅持有時間就親自為家人下廚的她，熱愛料理、更愛孩子用餐時的滿足笑容。她深信，健康快樂的成長環境，是母親能給孩子最棒的禮物，更是她生活中努力不懈的目標。如此單純的心願，卻在面對琳瑯滿目的食材與層出不窮的食安問題時，讓Angela備感挫折，她既困惑又擔心，到底什麼樣的食材品質是安全無虞的？什麼樣的食材是媽媽們能全心信任的？</p>
+          </div>
+          <div class="about-article-style"><img src="/content/images/section/about1.png" alt="食在呼創辦人 Angela"></div>
+        </div>
+
+        <div class="about-article">
+          <div class="about-article-style"><img src="/content/images/section/about2.png" alt="食在 安心"></div>
+          <div class="about-article-style">
+            <h2>食在 安心</h2>
+            <div class="article-block oblock"></div>
+            <p class="content">以一位母親的身份，Angela創立了食在呼，親自飛往南半球尋找答案，在澳洲，她找到了純天然的優質食材，她知道，這就是她要的解答，唯有敢讓自己孩子吃的食材，才能讓大家的孩子也敢吃，唯有自己全心信任的食材，才能讓其他媽媽都能安心的購買、安心的煮給全家人吃，讓每個孩子健康快樂的長大！</p>
+            <img src="/content/images/section/about2.png" class="hidden" alt="">
+          </div>
+        </div>
+
+        <div class="about-article">
+          <div class="about-article-style">
+            <h2>嚴選食材 食在呼</h2>
+            <div class="article-block"></div>
+            <p class="content">在乎家人的健康，從食開始。Angela及其團隊走訪澳洲，親自前往產地查訪食材的種植環境與製作過程，在橄欖園中捧起一把嫩綠橄欖嗅聞，喝下第一杯現榨的新鮮橄欖油，在鹽田旁細細檢視美麗的粉紅結晶，放入口中品嚐無污染的天然湖鹽，為食在呼精挑細選出合作夥伴。在食在呼嚴格把關下，食在呼不僅選出最優質的食材，同時重視農場主人尊重大自然、友善環境的精神，將最純淨的美味、最天然的安心食材從產地到餐桌，從澳洲直送台灣，獻給您最真誠、最實在的美味。食在呼，嚴選實在好食材，給您最真實的真食！</p>
+          </div>
+          <div class="about-article-style"><img src="/content/images/section/about3.png" alt="嚴選食材 食在呼"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</template>

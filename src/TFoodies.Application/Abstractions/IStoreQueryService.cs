@@ -14,6 +14,9 @@ public interface IStoreQueryService
     Task<RecipeDetail?> GetRecipeDetailAsync(Guid recipeId, CancellationToken ct = default);
     Task<(IReadOnlyList<IssueListItem> Items, int TotalCount)> GetIssuesAsync(int page, int pageSize, string? keyword, CancellationToken ct = default);
     Task<IssueDetail?> GetIssueDetailAsync(string issueTitle, CancellationToken ct = default);
+    Task<(IReadOnlyList<KnowledgeListItem> Items, int TotalCount)> GetKnowledgesAsync(int page, int pageSize, string? keyword, CancellationToken ct = default);
+    Task<KnowledgeDetail?> GetKnowledgeDetailAsync(Guid knowledgeId, CancellationToken ct = default);
+    Task<IReadOnlyList<BlogItem>> GetBlogsAsync(CancellationToken ct = default);
     Task<(IReadOnlyList<EventListItem> Items, int TotalCount)> GetEventsAsync(int page, int pageSize, CancellationToken ct = default);
     Task<EventDetail?> GetEventDetailAsync(Guid eventId, CancellationToken ct = default);
 }
@@ -118,6 +121,21 @@ public sealed record IssueDetail(
     IReadOnlyList<IssueRef> Others);
 
 public sealed record IssueRef(Guid IssueId, string Title, string Photo);
+
+// ── Knowledges (小知識) ─────────────────────────────────────────────────────────
+public sealed record KnowledgeListItem(
+    Guid KnowledgeId, string Question, string Photo, DateTime CreateDate, bool IsPublish, string? Shortener);
+
+public sealed record KnowledgeDetail(
+    Guid KnowledgeId, string Question, string Photo, string Answer,
+    string? Keyword, string? Description, DateTime CreateDate, bool IsPublish, string? Shortener,
+    IReadOnlyList<KnowledgeRef> Others);
+
+public sealed record KnowledgeRef(Guid KnowledgeId, string Question, string Photo);
+
+// ── Blogs (部落客分享) ───────────────────────────────────────────────────────────
+// 單頁清單（無分頁、無詳情），每張卡連到外部部落格文章 Link。
+public sealed record BlogItem(Guid BlogId, string Title, string Photo, string Link);
 
 // ── Events ────────────────────────────────────────────────────────────────────
 public sealed record EventListItem(

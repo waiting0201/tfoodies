@@ -441,6 +441,68 @@ WHERE ispublish = 1 AND issueid <> @iid ORDER BY NEWID();";
             media, products, recipes, others);
     }
 
+    // ── Knowledges (小知識) ─────────────────────────────────────────────────────────
+
+    public async Task<(IReadOnlyList<KnowledgeListItem> Items, int TotalCount)> GetKnowledgesAsync(
+        int page, int pageSize, string? keyword, CancellationToken ct = default)
+    {
+        page = Math.Max(1, page);
+        var like = string.IsNullOrWhiteSpace(keyword) ? null : $"%{keyword}%";
+        using var conn = await _db.CreateOpenConnectionAsync(ct);
+
+        var sql = @"
+SELECT COUNT(*) FROM Knowledges WHERE ispublish = 1
+  AND (@like IS NULL OR question LIKE @like);
+SELECT knowledgeid, question, photo, createdate, ispublish, shortener
+FROM Knowledges
+WHERE ispublish = 1 AND (@like IS NULL OR question LIKE @like)
+ORDER BY sort
+OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;";
+
+        using var multi = await conn.QueryMultipleAsync(sql,
+            new { like, offset = (page - 1) * pageSize, pageSize });
+
+        var total = await multi.ReadSingleAsync<int>();
+        var items = (await multi.ReadAsync<KnowledgeRow>())
+            .Select(r => new KnowledgeListItem(r.knowledgeid, r.question, r.photo, r.createdate, r.ispublish, r.shortener))
+            .ToList();
+
+        return (items, total);
+    }
+
+    public async Task<KnowledgeDetail?> GetKnowledgeDetailAsync(Guid knowledgeId, CancellationToken ct = default)
+    {
+        using var conn = await _db.CreateOpenConnectionAsync(ct);
+
+        var sql = @"
+SELECT knowledgeid, question, photo, answer, keyword, description, createdate, ispublish, shortener
+FROM Knowledges WHERE knowledgeid = @knowledgeId AND ispublish = 1;
+
+SELECT TOP 3 knowledgeid, question, photo FROM Knowledges
+WHERE ispublish = 1 AND knowledgeid <> @knowledgeId ORDER BY NEWID();";
+
+        using var multi = await conn.QueryMultipleAsync(sql, new { knowledgeId });
+
+        var row = (await multi.ReadAsync<KnowledgeDetailRow>()).FirstOrDefault();
+        if (row is null) return null;
+
+        var others = (await multi.ReadAsync<KnowledgeRefRow>())
+            .Select(r => new KnowledgeRef(r.knowledgeid, r.question, r.photo)).ToList();
+
+        return new KnowledgeDetail(row.knowledgeid, row.question, row.photo, row.answer,
+            row.keyword, row.description, row.createdate, row.ispublish, row.shortener, others);
+    }
+
+    // ── Blogs (部落客分享) ───────────────────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<BlogItem>> GetBlogsAsync(CancellationToken ct = default)
+    {
+        using var conn = await _db.CreateOpenConnectionAsync(ct);
+        var rows = await conn.QueryAsync<BlogRow>(
+            "SELECT blogid, title, photo, link FROM Blogs ORDER BY sort;");
+        return rows.Select(r => new BlogItem(r.blogid, r.title, r.photo, r.link)).ToList();
+    }
+
     // ── Events ────────────────────────────────────────────────────────────────────
 
     public async Task<(IReadOnlyList<EventListItem> Items, int TotalCount)> GetEventsAsync(
@@ -511,6 +573,10 @@ SELECT photo FROM Eventphotos WHERE eventid = @eventId ORDER BY sort;";
     private sealed record IssueRow(Guid issueid, string title, string photo, DateTime createdate, bool ispublish, string? shortener);
     private sealed record IssueDetailRow(Guid issueid, string title, string photo, string? intro, string? keyword, string? description, DateTime createdate, bool ispublish, string? shortener);
     private sealed record IssueRefRow(Guid issueid, string title, string photo);
+    private sealed record KnowledgeRow(Guid knowledgeid, string question, string photo, DateTime createdate, bool ispublish, string? shortener);
+    private sealed record KnowledgeDetailRow(Guid knowledgeid, string question, string photo, string answer, string? keyword, string? description, DateTime createdate, bool ispublish, string? shortener);
+    private sealed record KnowledgeRefRow(Guid knowledgeid, string question, string photo);
+    private sealed record BlogRow(Guid blogid, string title, string photo, string link);
     private sealed record EventRow(Guid eventid, string title, string summary, string photo, DateTime eventdate, DateTime createdate, string? shortener);
     private sealed record EventDetailRow(Guid eventid, string title, string summary, string intro, string photo, string? keyword, string? description, DateTime eventdate, DateTime createdate, string? shortener);
 }
