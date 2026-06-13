@@ -57,7 +57,7 @@ useSeo(() => ({
           </div>
           <div class="blog-wrap news-blog-wrap">
             <div class="article-single centered">
-              <div class="article-pic report-pic"><img src="/content/images/section/cottonseed.jpg"></div>
+              <div class="article-pic report-pic"><img src="/content/images/section/Cottonseed.jpg"></div>
             </div>
             <div class="article-title centered">不含棉籽酚</div>
           </div>
