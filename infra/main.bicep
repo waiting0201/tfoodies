@@ -77,6 +77,10 @@ param fiscMerId string = ''
 param fiscMerchantName string = 'TFoodies'
 // 授權結果回傳網址（AuthResURL）= 本 Function App 的 /return 端點；須與財金後台註冊一致。
 param fiscAuthResUrl string = 'https://tfoodies-api.azurewebsites.net/api/store/payment/return'
+// 後台線上刷卡的授權結果回傳網址 = 本 Function App 的 /return-admin 端點。
+param fiscAdminAuthResUrl string = 'https://tfoodies-api.azurewebsites.net/api/store/payment/return-admin'
+// 後台 admin 站台網址（供刷卡完成後導回訂單詳情頁）。留空則用 SWA 預設網域；有自訂網域時填入。
+param adminSiteUrl string = ''
 
 // ezPay 電子發票（尚未啟用；有正式金鑰時填對應 GitHub Secret/Variable）
 param ezpayBaseUrl string = 'https://inv.ezpay.com.tw/Api'
@@ -191,6 +195,8 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'Fisc__MerchantName', value: fiscMerchantName }
         { name: 'Fisc__AuthResUrl', value: fiscAuthResUrl }
         { name: 'Fisc__StoreSuccessUrl', value: '${siteUrl}/Order/Success' }
+        { name: 'Fisc__AdminAuthResUrl', value: fiscAdminAuthResUrl }
+        { name: 'Fisc__AdminSuccessUrl', value: '${empty(adminSiteUrl) ? 'https://${swaAdmin.properties.defaultHostname}' : adminSiteUrl}/admin/orders' }
         // ezPay 電子發票
         { name: 'EzPay__BaseUrl', value: ezpayBaseUrl }
         { name: 'EzPay__MerchantId', value: ezpayMerchantId }

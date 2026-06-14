@@ -2,6 +2,7 @@ using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using TFoodies.Application.Abstractions;
+using TFoodies.Domain.Common;
 using TFoodies.Domain.Enums;
 
 namespace TFoodies.Infrastructure.Payments;
@@ -25,9 +26,9 @@ public sealed class PaymentCompletionService : IPaymentCompletionService
         _db = db; _codes = codes; _invoices = invoices; _email = email;
     }
 
-    public async Task<bool> MarkPaidAsync(string orderCode, string? lastPan4, string txnRef, CancellationToken ct = default)
+    public async Task<bool> MarkPaidAsync(string orderCode, string? lastPan4, string txnRef, DateOnly? payDate = null, CancellationToken ct = default)
     {
-        var paid = await MarkOrderPaidAsync(orderCode, lastPan4, txnRef, ct);
+        var paid = await MarkOrderPaidAsync(orderCode, lastPan4, txnRef, payDate, ct);
         if (paid is null) return false; // 訂單不存在或已付款（冪等）
 
         // 付款完成通知信（best-effort：SendAsync 內部 catch，失敗不影響後續）
@@ -40,19 +41,17 @@ public sealed class PaymentCompletionService : IPaymentCompletionService
                 ct);
         }
 
-        // 最大努力開立電子發票（失敗可在後台補開）
-        _ = Task.Run(async () =>
-        {
-            try { await IssueEzPayInvoiceAsync(orderCode, ct); }
-            catch { /* fire-and-forget */ }
-        });
+        // 開立電子發票（即時）。失敗不影響「付款已完成」這個事實：invoicestatus 留「未開」，
+        // 後台可手動補開。try/catch 涵蓋未設定金鑰等非預期例外（EzPayCodec 建 PostData 會 throw）。
+        try { await IssueInvoiceAsync(orderCode, paid.IncomeId, ct); }
+        catch { /* 開票失敗不影響付款完成；狀態維持未開供後台補開 */ }
 
         return true;
     }
 
     // ── 標記已付款 + 建 Income（交易內，冪等）───────────────────────────────────────
 
-    private async Task<PaidOrderInfo?> MarkOrderPaidAsync(string orderCode, string? lastPan4, string txnRef, CancellationToken ct)
+    private async Task<PaidOrderInfo?> MarkOrderPaidAsync(string orderCode, string? lastPan4, string txnRef, DateOnly? payDate, CancellationToken ct)
     {
         using var conn = (SqlConnection)await _db.CreateOpenConnectionAsync(ct);
         using var tx = conn.BeginTransaction(IsolationLevel.RepeatableRead);
@@ -71,18 +70,21 @@ WHERE o.ordercode=@code",
             if (order.paystatus == (int)PayStatus.Paid) { tx.Rollback(); return null; }
 
             var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(8));
+            var effectivePayDate = payDate ?? today;
             var now = DateTime.UtcNow.AddHours(8);
 
             await conn.ExecuteAsync(
-                "UPDATE Orders SET paystatus=1, paydate=@today, lastpan4=@pan4 WHERE orderid=@id",
-                new { today, pan4 = lastPan4, id = order.orderid }, tx);
+                "UPDATE Orders SET paystatus=1, paydate=@payDate, lastpan4=@pan4 WHERE orderid=@id",
+                new { payDate = effectivePayDate, pan4 = lastPan4, id = order.orderid }, tx);
 
+            var incomeId = Guid.NewGuid();
             var incomeCode = await _codes.NextAsync(CodeKind.Income, today, tx, ct);
             await conn.ExecuteAsync(@"
 INSERT INTO Incomes (incomeid, memberid, incomecode, incomedate, amount, fee, note, createdate)
-VALUES (NEWID(), @memberid, @incomeCode, @now, @amount, 0, @note, @now)",
+VALUES (@incomeId, @memberid, @incomeCode, @now, @amount, 0, @note, @now)",
                 new
                 {
+                    incomeId,
                     memberid = order.memberid,
                     incomeCode,
                     now,
@@ -93,20 +95,27 @@ VALUES (NEWID(), @memberid, @incomeCode, @now, @amount, 0, @note, @now)",
             tx.Commit();
             return new PaidOrderInfo(
                 order.memberEmail, order.memberName,
-                order.total + order.freight - order.discount);
+                order.total + order.freight - order.discount, incomeId);
         }
         catch { tx.Rollback(); throw; }
     }
 
-    // ── 開立電子發票（ezPay，最大努力）─────────────────────────────────────────────
+    // ── 開立電子發票（ezPay）+ 建本地 Invoices/Invoicedetails（對齊舊系統會計流程）──────
+    //   供 MarkPaidAsync 付款完成自動呼叫，亦供後台「補開發票」端點單獨呼叫。冪等。
 
-    private async Task IssueEzPayInvoiceAsync(string orderCode, CancellationToken ct)
+    // 舊系統銷貨收入會計科目（DB seed，沿用同一 Guid）。
+    private static readonly Guid SalesAccountingId = new("f6cfd53f-13ca-4843-881f-141b579b4a5b");
+
+    public async Task<Result> IssueInvoiceAsync(string orderCode, Guid? incomeId = null, CancellationToken ct = default)
     {
-        using var conn = await _db.CreateOpenConnectionAsync(ct);
+        using var conn = (SqlConnection)await _db.CreateOpenConnectionAsync(ct);
 
-        using var multi = await conn.QueryMultipleAsync(@"
-SELECT o.orderid, o.invoicetype, o.invoicestatus,
-       o.companynumber, o.lovecode,
+        InvoiceOrderRow? order;
+        List<InvoiceLineRow> lines;
+        // 先把資料讀完並關閉 reader，之後才呼叫 ezPay（HTTP）與開交易，避免 reader 與交易衝突。
+        using (var multi = await conn.QueryMultipleAsync(@"
+SELECT o.orderid, o.orderdate, o.memberid, o.invoicetype, o.invoicestatus,
+       o.companynumber, o.lovecode, o.note,
        o.total, o.freight, ISNULL(o.discount,0) AS discount,
        m.name AS memberName, m.email AS memberEmail
 FROM Orders o JOIN Members m ON m.memberid=o.memberid
@@ -115,16 +124,16 @@ WHERE o.ordercode=@orderCode;
 SELECT p.title, od.qty, od.price, od.subtotal
 FROM Orderdetails od JOIN Products p ON p.productid=od.productid
 JOIN Orders o2 ON o2.orderid=od.orderid WHERE o2.ordercode=@orderCode;",
-            new { orderCode });
+            new { orderCode }))
+        {
+            order = await multi.ReadSingleOrDefaultAsync<InvoiceOrderRow>();
+            lines = order is null ? new() : (await multi.ReadAsync<InvoiceLineRow>()).ToList();
+        }
 
-        var order = await multi.ReadSingleOrDefaultAsync<InvoiceOrderRow>();
-        if (order is null) return;
+        if (order is null) return Result.Failure(Error.NotFound("訂單"));
+        if (order.invoicetype == (int)InvoiceType.None) return Result.Failure(Error.Validation("此訂單免開發票"));
+        if (order.invoicestatus != (int)InvoiceStatus.NotIssued) return Result.Failure(Error.Conflict("發票已開立或已作廢"));
 
-        // 已開或免開：跳過
-        if (order.invoicestatus != (int)InvoiceStatus.NotIssued) return;
-        if (order.invoicetype == (int)InvoiceType.None) return;
-
-        var lines = (await multi.ReadAsync<InvoiceLineRow>()).ToList();
         var totalAmt = order.total + order.freight - order.discount;
 
         var items = lines
@@ -144,12 +153,63 @@ JOIN Orders o2 ON o2.orderid=od.orderid WHERE o2.ordercode=@orderCode;",
             BuyerEmail: order.memberEmail,
             LoveCode: order.lovecode);
 
-        var result = await _invoices.IssueAsync(request, IssueMode.Immediate, ct);
-        if (!result.IsSuccess || result.Value is null || !result.Value.Success) return;
+        // ezPay 加密/HTTP 例外（如未設定金鑰）轉為 Result.Failure，讓後台補開端點回乾淨訊息而非 500。
+        Result<InvoiceResult> result;
+        try { result = await _invoices.IssueAsync(request, IssueMode.Immediate, ct); }
+        catch (Exception ex) { return Result.Failure(new Error("ezpay", ex.Message)); }
 
-        await conn.ExecuteAsync(
-            "UPDATE Orders SET invoicestatus=1, invoicecode=@code WHERE ordercode=@orderCode",
-            new { code = result.Value.InvoiceNumber, orderCode });
+        if (!result.IsSuccess) return Result.Failure(result.Error);
+        if (result.Value is null || !result.Value.Success || string.IsNullOrWhiteSpace(result.Value.InvoiceNumber))
+            return Result.Failure(new Error("ezpay", result.Value?.Message ?? "ezPay 未回傳發票號碼"));
+
+        var invoiceNumber = result.Value.InvoiceNumber!;
+
+        // 稅額（含稅 → 稅前 → 稅額），與舊系統一致：TaxAmt = TotalAmt - round(TotalAmt/1.05)
+        var taxExcl = (int)Math.Round(totalAmt / 1.05m, MidpointRounding.AwayFromZero);
+        var taxAmt = totalAmt - taxExcl;
+        var now = DateTime.UtcNow.AddHours(8);
+
+        using var tx = conn.BeginTransaction(IsolationLevel.RepeatableRead);
+        try
+        {
+            // 冪等護欄：只有仍為「未開」時才寫入，避免 return + notify 雙觸發重複建檔。
+            var rows = await conn.ExecuteAsync(
+                "UPDATE Orders SET invoicestatus=1, invoicecode=@num WHERE ordercode=@orderCode AND invoicestatus=0",
+                new { num = invoiceNumber, orderCode }, tx);
+            if (rows == 0) { tx.Rollback(); return Result.Success(); } // 已被其他流程開立
+
+            var invoiceId = Guid.NewGuid();
+            await conn.ExecuteAsync(@"
+INSERT INTO Invoices (invoiceid, incomeid, invoicecode, memberid, requestdate, note, createdate)
+VALUES (@invoiceId, @incomeId, @invoiceCode, @memberid, @requestdate, @note, @createdate)",
+                new
+                {
+                    invoiceId,
+                    incomeId,
+                    invoiceCode = invoiceNumber,
+                    memberid = order.memberid,
+                    requestdate = order.orderdate,
+                    note = (string?)null,
+                    createdate = now,
+                }, tx);
+
+            await conn.ExecuteAsync(@"
+INSERT INTO Invoicedetails (invoicedetailid, invoiceid, accountingid, orderid, price, tax, note)
+VALUES (NEWID(), @invoiceId, @accountingId, @orderid, @price, @tax, @note)",
+                new
+                {
+                    invoiceId,
+                    accountingId = SalesAccountingId,
+                    orderid = order.orderid,
+                    price = totalAmt,
+                    tax = taxAmt,
+                    note = order.note,
+                }, tx);
+
+            tx.Commit();
+            return Result.Success();
+        }
+        catch { tx.Rollback(); throw; }
     }
 
     // ── 付款完成通知信版型（與訂單/忘記密碼信共用品牌視覺）─────────────────────────────
@@ -258,7 +318,7 @@ JOIN Orders o2 ON o2.orderid=od.orderid WHERE o2.ordercode=@orderCode;",
 
     // ── Row types ─────────────────────────────────────────────────────────────────
 
-    private sealed record PaidOrderInfo(string? Email, string Name, int Payable);
+    private sealed record PaidOrderInfo(string? Email, string Name, int Payable, Guid IncomeId);
 
     private sealed record OrderPayRow(
         Guid orderid, Guid memberid, int paystatus,
@@ -266,8 +326,8 @@ JOIN Orders o2 ON o2.orderid=od.orderid WHERE o2.ordercode=@orderCode;",
         string memberName, string? memberEmail);
 
     private sealed record InvoiceOrderRow(
-        Guid orderid, int invoicetype, int invoicestatus,
-        string? companynumber, string? lovecode,
+        Guid orderid, DateTime orderdate, Guid memberid, int invoicetype, int invoicestatus,
+        string? companynumber, string? lovecode, string? note,
         int total, int freight, int discount,
         string memberName, string? memberEmail);
 

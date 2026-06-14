@@ -102,8 +102,9 @@ Auth/
   JwtTokenService.cs           ← IJwtTokenService（Singleton，無狀態 JWT refresh token，重啟/多副本可驗證）
   AuthService.cs               ← IAuthService（PBKDF2 hash-on-login，自動升級明文）
 Payments/
-  PaymentCompletionService.cs  ← IPaymentCompletionService（標記已付款+Income+寄信+發票，WEBPOS 兩路徑共用）
-  Fisc/FiscOptions.cs          ← 財金 WEBPOS 設定（ActionUrl/商店代號/AuthResUrl/StoreSuccessUrl）
+  PaymentCompletionService.cs  ← IPaymentCompletionService（MarkPaidAsync：標記已付款+Income+寄信+await 開票；IssueInvoiceAsync：ezPay 開票+建本地 Invoices/Invoicedetails，冪等）。store return/notify、後台 charge return、後台 pay 共用
+  Fisc/FiscOptions.cs          ← 財金 WEBPOS 設定（ActionUrl/商店代號/AuthResUrl/StoreSuccessUrl + AdminAuthResUrl/AdminSuccessUrl）
+  Fisc/FiscWebpos.cs           ← WEBPOS 刷卡 form 隱藏欄位產生器（store create 與後台 charge 共用，差別僅 AuthResURL）
 Invoicing/EzPay/
   EzPayCodec.cs                ← 藍新 AES-256-CBC + SHA256 codec
   EzPayOptions.cs
@@ -199,8 +200,9 @@ Controllers/
   MemberProfileController.cs ← 會員中心（JWT member）：GET/PATCH /member/profile（對齊舊 MemberMs/EditProfile）、
                                  POST /member/password（修改密碼，對齊舊 EditPassword：新密碼+確認相符即更新，明文存，限 20 字）、
                                  GET/POST/DELETE /member/wishlist（我的收藏，對齊舊 Mylists；Memberproducts 僅 memberid+productid 複合鍵、圖取 Products.photo）
-  PaymentController.cs       ← 財金 WEBPOS 信用卡金流（公開）：POST /store/payment/create（前端 auto-submit 刷卡 form）、
-                                 POST /store/payment/return（AuthResURL 導回，處理後 302 回前台 Success）、
+  PaymentController.cs       ← 財金 WEBPOS 信用卡金流（公開）：POST /store/payment/create（前端 auto-submit 刷卡 form，欄位由 FiscWebpos.BuildFields 產生）、
+                                 POST /store/payment/return（前台 AuthResURL 導回，處理後 302 回前台 Success）、
+                                 POST /store/payment/return-admin（後台線上刷卡 AuthResURL，處理後 302 回後台訂單詳情頁）、
                                  POST /store/payment/notify（主動通知補償，冪等）
   Admin/
     OrderAdminController.cs      ← /admin/orders（OrderMs RBAC）
@@ -208,6 +210,9 @@ Controllers/
                                    POST /admin/orders（手動建單；未提供 zipcode 時回退會員地區）
                                    PUT /admin/orders/{code}（全欄位編輯，含 items diff）
                                    PATCH /admin/orders/{code}/pending|ship|cancel|pay
+                                   pay 走完整流程：呼叫 MarkPaidAsync（建 Income + 開電子發票 + 寄信，冪等）
+                                   POST /admin/orders/{code}/charge（對未付款信用卡訂單發起財金 WEBPOS 線上刷卡，AuthResURL=AdminAuthResUrl）
+                                   POST /admin/orders/{code}/invoice（補開電子發票；InvoiceMs RBAC）
                                    ship 出貨時對「尚未配貨」明細以 IStockAllocator FIFO 扣庫存
                                    GET /admin/orders/export（category=tfoodies|shopcom Excel）
                                    GET /admin/orders/picking（揀貨單，orderIds 逗號分隔，FIFO 解析批號）
@@ -243,7 +248,8 @@ Controllers/
                                     + /admin/incomes + /admin/refounds（AccountingMs）
     ReturnAdminController.cs     ← /admin/returns（ReturnMs）
     CmsAdminController.cs        ← /admin/cms/*（HomeMs：橫幅/新聞/食譜/FAQ）
-    InvoiceAdminController.cs    ← /admin/invoices（invoiceStatus 篩選、void、allowance）
+    InvoiceAdminController.cs    ← /admin/invoices（invoiceStatus 篩選、void、allowance）。列表/作廢/折讓讀 Invoices/Invoicedetails 兩張表，
+                                   資料由 PaymentCompletionService.IssueInvoiceAsync 開票時寫入（invoicecode = ezPay 發票號，與 Orders.invoicecode 一致供 JOIN）
     AdminAccountController.cs    ← /admin/admin-accounts（管理員帳號 CRUD + 模組權限設定）
     DiscountAdminController.cs   ← /admin/discounts（DiscountMs；列表/新增/明細/更新/軟刪除）
     ReportAdminController.cs     ← /admin/reports/sales + /admin/reports/amounts（ReportMs）
@@ -284,7 +290,7 @@ web/admin/src/
 │    orders/
 │      OrdersView.vue                 ← 訂單列表（分頁、狀態篩選）
 │      OrderCreateView.vue            ← 新增訂單（兩欄表單，商品搜尋含縮圖+編號）
-│      OrderDetailView.vue            ← 訂單明細（含出貨/取消操作、「出貨單下載」、「編輯訂單」按鈕）
+│      OrderDetailView.vue            ← 訂單明細（出貨/取消/標記已付款、信用卡未付款顯示「線上刷卡」、二/三聯未開顯示「補開發票」、出貨單下載、編輯）
 │      OrderEditView.vue              ← 訂單編輯（兩欄表單，預填所有欄位含收件/付款/出貨/發票/items）
 │      LogisticsView.vue              ← 物流商管理（清單 + 新增/編輯，無刪除）
 │      OutofnoticesView.vue           ← 缺貨通知（分頁，標記已通知/刪除）

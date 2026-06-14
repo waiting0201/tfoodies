@@ -87,6 +87,8 @@ public class RouteTable
         Register<OrderAdminController>("PATCH", @"admin/orders/(?<code>[^/]+)/ship",                      (c, ctx) => c.Ship(ctx));
         Register<OrderAdminController>("PATCH", @"admin/orders/(?<code>[^/]+)/cancel",                    (c, ctx) => c.Cancel(ctx));
         Register<OrderAdminController>("PATCH", @"admin/orders/(?<code>[^/]+)/pay",                       (c, ctx) => c.MarkPaid(ctx));
+        Register<OrderAdminController>("POST",  @"admin/orders/(?<code>[^/]+)/charge",                    (c, ctx) => c.Charge(ctx));
+        Register<OrderAdminController>("POST",  @"admin/orders/(?<code>[^/]+)/invoice",                   (c, ctx) => c.IssueInvoice(ctx));
         Register<OrderAdminController>("GET",   @"admin/orders/(?<code>[^/]+)$",                          (c, ctx) => c.Detail(ctx));
         Register<OrderAdminController>("PUT",   @"admin/orders/(?<code>[^/]+)$",                          (c, ctx) => c.Update(ctx));
 
@@ -258,6 +260,7 @@ public class RouteTable
         // ── Payment（公開，財金 WEBPOS 信用卡金流）─────────────────────────────
         Register<PaymentController>("POST", "store/payment/create",                                       (c, ctx) => c.CreatePayment(ctx));
         Register<PaymentController>("POST", "store/payment/return",                                       (c, ctx) => c.Return(ctx));
+        Register<PaymentController>("POST", "store/payment/return-admin",                                 (c, ctx) => c.ReturnAdmin(ctx));
         Register<PaymentController>("POST", "store/payment/notify",                                       (c, ctx) => c.Notify(ctx));
 
         // ── Admin Auth ──────────────────────────────────────────────────────────

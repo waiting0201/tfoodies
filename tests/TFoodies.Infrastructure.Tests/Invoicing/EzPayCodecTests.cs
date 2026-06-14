@@ -47,11 +47,16 @@ public class EzPayCodecTests
         Assert.Contains($"ItemName={WebUtility.UrlEncode("橄欖油|巴薩米克醋")}", decoded);
     }
 
+    // 金鑰驗證刻意延後到實際加解密時：建構不會丟例外（避免未設定 EzPay 的環境在 DI 解析時整個炸掉），
+    // 但一旦真正用到加解密就必須驗證金鑰長度。
     [Theory]
     [InlineData("tooShortKey", HashIv)]
     [InlineData(HashKey, "shortIV")]
-    public void Constructor_RejectsWrongKeyOrIvLength(string key, string iv)
-        => Assert.Throws<ArgumentException>(() => new EzPayCodec(key, iv));
+    public void Constructor_DoesNotValidate_ButEncryptRejectsWrongKeyOrIvLength(string key, string iv)
+    {
+        var codec = new EzPayCodec(key, iv); // 不丟例外
+        Assert.Throws<ArgumentException>(() => codec.EncryptToHex("x=1"));
+    }
 
     [Fact]
     public void Sha256Upper_Is64HexChars()

@@ -56,12 +56,12 @@ WHERE {where}", countParams);
         dp.Add("pageSize", pageSize);
 
         var items = await conn.QueryAsync($@"
-SELECT i.invoiceid, i.invoicecode, i.invoicedate, m.name AS memberName, o.invoicestatus
+SELECT i.invoiceid, i.invoicecode, i.createdate AS invoiceDate, m.name AS memberName, o.invoicestatus
 FROM Invoices i
 JOIN Members m ON m.memberid = i.memberid
 LEFT JOIN Orders o ON o.invoicecode = i.invoicecode
 WHERE {where}
-ORDER BY i.invoicedate DESC
+ORDER BY i.createdate DESC
 OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY", dp);
 
         return ctx.OkPaged(PaginatedResponse<object>.Create(items.Cast<object>().ToList(), total, page, pageSize));

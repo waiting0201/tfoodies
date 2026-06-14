@@ -25,13 +25,13 @@ interface OrderDetail {
   total: number
   shippingFee: number
   discount: number
-  payType: number       // 1=ATM, 2=Credit, 3=CashOnDelivery, 4=超商
-  payStatus: number     // 0=未付款, 1=已付款
+  payType: number       // 1=信用卡, 2=貨到付款, 3=ATM, 4=免付款, 5=現金, 6=電匯, 7=支票
+  payStatus: number     // 0=未付款, 1=已付款, 2=退款, 3=免付款, 4=取消
   deliverStatus: number // 0=未出貨, 4=待出貨, 1=已出貨, 3=已取消
   payDate: string | null
   deliverDate: string | null
-  invoiceType: number   // 1=二聯, 2=三聯, 3=捐贈
-  invoiceStatus: number
+  invoiceType: number   // 1=二聯, 2=捐贈, 3=三聯, 4=免開, 5=POS
+  invoiceStatus: number // 0=未開, 1=已開, 2=作廢, 3=折讓
   invoiceCode: string | null
   companyTitle: string | null
   companyNumber: string | null
@@ -62,15 +62,18 @@ const showShipModal = ref(false)
 const shipTracking = ref('')
 const shipError = ref('')
 
-const PAY_TYPE_LABELS: Record<number, string> = { 1: 'ATM轉帳', 2: '信用卡', 3: '貨到付款', 4: '超商取貨付款' }
-const PAY_STATUS_LABELS: Record<number, string> = { 0: '未付款', 1: '已付款' }
+// 對齊後端 Domain.Enums（PayType/PayStatus/InvoiceType/InvoiceStatus）。
+const PAY_TYPE_LABELS: Record<number, string> = { 1: '信用卡', 2: '貨到付款', 3: 'ATM轉帳', 4: '免付款', 5: '現金', 6: '電匯', 7: '支票' }
+const PAY_STATUS_LABELS: Record<number, string> = { 0: '未付款', 1: '已付款', 2: '退款', 3: '免付款', 4: '取消' }
 const DELIVER_LABELS: Record<number, string> = { 0: '未出貨', 1: '已出貨', 3: '已取消', 4: '待出貨' }
-const INVOICE_TYPE_LABELS: Record<number, string> = { 1: '二聯式', 2: '三聯式', 3: '愛心捐贈' }
+const INVOICE_TYPE_LABELS: Record<number, string> = { 1: '二聯式', 2: '愛心捐贈', 3: '三聯式', 4: '免開', 5: 'POS機' }
+const INVOICE_STATUS_LABELS: Record<number, string> = { 0: '未開立', 1: '已開立', 2: '作廢', 3: '折讓' }
 
 function payTypeLabel(t: number) { return PAY_TYPE_LABELS[t] ?? `類型${t}` }
 function payStatusLabel(s: number) { return PAY_STATUS_LABELS[s] ?? `${s}` }
 function deliverLabel(s: number) { return DELIVER_LABELS[s] ?? `${s}` }
 function invoiceTypeLabel(t: number) { return INVOICE_TYPE_LABELS[t] ?? `類型${t}` }
+function invoiceStatusLabel(s: number) { return INVOICE_STATUS_LABELS[s] ?? `${s}` }
 
 async function load() {
   loading.value = true
@@ -140,6 +143,49 @@ async function handleCancel() {
 }
 
 async function handlePay() { await patchOrder('pay') }
+
+// 後台對未付款的信用卡訂單發起財金 WEBPOS 線上刷卡：取得 form 欄位後 auto-submit 整頁導向財金。
+// 刷卡結果由財金導回 /store/payment/return-admin，再 302 回本訂單詳情頁。
+async function handleCharge() {
+  actionBusy.value = true
+  actionError.value = ''
+  try {
+    const res = await apiFetch<{ actionUrl: string; fields: Record<string, string> }>(
+      `/admin/orders/${code}/charge`, { method: 'POST' },
+    )
+    const f = document.createElement('form')
+    f.method = 'post'
+    f.action = res.actionUrl
+    f.acceptCharset = 'UTF-8'
+    for (const [k, v] of Object.entries(res.fields)) {
+      const i = document.createElement('input')
+      i.type = 'hidden'
+      i.name = k
+      i.value = v ?? ''
+      f.appendChild(i)
+    }
+    document.body.appendChild(f)
+    f.submit()
+    // 不重置 actionBusy：頁面即將整頁導向財金。
+  } catch (e) {
+    actionError.value = (e as ApiError).problem?.detail ?? (e as Error).message ?? '發起刷卡失敗'
+    actionBusy.value = false
+  }
+}
+
+// 補開電子發票（開票失敗或當下未開的訂單）。
+async function handleIssueInvoice() {
+  actionBusy.value = true
+  actionError.value = ''
+  try {
+    await apiFetch(`/admin/orders/${code}/invoice`, { method: 'POST' })
+    await load()
+  } catch (e) {
+    actionError.value = (e as ApiError).problem?.detail ?? (e as Error).message ?? '開立發票失敗'
+  } finally {
+    actionBusy.value = false
+  }
+}
 
 function formatDate(s?: string | null) {
   if (!s) return '—'
@@ -274,11 +320,15 @@ onMounted(load)
                 <span class="odetail__value">{{ invoiceTypeLabel(order.invoiceType) }}</span>
               </div>
               <div class="odetail__field">
+                <span class="odetail__label">發票狀態</span>
+                <span class="odetail__value">{{ invoiceStatusLabel(order.invoiceStatus) }}</span>
+              </div>
+              <div class="odetail__field">
                 <span class="odetail__label">發票號碼</span>
                 <span class="odetail__value odetail__value--mono">{{ order.invoiceCode || '—' }}</span>
               </div>
               <!-- 三聯式 -->
-              <template v-if="order.invoiceType === 2">
+              <template v-if="order.invoiceType === 3">
                 <div class="odetail__field">
                   <span class="odetail__label">公司抬頭</span>
                   <span class="odetail__value">{{ order.companyTitle || '—' }}</span>
@@ -289,7 +339,7 @@ onMounted(load)
                 </div>
               </template>
               <!-- 愛心捐贈 -->
-              <div class="odetail__field" v-if="order.invoiceType === 3">
+              <div class="odetail__field" v-if="order.invoiceType === 2">
                 <span class="odetail__label">愛心碼</span>
                 <span class="odetail__value odetail__value--mono">{{ order.loveCode || '—' }}</span>
               </div>
@@ -325,6 +375,18 @@ onMounted(load)
               :disabled="actionBusy"
               @click="handlePay"
             >標記已付款</button>
+            <button
+              v-if="order.payType === 1 && order.payStatus === 0"
+              class="odetail__btn odetail__btn--primary"
+              :disabled="actionBusy"
+              @click="handleCharge"
+            >線上刷卡</button>
+            <button
+              v-if="(order.invoiceType === 1 || order.invoiceType === 3) && order.invoiceStatus === 0"
+              class="odetail__btn odetail__btn--accent"
+              :disabled="actionBusy"
+              @click="handleIssueInvoice"
+            >補開發票</button>
           </div>
 
         </div><!-- /.odetail__cards-aside -->

@@ -196,7 +196,7 @@ async function submit() {
 .remember {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.25rem;
   color: #3e3e3e;
   cursor: pointer;
 }
@@ -204,6 +204,7 @@ async function submit() {
 .remember input {
   width: 16px;
   height: 16px;
+  margin: 0;
   accent-color: #26b7bc;
 }
 

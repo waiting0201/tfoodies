@@ -72,14 +72,15 @@
 | 情境 | 主旨 | 觸發點（新系統） | 觸發點（舊系統） | 內容重點 |
 |---|---|---|---|---|
 | **訂單成立通知** | `食在呼 TFoodies–訂單通知 {ordercode}` | `StoreOrderController.PlaceOrder` 成功後 best-effort 寄送，版型 `BuildOrderMailHtml`（POST `/store/orders`） | `MainMsController.cs:529`（`ShoppingSuccess`） | 訂單編號、訂購日期、付款方式、金額摘要（小計/運費/折扣/應付總額）；ATM 付款時附匯款卡（013 國泰世華、虛擬帳號、金額、繳款截止日）。收件者為 `BuyerEmail`，無 email 則不寄。 |
-| **付款完成通知** | `食在呼 TFoodies–付款完成通知 {ordercode}` | 財金 WEBPOS 授權成功、**首次**標記為已付款時寄送；由 `PaymentCompletionService.MarkPaidAsync` 觸發、版型 `BuildPaidMailHtml`。兩條路徑共用：AuthResURL 導回（POST `/store/payment/return`）與主動通知（POST `/store/payment/notify`） | 舊系統**無**（付款完成不寄 email） | 付款成功確認、訂單編號、信用卡末四碼、付款時間、實付金額。收件者取自 `Members.email`（JOIN）。**冪等**：重送/雙路徑時 `MarkPaidAsync` 已付款則回 false，不重複寄信/開票。電子發票另行開立。 |
+| **付款完成通知** | `食在呼 TFoodies–付款完成通知 {ordercode}` | **首次**標記為已付款時寄送；由 `PaymentCompletionService.MarkPaidAsync` 觸發、版型 `BuildPaidMailHtml`。多條路徑共用：前台 AuthResURL 導回（`/store/payment/return`）、主動通知（`/store/payment/notify`）、後台線上刷卡導回（`/store/payment/return-admin`）、後台標記已付款（PATCH `/admin/orders/{code}/pay`） | 舊系統**無**（付款完成不寄 email） | 付款成功確認、訂單編號、信用卡末四碼、付款時間、實付金額。收件者取自 `Members.email`（JOIN）。**冪等**：重送/多路徑時 `MarkPaidAsync` 已付款則回 false，不重複寄信/開票。 |
 | **忘記密碼通知** | `食在呼 TFoodies–忘記密碼通知` | `MemberAuthController.ForgotPassword`，版型 `BuildResetMailHtml`（POST `/auth/forgot-password`） | `AjaxController.cs:702`（`PasswordSend`） | 比對 mobile+email→產生亂數新密碼→更新 DB→寄出明文新密碼，請其登入後自行修改。新系統寄送失敗回 422。 |
 
 **設計注意**：
 - 寄訂單通知信為 **best-effort**：`SendAsync` 內部已 catch 並回傳 `false`，寄信失敗**不影響**下單成功回應（不像舊系統 `SendMail` 失敗無限遞迴）。
 - 新系統 `PlaceOrderResult` 不含商品明細，故訂單通知信僅呈現金額摘要（對齊舊系統，舊信亦未列明細）；明細請於會員中心查詢。
 - **電子發票**由 ezPay/NewebPay 金流商以 `BuyerEmail` 代為寄送，非本系統 `SendMail`/`SendAsync`，故不列於本表。
-- 「付款完成通知」為**新系統新增**（舊系統付款完成不寄信），於財金 WEBPOS 信用卡授權成功首次標記已付款時觸發，與發票開立共用 `MarkPaidAsync` 冪等判斷（已付款回 false 即跳過）。
+- 「付款完成通知」為**新系統新增**（舊系統付款完成不寄信），於首次標記已付款時觸發，與發票開立共用 `MarkPaidAsync` 冪等判斷（已付款回 false 即跳過）。
+- **電子發票開立**：`MarkPaidAsync` 標記已付款後**同步 await** `IssueInvoiceAsync`（非 fire-and-forget）：呼叫 ezPay 即時開立並建本地 `Invoices`/`Invoicedetails`（`incomeid` 關聯收入、`accountingid` 用銷貨收入科目、`invoicecode` = ezPay 發票號與 `Orders.invoicecode` 一致）。開票失敗不影響付款完成（`invoicestatus` 留未開），後台訂單詳情可「補開發票」（POST `/admin/orders/{code}/invoice`）。冪等護欄：`UPDATE Orders ... WHERE invoicestatus=0`。免開（InvoiceType.None）跳過。
 - 舊系統「註冊」「出貨通知」**皆未寄 email**；如新系統需擴充，於此表補列。
 
 ## ⚠️ 技術債 / 安全（移轉重點清單）

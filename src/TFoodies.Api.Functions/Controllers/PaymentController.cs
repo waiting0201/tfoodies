@@ -45,39 +45,45 @@ public sealed class PaymentController
         if (summary.PayStatus != PayStatus.Unpaid)
             return ctx.Conflict("訂單已付款或目前狀態不可發起刷卡。");
 
-        var payable = summary.Total + summary.Freight - summary.Discount;
-
-        // WEBPOS hidden 欄位（手冊 3.1.1）。purchAmt 由後端權威計算，避免前端竄改。
-        var fields = new Dictionary<string, string>
-        {
-            ["MerchantID"]   = _fisc.MerchantID,
-            ["TerminalID"]   = _fisc.TerminalID,
-            ["merID"]        = _fisc.MerID,
-            ["MerchantName"] = _fisc.MerchantName,
-            ["lidm"]         = summary.OrderCode,
-            ["purchAmt"]     = payable.ToString(),
-            ["AutoCap"]      = "1",            // 自動轉入請款檔
-            ["AuthResURL"]   = _fisc.AuthResUrl,
-            ["PayType"]      = "0",            // 一般交易
-            ["enCodeType"]   = "UTF-8",
-        };
-
+        // WEBPOS hidden 欄位（手冊 3.1.1）。purchAmt 由後端權威計算，避免前端竄改。store 與後台共用 helper。
+        var fields = FiscWebpos.BuildFields(summary, _fisc, _fisc.AuthResUrl);
         return ctx.Ok(new CreatePaymentResponse(_fisc.ActionUrl, fields));
     }
 
-    // POST /store/payment/return（AuthResURL）
+    // POST /store/payment/return（AuthResURL）— 前台刷卡返回，導回前台結果頁
     public async Task<IActionResult> Return(RouteContext ctx)
     {
         var ct = ctx.Request.HttpContext.RequestAborted;
+        var result = await CompleteFromFormAsync(ctx, ct);
+        return RedirectToResultPage(_fisc.StoreSuccessUrl, result);
+    }
+
+    // POST /store/payment/return-admin（後台線上刷卡的 AuthResURL）— 導回後台訂單詳情頁
+    // 後台詳情頁為 path 參數（/admin/orders/{code}），與前台 query 式結果頁不同。
+    public async Task<IActionResult> ReturnAdmin(RouteContext ctx)
+    {
+        var ct = ctx.Request.HttpContext.RequestAborted;
+        var result = await CompleteFromFormAsync(ctx, ct);
+        var paid = result.IsSuccess ? "1" : "0";
+        var url = $"{_fisc.AdminSuccessUrl.TrimEnd('/')}/{Uri.EscapeDataString(result.Lidm)}?paid={paid}";
+        return new RedirectResult(url);
+    }
+
+    // 解析財金 form 回傳 + 冪等標記已付款（store / admin 返回共用，差別僅在最終 redirect 目標）。
+    private async Task<WebposResult> CompleteFromFormAsync(RouteContext ctx, CancellationToken ct)
+    {
         var form = await ReadFormSafeAsync(ctx, ct);
         var result = ParseFields(form);
-
         if (result.IsSuccess && !string.IsNullOrEmpty(result.Lidm))
-            await _completion.MarkPaidAsync(result.Lidm, result.LastPan4, result.TxnRef, ct);
+            await _completion.MarkPaidAsync(result.Lidm, result.LastPan4, result.TxnRef, ct: ct);
+        return result;
+    }
 
-        // 無論成功失敗都導回前台結果頁，由前台呈現付款結果。
+    // 無論成功失敗都導回結果頁，由前端呈現付款結果。
+    private static IActionResult RedirectToResultPage(string baseUrl, WebposResult result)
+    {
         var paid = result.IsSuccess ? "1" : "0";
-        var url = $"{_fisc.StoreSuccessUrl}?code={Uri.EscapeDataString(result.Lidm)}&paid={paid}";
+        var url = $"{baseUrl}?code={Uri.EscapeDataString(result.Lidm)}&paid={paid}";
         return new RedirectResult(url);
     }
 
@@ -93,7 +99,7 @@ public sealed class PaymentController
 
         var result = ParseAuthResp(authResp);
         if (result.IsSuccess && !string.IsNullOrEmpty(result.Lidm))
-            await _completion.MarkPaidAsync(result.Lidm, result.LastPan4, result.TxnRef, ct);
+            await _completion.MarkPaidAsync(result.Lidm, result.LastPan4, result.TxnRef, ct: ct);
 
         // 財金期待 http 200，未回 200 會重試最多 3 次。
         return ctx.Ok(new { received = true, orderNumber = result.Lidm, paid = result.IsSuccess });

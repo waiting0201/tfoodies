@@ -2,11 +2,13 @@ using System.Data;
 using Dapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Options;
 using TFoodies.Api.Functions.Helpers;
 using TFoodies.Api.Functions.Router;
 using TFoodies.Application.Abstractions;
 using TFoodies.Contracts.Common;
 using TFoodies.Domain.Enums;
+using TFoodies.Infrastructure.Payments.Fisc;
 
 namespace TFoodies.Api.Functions.Controllers.Admin;
 
@@ -22,7 +24,9 @@ namespace TFoodies.Api.Functions.Controllers.Admin;
 ///   PATCH /admin/orders/{code}/pending   — 未出貨 → 待出貨
 ///   PATCH /admin/orders/{code}/ship      — 待出貨 → 已出貨（扣庫存）
 ///   PATCH /admin/orders/{code}/cancel    — 取消訂單
-///   PATCH /admin/orders/{code}/pay       — 標記已付款（後台人工確認）
+///   PATCH /admin/orders/{code}/pay       — 標記已付款（後台人工確認，走完整流程：建 Income + 開票 + 寄信）
+///   POST  /admin/orders/{code}/charge    — 對未付款的信用卡訂單發起財金線上刷卡
+///   POST  /admin/orders/{code}/invoice   — 補開電子發票
 ///   PUT   /admin/orders/{code}           — 編輯訂單（含明細差異更新）
 /// </summary>
 public sealed class OrderAdminController
@@ -31,17 +35,24 @@ public sealed class OrderAdminController
     private readonly IDbConnectionFactory _db;
     private readonly ICodeNumberService _codes;
     private readonly IStockAllocator _stocks;
+    private readonly IPaymentCompletionService _completion;
+    private readonly IOrderService _orders;
+    private readonly FiscOptions _fisc;
 
     private const string LoveCode = "01170";   // 舊系統發票捐贈碼
 
     public OrderAdminController(
         IAdminPermissionService perms, IDbConnectionFactory db,
-        ICodeNumberService codes, IStockAllocator stocks)
+        ICodeNumberService codes, IStockAllocator stocks,
+        IPaymentCompletionService completion, IOrderService orders, IOptions<FiscOptions> fisc)
     {
         _perms = perms;
         _db = db;
         _codes = codes;
         _stocks = stocks;
+        _completion = completion;
+        _orders = orders;
+        _fisc = fisc.Value;
     }
 
     private static string DeliverTemplatePath =>
@@ -528,7 +539,7 @@ VALUES (NEWID(), @orderdetailid, @warehousestockid, @qty, @createdate)",
         return ctx.Ok(new { message = "訂單已取消" });
     }
 
-    // PATCH /admin/orders/{code}/pay — 人工標記已付款
+    // PATCH /admin/orders/{code}/pay — 人工標記已付款（走完整流程：建 Income + 開電子發票 + 寄信）
     public async Task<IActionResult> MarkPaid(RouteContext ctx)
     {
         var guard = await AdminGuard.AuthorizeAsync(ctx, _perms, "OrderMs", AdminOperation.Update);
@@ -536,16 +547,50 @@ VALUES (NEWID(), @orderdetailid, @warehousestockid, @qty, @createdate)",
 
         var code = ctx.RequirePathParam("code");
         var body = await ctx.TryReadBodyAsync<PayRequest>();
-        var payDate = body?.PayDate ?? DateTime.UtcNow.AddHours(8).Date;
+        var payDate = body?.PayDate is { } pd ? DateOnly.FromDateTime(pd) : (DateOnly?)null;
 
-        using var conn = await _db.CreateOpenConnectionAsync(ctx.Request.HttpContext.RequestAborted);
+        var paid = await _completion.MarkPaidAsync(
+            code, lastPan4: null, txnRef: "後台標記已付款", payDate: payDate,
+            ct: ctx.Request.HttpContext.RequestAborted);
 
-        var rows = await conn.ExecuteAsync(
-            "UPDATE Orders SET paystatus=@status, paydate=@payDate WHERE ordercode=@code AND paystatus=@unpaid",
-            new { status = (int)PayStatus.Paid, payDate, code, unpaid = (int)PayStatus.Unpaid });
-
-        if (rows == 0) return ctx.UnprocessableEntity("訂單不存在或已不是「未付款」狀態。");
+        if (!paid) return ctx.UnprocessableEntity("訂單不存在或已不是「未付款」狀態。");
         return ctx.Ok(new { message = "已標記為已付款" });
+    }
+
+    // POST /admin/orders/{code}/charge — 對未付款的信用卡訂單發起財金 WEBPOS 線上刷卡。
+    // 回傳 form action 與欄位，前端 auto-submit 把管理員整頁導向財金刷卡頁；結果由財金導回 /store/payment/return-admin。
+    public async Task<IActionResult> Charge(RouteContext ctx)
+    {
+        var guard = await AdminGuard.AuthorizeAsync(ctx, _perms, "OrderMs", AdminOperation.Update);
+        if (guard.Result is not null) return guard.Result;
+
+        var code = ctx.RequirePathParam("code");
+        var ct = ctx.Request.HttpContext.RequestAborted;
+
+        var summary = await _orders.GetOrderAsync(code, ct);
+        if (summary is null) return ctx.NotFound("找不到該訂單");
+        if (summary.PayType != PayType.CreditCard)
+            return ctx.BadRequest("此訂單非信用卡付款，無法發起刷卡。");
+        if (summary.PayStatus != PayStatus.Unpaid)
+            return ctx.Conflict("訂單已付款或目前狀態不可發起刷卡。");
+
+        // 後台專屬 AuthResURL（導回 /store/payment/return-admin → 後台訂單詳情頁）。
+        var fields = FiscWebpos.BuildFields(summary, _fisc, _fisc.AdminAuthResUrl);
+        return ctx.Ok(new { actionUrl = _fisc.ActionUrl, fields });
+    }
+
+    // POST /admin/orders/{code}/invoice — 補開電子發票（開票失敗或當下未開的訂單）。
+    public async Task<IActionResult> IssueInvoice(RouteContext ctx)
+    {
+        var guard = await AdminGuard.AuthorizeAsync(ctx, _perms, "InvoiceMs", AdminOperation.Update);
+        if (guard.Result is not null) return guard.Result;
+
+        var code = ctx.RequirePathParam("code");
+        var result = await _completion.IssueInvoiceAsync(code, incomeId: null,
+            ct: ctx.Request.HttpContext.RequestAborted);
+
+        if (result.IsFailure) return ctx.UnprocessableEntity($"開立發票失敗：{result.Error.Message}");
+        return ctx.Ok(new { message = "已開立電子發票" });
     }
 
     // ══════════════════════════════════════════════════════════════════

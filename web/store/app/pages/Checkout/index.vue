@@ -224,16 +224,17 @@ async function submitOrder() {
       `${config.public.apiBase}/store/orders`,
       { method: 'POST', body, headers },
     )
-    cartStore.items = []
-    cartStore.persist()
-
     // 信用卡：發起財金 FISC WEBPOS 刷卡。後端回傳 form action 與欄位，動態建表單
     // auto-submit 將使用者整頁導向財金刷卡頁；刷卡結果由財金導回 /store/payment/return。
+    // ⚠️ 必須先成功取得刷卡 form 才清空購物車——否則 create 失敗時購物車已被清空，
+    //    空購物車 v-if 會整塊取代表單（含錯誤訊息），使用者只會看到「購物車是空的」。
     if (form.payType === 1) {
       const init = await $fetch<{ actionUrl: string; fields: Record<string, string> }>(
         `${config.public.apiBase}/store/payment/create`,
         { method: 'POST', body: { orderCode: res.orderCode } },
       )
+      cartStore.items = []
+      cartStore.persist()
       const f = document.createElement('form')
       f.method = 'post'
       f.action = init.actionUrl
@@ -249,6 +250,9 @@ async function submitOrder() {
       f.submit()
       return
     }
+
+    cartStore.items = []
+    cartStore.persist()
 
     const query: Record<string, string> = { code: res.orderCode }
     if (res.atmCode) query.atm = res.atmCode

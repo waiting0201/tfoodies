@@ -32,4 +32,10 @@ public sealed class FiscOptions
 
     /// <summary>前台訂單結果頁完整網址，供 return 端點處理完成後 302 導回。</summary>
     public string StoreSuccessUrl { get; set; } = "";
+
+    /// <summary>後台線上刷卡的授權結果回傳網址（AuthResURL）= 後端 /store/payment/return-admin 端點完整網址。</summary>
+    public string AdminAuthResUrl { get; set; } = "";
+
+    /// <summary>後台訂單詳情頁完整網址，供 return-admin 端點處理完成後 302 導回。</summary>
+    public string AdminSuccessUrl { get; set; } = "";
 }
