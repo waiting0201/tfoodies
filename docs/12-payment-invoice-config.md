@@ -63,7 +63,7 @@ WEBPOS 送出欄位（[FiscWebpos.cs](../src/TFoodies.Infrastructure/Payments/Fi
 | `customize` | AN, 固定 1 | 選填 | `0`（不使用客製化授權頁）|
 | `lidm` | AN, 信用卡**最大 19** | ✅ | 訂單編號（`O`+8 碼日期+3 碼序，共 12 位）|
 | `purchAmt` | N, ≤10（台幣整數）| ✅ | total+freight−discount |
-| `AuthResURL` | ANS, ≤512 | 選填 | 由 `Fisc__ApiBaseUrl` 導出 |
+| `AuthResURL` | ANS, ≤512 | 選填 | 前台由 `Fisc__StoreApiBaseUrl`、後台由 `Fisc__ApiBaseUrl` 導出 |
 | `enCodeType` | ANS, ≤10（預設 BIG5）| 選填 | `UTF-8` |
 | `PayType` | AN, 固定 1（0=一般）| 選填 | `0` |
 | `AutoCap` | AN, 固定 1（1=自動請款）| 選填 | `1` |
@@ -79,7 +79,7 @@ WEBPOS 送出欄位（[FiscWebpos.cs](../src/TFoodies.Infrastructure/Payments/Fi
 | `1` | merID/MerchantID/TerminalID 輸入不完整 | 三個代號設定值是否齊全 |
 | `2` | 未指定訂單編號（lidm） | — |
 | `3` | 未指定訂單金額（purchAmt） | — |
-| `4` | AuthResURL 有誤（格式） | `Fisc__ApiBaseUrl` 用公開網址，勿 `localhost` |
+| `4` | AuthResURL 有誤（格式） | 用公開網址，勿 `localhost`（前台＝`Fisc__StoreApiBaseUrl`、後台＝`Fisc__ApiBaseUrl`）|
 | `10` | 查不到符合條件的訂單資訊 | — |
 | `15` | **Can't find this merch in term** | **需財金確認**：merID 是否與財金端「網路特店專用流水號」一致、**測試環境該組代號是否已開通** |
 | `3205` | 授權端網址格式有誤 | 同 errcode 4 |
@@ -104,3 +104,26 @@ API 設定類別 `EzPay`（[EzPayOptions.cs](../src/TFoodies.Infrastructure/Invo
 - **選填 Variables**（有預設）：`Fisc__ActionUrl`（測試站時設）、`Fisc__ApiBaseUrl`（財金白名單網域時設）、`ADMIN_SITE_URL`（後台自訂網域時設）、`EzPay__BaseUrl`（測試環境時設 cinv）
 
 > 改動本表任一鍵：同名同步五處 —— [FiscOptions.cs](../src/TFoodies.Infrastructure/Payments/Fisc/FiscOptions.cs)/[EzPayOptions.cs](../src/TFoodies.Infrastructure/Invoicing/EzPay/EzPayOptions.cs)（屬性）+ [main.bicep](../infra/main.bicep)（param + appSettings）+ [infra.yml](../.github/workflows/infra.yml)（兩個部署區塊的左右兩側）+ GitHub var/secret + [local.settings.json](../src/TFoodies.Api.Functions/local.settings.json)，否則部署整包覆蓋時被洗掉。
+
+## 網域與金流（同網域送單）的關係
+
+舊系統單體：刷卡頁與 AuthResURL 同網域（前台 `www.tfoodies.com`、後台 `backend.tfoodies.com`），即 **送單來源網域 = AuthResURL 網域 = 財金登錄網域**。新系統靠以下機制還原：
+
+- 前台：store 反代 [`/api/store/payment/return`](../web/store/server/routes/api/store/payment/return.post.ts) → Functions；`Fisc__StoreApiBaseUrl` / `Fisc__StoreSuccessUrl` 皆由 **`storePublicUrl`** 導出（[main.bicep](../infra/main.bicep) `var storePublicUrl = storeCustomDomain 優先, 否則 siteUrl`）→ 永遠用「使用者實際所在網域」。
+- 後台：**尚未做**（SWA 需 linked backend 反代 `/api`、AuthResURL 改用 admin 網域）。目前 `AdminAuthResUrl` 仍為 `Fisc__ApiBaseUrl`。
+
+### 目前網域（過渡期）
+| 用途 | 網域 |
+|---|---|
+| store（前台） | `tfoodies-store.4webdemo.com`（bicep `storeCustomDomain`）|
+| admin（後台） | `tfoodies-admin.4webdemo.com`（GitHub var `ADMIN_SITE_URL`）|
+| 財金登錄網域 | 舊系統為 `www.tfoodies.com` / `backend.tfoodies.com` |
+
+> ⚠️ **過渡網域（4webdemo）幾乎未在財金登錄**。若財金鎖「來源/AuthResURL 必須為登錄網域」，在過渡網域刷卡會被擋（回「交易資料驗證結果有誤」），即使欄位與同網域都正確。
+> **務必先問財金**：特店 45889852 是否限制送單來源/AuthResURL 網域？能否加登錄 `tfoodies-store.4webdemo.com` / `tfoodies-admin.4webdemo.com`？
+
+### 切換到正式網域時要一起改（金流相關）
+1. [main.bicep](../infra/main.bicep)：`storeCustomDomain`、`storeCertName`、`siteUrl` → 正式網域（store 部署細節見 [docs/11](11-store-deployment.md)）。`Fisc__StoreApiBaseUrl`/`StoreSuccessUrl` 會自動跟著 `storePublicUrl` 變，**不需另改**。
+2. GitHub var `ADMIN_SITE_URL` → 正式後台網域。
+3. 財金端：確認正式網域已登錄（舊系統的 `www.tfoodies.com` 應已登錄；新後台網域若不同需加登錄）。
+4. `Fisc__ActionUrl` 切正式 `https://www.focas.fisc.com.tw/...`（測試期間若用 focas-test 才需切回）。

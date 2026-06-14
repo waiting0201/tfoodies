@@ -94,6 +94,10 @@ var tags = {
   app: 'tfoodies'
   env: env
 }
+
+// 前台實際對外服務網址：過渡期用自訂網域(storeCustomDomain)，未設時 fallback siteUrl。
+// 金流回呼/結果頁須用「使用者實際所在的網域」，否則與刷卡頁來源網域不一致（財金檢核會擋）。
+var storePublicUrl = empty(storeCustomDomain) ? siteUrl : 'https://${storeCustomDomain}'
 var suffix = uniqueString(resourceGroup().id, env)
 var saName = toLower('tfoodiesfn${env}${take(suffix, 8)}')
 var storageConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${storage.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storage.listKeys().keys[0].value}'
@@ -193,10 +197,11 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'Fisc__TerminalID', value: Fisc__TerminalID }
         { name: 'Fisc__MerID', value: Fisc__MerID }
         { name: 'Fisc__ApiBaseUrl', value: Fisc__ApiBaseUrl }
-        // 前台 AuthResURL 用 store 網域（siteUrl），store 反代 /api/store/payment/return 到 Functions，
-        // 使「刷卡頁網域 = AuthResURL 網域 = 財金登錄網域」一致。siteUrl 須為財金登錄網域。
-        { name: 'Fisc__StoreApiBaseUrl', value: '${siteUrl}/api' }
-        { name: 'Fisc__StoreSuccessUrl', value: '${siteUrl}/Order/Success' }
+        // 前台 AuthResURL/結果頁用「實際服務網域」storePublicUrl（過渡期=storeCustomDomain），
+        // store 反代 /api/store/payment/return 到 Functions，使刷卡頁網域=AuthResURL網域=結果頁網域一致。
+        // ⚠️ 該網域仍須為財金登錄網域，否則財金檢核會擋（過渡網域需請財金加登錄，或切正式網域後測）。
+        { name: 'Fisc__StoreApiBaseUrl', value: '${storePublicUrl}/api' }
+        { name: 'Fisc__StoreSuccessUrl', value: '${storePublicUrl}/Order/Success' }
         { name: 'Fisc__AdminSuccessUrl', value: '${empty(adminSiteUrl) ? 'https://${swaAdmin.properties.defaultHostname}' : adminSiteUrl}/admin/orders' }
         // ezPay 電子發票
         { name: 'EzPay__BaseUrl', value: EzPay__BaseUrl }
