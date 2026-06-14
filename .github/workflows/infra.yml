@@ -49,18 +49,16 @@ jobs:
               smtpUsername='${{ vars.SMTP_USERNAME }}' \
               blobBaseUrl='${{ vars.BLOB_BASE_URL }}' \
               blobContainerName='${{ vars.BLOB_CONTAINER || 'tfoodies' }}' \
-              fiscMerchantId='${{ vars.FISC_MERCHANT_ID }}' \
-              fiscTerminalId='${{ vars.FISC_TERMINAL_ID }}' \
-              fiscMerId='${{ vars.FISC_MER_ID }}' \
-              fiscMerchantName='${{ vars.FISC_MERCHANT_NAME || 'TFoodies' }}' \
-              fiscActionUrl='${{ vars.FISC_ACTION_URL || 'https://www.focas.fisc.com.tw/FOCAS_WEBPOS/online/' }}' \
-              fiscAuthResUrl='${{ vars.FISC_AUTH_RES_URL || 'https://tfoodies-api.azurewebsites.net/api/store/payment/return' }}' \
-              fiscAdminAuthResUrl='${{ vars.FISC_ADMIN_AUTH_RES_URL || 'https://tfoodies-api.azurewebsites.net/api/store/payment/return-admin' }}' \
+              Fisc__MerchantID='${{ vars.Fisc__MerchantID }}' \
+              Fisc__TerminalID='${{ vars.Fisc__TerminalID }}' \
+              Fisc__MerID='${{ vars.Fisc__MerID }}' \
+              Fisc__ActionUrl='${{ vars.Fisc__ActionUrl || 'https://www.focas.fisc.com.tw/FOCAS_WEBPOS/online/' }}' \
+              Fisc__ApiBaseUrl='${{ vars.Fisc__ApiBaseUrl || 'https://tfoodies-api.azurewebsites.net/api' }}' \
               adminSiteUrl='${{ vars.ADMIN_SITE_URL }}' \
-              ezpayMerchantId='${{ vars.EZPAY_MERCHANT_ID }}' \
-              ezpayHashKey='${{ secrets.EZPAY_HASH_KEY }}' \
-              ezpayHashIV='${{ secrets.EZPAY_HASH_IV }}' \
-              ezpayBaseUrl='${{ vars.EZPAY_BASE_URL || 'https://inv.ezpay.com.tw/Api' }}'
+              EzPay__MerchantId='${{ vars.EzPay__MerchantId }}' \
+              EzPay__HashKey='${{ secrets.EzPay__HashKey }}' \
+              EzPay__HashIV='${{ secrets.EzPay__HashIV }}' \
+              EzPay__BaseUrl='${{ vars.EzPay__BaseUrl || 'https://inv.ezpay.com.tw/Api' }}'
       - name: Deploy
         run: |
           az deployment group create \
@@ -77,15 +75,13 @@ jobs:
               smtpUsername='${{ vars.SMTP_USERNAME }}' \
               blobBaseUrl='${{ vars.BLOB_BASE_URL }}' \
               blobContainerName='${{ vars.BLOB_CONTAINER || 'tfoodies' }}' \
-              fiscMerchantId='${{ vars.FISC_MERCHANT_ID }}' \
-              fiscTerminalId='${{ vars.FISC_TERMINAL_ID }}' \
-              fiscMerId='${{ vars.FISC_MER_ID }}' \
-              fiscMerchantName='${{ vars.FISC_MERCHANT_NAME || 'TFoodies' }}' \
-              fiscActionUrl='${{ vars.FISC_ACTION_URL || 'https://www.focas.fisc.com.tw/FOCAS_WEBPOS/online/' }}' \
-              fiscAuthResUrl='${{ vars.FISC_AUTH_RES_URL || 'https://tfoodies-api.azurewebsites.net/api/store/payment/return' }}' \
-              fiscAdminAuthResUrl='${{ vars.FISC_ADMIN_AUTH_RES_URL || 'https://tfoodies-api.azurewebsites.net/api/store/payment/return-admin' }}' \
+              Fisc__MerchantID='${{ vars.Fisc__MerchantID }}' \
+              Fisc__TerminalID='${{ vars.Fisc__TerminalID }}' \
+              Fisc__MerID='${{ vars.Fisc__MerID }}' \
+              Fisc__ActionUrl='${{ vars.Fisc__ActionUrl || 'https://www.focas.fisc.com.tw/FOCAS_WEBPOS/online/' }}' \
+              Fisc__ApiBaseUrl='${{ vars.Fisc__ApiBaseUrl || 'https://tfoodies-api.azurewebsites.net/api' }}' \
               adminSiteUrl='${{ vars.ADMIN_SITE_URL }}' \
-              ezpayMerchantId='${{ vars.EZPAY_MERCHANT_ID }}' \
-              ezpayHashKey='${{ secrets.EZPAY_HASH_KEY }}' \
-              ezpayHashIV='${{ secrets.EZPAY_HASH_IV }}' \
-              ezpayBaseUrl='${{ vars.EZPAY_BASE_URL || 'https://inv.ezpay.com.tw/Api' }}'
+              EzPay__MerchantId='${{ vars.EzPay__MerchantId }}' \
+              EzPay__HashKey='${{ secrets.EzPay__HashKey }}' \
+              EzPay__HashIV='${{ secrets.EzPay__HashIV }}' \
+              EzPay__BaseUrl='${{ vars.EzPay__BaseUrl || 'https://inv.ezpay.com.tw/Api' }}'

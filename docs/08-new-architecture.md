@@ -103,7 +103,7 @@ Auth/
   AuthService.cs               ← IAuthService（PBKDF2 hash-on-login，自動升級明文）
 Payments/
   PaymentCompletionService.cs  ← IPaymentCompletionService（MarkPaidAsync：標記已付款+Income+寄信+await 開票；IssueInvoiceAsync：ezPay 開票+建本地 Invoices/Invoicedetails，冪等）。store return/notify、後台 charge return、後台 pay 共用
-  Fisc/FiscOptions.cs          ← 財金 WEBPOS 設定（ActionUrl/商店代號/AuthResUrl/StoreSuccessUrl + AdminAuthResUrl/AdminSuccessUrl）
+  Fisc/FiscOptions.cs          ← 財金 WEBPOS 設定（ActionUrl/商店代號/ApiBaseUrl/StoreSuccessUrl/AdminSuccessUrl）。前台+後台回呼網址（AuthResUrl/AdminAuthResUrl）由 ApiBaseUrl 程式導出（單一來源，避免重複）
   Fisc/FiscWebpos.cs           ← WEBPOS 刷卡 form 隱藏欄位產生器（store create 與後台 charge 共用，差別僅 AuthResURL）
 Invoicing/EzPay/
   EzPayCodec.cs                ← 藍新 AES-256-CBC + SHA256 codec

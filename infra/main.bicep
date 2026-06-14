@@ -69,26 +69,26 @@ param orderAtmPrefix string = '1943'
 
 // FISC 金流（FOCAS_WEBPOS；前端 form POST 導向刷卡，無加密金鑰，僅商店代號）
 // 商店代號非機密（form 本就會出現在前端 HTML），以 GitHub Variable 提供即可。
-// ActionUrl 預設為正式收單；要測試時以 GitHub var FISC_ACTION_URL 覆寫為 focas-test。
-param fiscActionUrl string = 'https://www.focas.fisc.com.tw/FOCAS_WEBPOS/online/'
-param fiscMerchantId string = ''
-param fiscTerminalId string = ''
-param fiscMerId string = ''
-param fiscMerchantName string = 'TFoodies'
-// 授權結果回傳網址（AuthResURL）= 本 Function App 的 /return 端點；須與財金後台註冊一致。
-param fiscAuthResUrl string = 'https://tfoodies-api.azurewebsites.net/api/store/payment/return'
-// 後台線上刷卡的授權結果回傳網址 = 本 Function App 的 /return-admin 端點。
-param fiscAdminAuthResUrl string = 'https://tfoodies-api.azurewebsites.net/api/store/payment/return-admin'
+// ActionUrl 預設為正式收單；要測試時以 GitHub var Fisc__ActionUrl 覆寫為 focas-test。
+// 參數名稱 = appSetting 鍵 = GitHub var/secret 名 = local.settings 鍵（四層一致，見 docs/12）。
+param Fisc__ActionUrl string = 'https://www.focas.fisc.com.tw/FOCAS_WEBPOS/online/'
+param Fisc__MerchantID string = ''
+param Fisc__TerminalID string = ''
+param Fisc__MerID string = ''
+// 本 API 公開基底（含 /api）。財金前台/後台授權回呼網址（/store/payment/return、/return-admin）
+// 由程式以此導出；須與財金後台登錄的網域一致。
+param Fisc__ApiBaseUrl string = 'https://tfoodies-api.azurewebsites.net/api'
 // 後台 admin 站台網址（供刷卡完成後導回訂單詳情頁）。留空則用 SWA 預設網域；有自訂網域時填入。
+// 為 Fisc__AdminSuccessUrl 的導出來源（非直接 appSetting），故維持 adminSiteUrl 名稱。
 param adminSiteUrl string = ''
 
-// ezPay 電子發票（尚未啟用；有正式金鑰時填對應 GitHub Secret/Variable）
-param ezpayBaseUrl string = 'https://inv.ezpay.com.tw/Api'
-param ezpayMerchantId string = ''
+// ezPay 電子發票。參數名稱 = appSetting 鍵 = GitHub var/secret 名（見 docs/12）。
+param EzPay__BaseUrl string = 'https://inv.ezpay.com.tw/Api'
+param EzPay__MerchantId string = ''
 @secure()
-param ezpayHashKey string = ''
+param EzPay__HashKey string = ''
 @secure()
-param ezpayHashIV string = ''
+param EzPay__HashIV string = ''
 
 var tags = {
   app: 'tfoodies'
@@ -187,21 +187,19 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'Smtp__EnableSsl', value: smtpEnableSsl }
         { name: 'Smtp__Bcc__0', value: smtpBcc0 }
         { name: 'Smtp__Bcc__1', value: smtpBcc1 }
-        // FISC 金流（FOCAS_WEBPOS）。StoreSuccessUrl 由 siteUrl 自動組。
-        { name: 'Fisc__ActionUrl', value: fiscActionUrl }
-        { name: 'Fisc__MerchantID', value: fiscMerchantId }
-        { name: 'Fisc__TerminalID', value: fiscTerminalId }
-        { name: 'Fisc__MerID', value: fiscMerId }
-        { name: 'Fisc__MerchantName', value: fiscMerchantName }
-        { name: 'Fisc__AuthResUrl', value: fiscAuthResUrl }
+        // FISC 金流（FOCAS_WEBPOS）。回呼網址由 ApiBaseUrl 程式導出；Store/Admin SuccessUrl 由站台網址自動組。
+        { name: 'Fisc__ActionUrl', value: Fisc__ActionUrl }
+        { name: 'Fisc__MerchantID', value: Fisc__MerchantID }
+        { name: 'Fisc__TerminalID', value: Fisc__TerminalID }
+        { name: 'Fisc__MerID', value: Fisc__MerID }
+        { name: 'Fisc__ApiBaseUrl', value: Fisc__ApiBaseUrl }
         { name: 'Fisc__StoreSuccessUrl', value: '${siteUrl}/Order/Success' }
-        { name: 'Fisc__AdminAuthResUrl', value: fiscAdminAuthResUrl }
         { name: 'Fisc__AdminSuccessUrl', value: '${empty(adminSiteUrl) ? 'https://${swaAdmin.properties.defaultHostname}' : adminSiteUrl}/admin/orders' }
         // ezPay 電子發票
-        { name: 'EzPay__BaseUrl', value: ezpayBaseUrl }
-        { name: 'EzPay__MerchantId', value: ezpayMerchantId }
-        { name: 'EzPay__HashKey', value: ezpayHashKey }
-        { name: 'EzPay__HashIV', value: ezpayHashIV }
+        { name: 'EzPay__BaseUrl', value: EzPay__BaseUrl }
+        { name: 'EzPay__MerchantId', value: EzPay__MerchantId }
+        { name: 'EzPay__HashKey', value: EzPay__HashKey }
+        { name: 'EzPay__HashIV', value: EzPay__HashIV }
       ]
     }
   }

@@ -3,7 +3,13 @@ namespace TFoodies.Infrastructure.Payments.Fisc;
 /// <summary>
 /// 財金 FISC FOCAS_WEBPOS 網路收單設定（對齊舊系統 + 技術說明手冊 v2.7）。
 /// WEBPOS 為前端 HTML form POST 導向刷卡頁，基本交易不需加密金鑰，僅需商店代號。
-/// 機密性低（商店代號本就會出現在前端 form），但仍由設定提供以利測試/正式切換。
+///
+/// 設定鍵（前端不持有任何 FISC 設定，一律由 API 產生刷卡欄位）：
+///   Fisc__ActionUrl        — 財金刷卡頁 URL（測試/正式切換的唯一開關）
+///   Fisc__MerchantID/TerminalID/MerID — 商店代號（測試與正式相同）
+///   Fisc__ApiBaseUrl       — 本 API 公開基底（含 /api），授權回呼網址由此導出
+///   Fisc__StoreSuccessUrl  — 前台結果頁完整網址
+///   Fisc__AdminSuccessUrl  — 後台訂單頁基底網址
 /// </summary>
 public sealed class FiscOptions
 {
@@ -24,18 +30,26 @@ public sealed class FiscOptions
     /// <summary>網站特店自訂代碼（最大 10 位，注意與 MerchantID 不同）。</summary>
     public string MerID { get; set; } = "";
 
-    /// <summary>特店網站或公司名稱，僅供刷卡頁顯示。</summary>
-    public string MerchantName { get; set; } = "TFoodies";
-
-    /// <summary>授權結果回傳網址（AuthResURL）= 後端 /store/payment/return 端點完整網址。</summary>
-    public string AuthResUrl { get; set; } = "";
+    /// <summary>
+    /// 本 Function App 的公開 API 基底（含 /api，例：https://api.tfoodies.com/api）。
+    /// 財金授權結果回呼網址（AuthResURL）由此導出，須為公開 HTTPS 且網域已在財金登錄；
+    /// 本機測試需用 dev tunnel/ngrok 暴露 7071 後填入。
+    /// </summary>
+    public string ApiBaseUrl { get; set; } = "";
 
     /// <summary>前台訂單結果頁完整網址，供 return 端點處理完成後 302 導回。</summary>
     public string StoreSuccessUrl { get; set; } = "";
 
-    /// <summary>後台線上刷卡的授權結果回傳網址（AuthResURL）= 後端 /store/payment/return-admin 端點完整網址。</summary>
-    public string AdminAuthResUrl { get; set; } = "";
-
-    /// <summary>後台訂單詳情頁完整網址，供 return-admin 端點處理完成後 302 導回。</summary>
+    /// <summary>後台訂單列表基底網址，供 return-admin 導回 {AdminSuccessUrl}/{orderCode}。</summary>
     public string AdminSuccessUrl { get; set; } = "";
+
+    // ── 導出值（單一來源 ApiBaseUrl，不由設定綁定，避免兩條回呼網址重複定義/失準）──
+
+    /// <summary>前台刷卡授權結果回呼網址 = {ApiBaseUrl}/store/payment/return。</summary>
+    public string AuthResUrl => Combine(ApiBaseUrl, "store/payment/return");
+
+    /// <summary>後台線上刷卡授權結果回呼網址 = {ApiBaseUrl}/store/payment/return-admin。</summary>
+    public string AdminAuthResUrl => Combine(ApiBaseUrl, "store/payment/return-admin");
+
+    private static string Combine(string baseUrl, string path) => $"{baseUrl.TrimEnd('/')}/{path}";
 }
