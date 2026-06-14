@@ -21,24 +21,70 @@ API 設定類別 `Fisc`（[FiscOptions.cs](../src/TFoodies.Infrastructure/Paymen
 | `Fisc__MerchantID` | ✅ GitHub var | 特店代號（15 位）。測試與正式相同 |
 | `Fisc__TerminalID` | ✅ GitHub var | 機台代號（8 位）。測試與正式相同 |
 | `Fisc__MerID` | ✅ GitHub var | 網站特店自訂代碼（≤10 位）。測試與正式相同 |
-| `Fisc__ApiBaseUrl` | ✅ GitHub var | **本 API 公開基底（含 `/api`）**。兩個授權回呼網址由此導出（見下）。正式預設 `https://tfoodies-api.azurewebsites.net/api`；本機需 dev tunnel 的 https（`localhost` 不可） |
+| `Fisc__ApiBaseUrl` | ✅ GitHub var | 本 API 公開基底（含 `/api`）。**後台**刷卡回呼 `AdminAuthResUrl` 由此導出。正式預設 `https://tfoodies-api.azurewebsites.net/api` |
+| `Fisc__StoreApiBaseUrl` | ⚙️ 導出（`siteUrl`） | **前台 store 網域基底** = `${siteUrl}/api`。前台刷卡回呼 `AuthResUrl` 由此導出，使「刷卡頁網域 = AuthResURL 網域」一致（見下）。留空 fallback `ApiBaseUrl` |
 | `Fisc__StoreSuccessUrl` | ⚙️ 導出（`siteUrl`） | 前台刷卡結果頁 = `${siteUrl}/Order/Success`，正式免單獨設 |
 | `Fisc__AdminSuccessUrl` | ⚙️ 導出（`adminSiteUrl`/SWA） | 後台訂單頁基底 = `.../admin/orders`；自訂網域以 GitHub var `ADMIN_SITE_URL` 設 |
 
-### 程式導出（單一來源，不另設定）
+### 程式導出（不另設定）
 
-`AuthResUrl` / `AdminAuthResUrl` **不是設定鍵**，由 `ApiBaseUrl` 在 [FiscOptions.cs](../src/TFoodies.Infrastructure/Payments/Fisc/FiscOptions.cs) 導出，避免兩條網址重複定義/失準：
+`AuthResUrl` / `AdminAuthResUrl` **不是設定鍵**，在 [FiscOptions.cs](../src/TFoodies.Infrastructure/Payments/Fisc/FiscOptions.cs) 由各自網域基底導出：
 
-- 前台刷卡回呼 `AuthResUrl` = `{ApiBaseUrl}/store/payment/return`
+- 前台刷卡回呼 `AuthResUrl` = `{StoreApiBaseUrl 或 ApiBaseUrl}/store/payment/return`（**store 網域**）
 - 後台刷卡回呼 `AdminAuthResUrl` = `{ApiBaseUrl}/store/payment/return-admin`
 
-WEBPOS 送出欄位（[FiscWebpos.cs](../src/TFoodies.Infrastructure/Payments/Fisc/FiscWebpos.cs)）與舊系統正式可運作表單一字不差：
-`merID, MerchantID, TerminalID, lidm, purchAmt, AuthResURL, enCodeType, PayType=0, AutoCap=1`。**不送 `MerchantName`**（已移除，舊可運作表單未含此欄）。
+WEBPOS 送出欄位（[FiscWebpos.cs](../src/TFoodies.Infrastructure/Payments/Fisc/FiscWebpos.cs)）：
+`merID, MerchantID, TerminalID, customize=0, lidm, purchAmt, AuthResURL, enCodeType, PayType=0, AutoCap=1`。
 
-### ⚠️ AuthResURL 注意
+### ⚠️ 同網域送單（還原舊系統條件）— 最關鍵
 
-- 必須是**公開可達的 HTTPS**；`localhost` 財金回呼不到 → 本機測試需 dev tunnel/ngrok。
-- 財金通常**白名單 AuthResURL 網域**到該商店代號（舊系統登錄 `www.tfoodies.com` / `backend.tfoodies.com`）。`FISC_API_BASE_URL` 的網域須在財金登錄，否則刷卡頁回「交易資料驗證結果有誤」。
+> 來源：[網路特店技術說明手冊_v2.7.doc](../reference/card/網路特店技術說明手冊_v2.7.doc) + 舊系統實測。
+
+舊系統為**單體**：刷卡 form 與 AuthResURL 端點同在一個網域（前台 `www.tfoodies.com`、後台 `backend.tfoodies.com`），即 **送單來源網域 = AuthResURL 網域 = 財金登錄網域** 三者一致。新系統拆 store/admin/API 三網域會打破此條件，導致財金回「交易資料驗證結果有誤」（即使欄位全對）。
+
+**解法（前台已實作）**：store 以反向代理 [server/routes/api/store/payment/return.post.ts](../web/store/server/routes/api/store/payment/return.post.ts) 把 `/api/store/payment/return` 轉發到 Functions；`AuthResUrl` 用 `StoreApiBaseUrl`(=`${siteUrl}/api`，store 網域)。部署到登錄網域後即還原同網域條件。
+
+- ⚠️ `siteUrl` 須為**財金登錄網域**（現用過渡網域時，要嘛切到 `www.tfoodies.com`，要嘛請財金把過渡網域加登錄）。
+- 本機 `localhost` 無法滿足（財金回呼不到）；要本機驗「同網域」假設，需對 **store(3000)** 開 dev tunnel 並把 `Fisc__StoreApiBaseUrl` 指向 tunnel。
+- **後台 admin 線上刷卡尚未做同網域**（SWA 需以 linked backend 反代 `/api`，AuthResURL 改用 admin 網域）— 待辦。
+- errcode `4`（AuthResURL有誤）為格式檢核；`localhost`/格式不符會中。
+
+## FISC WEBPOS 規格速查（依手冊 v2.7）
+
+> 入口參數 charset 固定 **Big-5**、欄位名**大小寫有別**；用 UTF-8 須帶 `enCodeType=UTF-8`。本系統 [FiscWebpos.cs](../src/TFoodies.Infrastructure/Payments/Fisc/FiscWebpos.cs) 送出 9 欄，與舊系統正式可運作表單一致。
+
+### 送出欄位（3.1.1）與必填
+
+| 欄位 | 型態/長度 | 必填 | 本系統值 |
+|---|---|---|---|
+| `merID` | N, ≤10 | ✅ | `Fisc__MerID` |
+| `MerchantID` | AN, 固定 15 | ✅ | `Fisc__MerchantID` |
+| `TerminalID` | AN, 固定 8 | ✅ | `Fisc__TerminalID` |
+| `customize` | AN, 固定 1 | 選填 | `0`（不使用客製化授權頁）|
+| `lidm` | AN, 信用卡**最大 19** | ✅ | 訂單編號（`O`+8 碼日期+3 碼序，共 12 位）|
+| `purchAmt` | N, ≤10（台幣整數）| ✅ | total+freight−discount |
+| `AuthResURL` | ANS, ≤512 | 選填 | 由 `Fisc__ApiBaseUrl` 導出 |
+| `enCodeType` | ANS, ≤10（預設 BIG5）| 選填 | `UTF-8` |
+| `PayType` | AN, 固定 1（0=一般）| 選填 | `0` |
+| `AutoCap` | AN, 固定 1（1=自動請款）| 選填 | `1` |
+
+### 授權成功判定（3.1.2）
+
+`status == "0"` **且** `authCode` 非空 → 授權成功（本系統 [PaymentController.ParseFields](../src/TFoodies.Api.Functions/Controllers/PaymentController.cs) 已照此判定）。主動通知字串 `AuthResp={...}` 內以半形逗號分隔，含 `errcode/authCode/lidm/lastPan4/status/xid`。
+
+### 入口檢核錯誤碼（debug 對照）
+
+| errcode | 意義 | 排查方向 |
+|---|---|---|
+| `1` | merID/MerchantID/TerminalID 輸入不完整 | 三個代號設定值是否齊全 |
+| `2` | 未指定訂單編號（lidm） | — |
+| `3` | 未指定訂單金額（purchAmt） | — |
+| `4` | AuthResURL 有誤（格式） | `Fisc__ApiBaseUrl` 用公開網址，勿 `localhost` |
+| `10` | 查不到符合條件的訂單資訊 | — |
+| `15` | **Can't find this merch in term** | **需財金確認**：merID 是否與財金端「網路特店專用流水號」一致、**測試環境該組代號是否已開通** |
+| `3205` | 授權端網址格式有誤 | 同 errcode 4 |
+
+> 「系統檢核異常或逾時」「交易資料驗證結果有誤」**不在手冊也不在舊系統**，研判為測試環境較新 Pay Page 的客戶端 JS（可能即被 CSP 擋的 inline script）所顯示，非本系統可控。優先以上表 errcode 與「**測試環境代號是否開通（errcode 15）**」對焦。
 
 ## ezPay／NewebPay 電子發票
 

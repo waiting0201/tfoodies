@@ -21,6 +21,7 @@ public static class FiscWebpos
             ["merID"]        = fisc.MerID,
             ["MerchantID"]   = fisc.MerchantID,
             ["TerminalID"]   = fisc.TerminalID,
+            ["customize"]    = "0",            // 不使用客製化授權頁（手冊 3.1.1）
             ["lidm"]         = summary.OrderCode,
             ["purchAmt"]     = payable.ToString(),
             ["AuthResURL"]   = authResUrl,
