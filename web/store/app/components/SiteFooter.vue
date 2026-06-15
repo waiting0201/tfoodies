@@ -70,10 +70,8 @@
     </div>
   </div>
   <!--
-    「到貨通知」彈窗（#checkOutofnotice）暫時移除：新 Functions API 尚未移植 captcha 產生端點
-    與公開的缺貨通知 POST，原本 <img src="/api/store/captcha"> 會在載入時 404。待後端補上
-    （captcha + outofnotice 端點）後，從 reference/old/tfoodies/Views/Shared/_Footer.cshtml
-    還原此區，並把 captcha src 與送出改走 runtimeConfig.public.apiBase。
-    產品頁的「到貨通知我」按鈕（.popup-contact）目前無對應彈窗，點擊不會開窗。
+    「到貨通知」彈窗已不再放在 footer：改於商品詳細頁（pages/Product/[producttitle].vue）就地實作
+    Vue 彈窗，點「到貨通知我」(.popup-contact) 直接開窗，送出走 POST /store/outofnotices
+    （runtimeConfig.public.apiBase）。舊系統的圖形驗證碼以 reCAPTCHA v3（隱形）取代。
   -->
 </template>

@@ -44,6 +44,10 @@ export default defineNuxtConfig({
       // (legacy schema); pages prepend this exactly as legacy ViewBag.BlobUrl did
       // (`<blob url>/<container>/`). Override per-env via NUXT_PUBLIC_BLOB_URL.
       blobUrl: process.env.NUXT_PUBLIC_BLOB_URL || 'https://weyprous8ed9.blob.core.windows.net/tfoodies/',
+      // Google reCAPTCHA v3 site key (public value, safe to expose). Drives the 缺貨「到貨通知我」
+      // 登記彈窗的人機驗證。留空則前端略過 grecaptcha（後端 SecretKey 也留空時一併放行）。
+      // 正式環境以 NUXT_PUBLIC_RECAPTCHA_SITE_KEY 覆寫。
+      recaptchaSiteKey: process.env.NUXT_PUBLIC_RECAPTCHA_SITE_KEY || '',
     },
   },
 

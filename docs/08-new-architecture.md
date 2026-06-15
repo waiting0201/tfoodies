@@ -127,6 +127,9 @@ Sms/
 Email/
   SmtpEmailService.cs          ← IEmailService（SMTP，Singleton；對齊舊 Libs.SendMail/Sendinblue，
                                   但失敗回 false 不無限遞迴；BCC 可設定，appsettings:Smtp）
+Captcha/
+  GoogleReCaptchaVerifier.cs   ← ICaptchaVerifier（reCAPTCHA v3 siteverify，具名 HttpClient，Singleton；
+                                  appsettings:ReCaptcha；SecretKey 留空則放行＝本地/未佈署）
 Store/
   StoreQueryService.cs         ← IStoreQueryService（Dapper 讀；13 前台查詢；含 GetShoppingGuideAsync 購物說明 FAQ）
 DependencyInjection.cs         ← AddInfrastructure()，對外唯一入口
@@ -190,6 +193,7 @@ Helpers/
   AdminGuard.cs              ← 後台 RBAC 守衛（RequireAdmin / AuthorizeAsync）
 Controllers/
   StoreController.cs         ← 前台商品/CMS（13 GET 端點，公開；含 GET /store/shopping-guide 購物說明 FAQ）
+                               + POST /store/outofnotices（缺貨「到貨通知我」登記；reCAPTCHA v3 + 同 email/商品去重）
   AuthController.cs          ← POST /auth/login, /auth/refresh
   MemberAuthController.cs    ← 會員認證延伸（公開）：POST /auth/register（註冊）、
                                  POST /auth/forgot-password（忘記密碼，對齊舊 Ajax/PasswordSend：

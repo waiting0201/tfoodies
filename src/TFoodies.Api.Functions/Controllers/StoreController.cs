@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Dapper;
 using Microsoft.AspNetCore.Mvc;
 using TFoodies.Application.Abstractions;
 using TFoodies.Api.Functions.Router;
@@ -14,8 +16,15 @@ public sealed class StoreController
     private const int DefaultPageSize = 9;
 
     private readonly IStoreQueryService _store;
+    private readonly IDbConnectionFactory _db;
+    private readonly ICaptchaVerifier _captcha;
 
-    public StoreController(IStoreQueryService store) => _store = store;
+    public StoreController(IStoreQueryService store, IDbConnectionFactory db, ICaptchaVerifier captcha)
+    {
+        _store = store;
+        _db = db;
+        _captcha = captcha;
+    }
 
     // GET /store/home
     public async Task<IActionResult> GetHome(RouteContext ctx)
@@ -171,6 +180,72 @@ public sealed class StoreController
         var types = await _store.GetShoppingGuideAsync();
         return ctx.Ok(types);
     }
+
+    // POST /store/outofnotices — 缺貨商品「到貨通知我」登記（公開；對齊舊系統 Ajax/PostOutofnotice）。
+    // 顧客在商品缺貨時留下姓名/Email/電話，到貨後由後台（OrderMs → 缺貨通知）通知。
+    // 防濫用：reCAPTCHA v3 + 同 Email/同商品「未通知」者去重（冪等）。登入會員自動帶 memberid。
+    public async Task<IActionResult> CreateOutofnotice(RouteContext ctx)
+    {
+        var ct = ctx.Request.HttpContext.RequestAborted;
+
+        var body = await ctx.TryReadBodyAsync<OutofnoticeRequest>(ct);
+        if (body is null) return ctx.BadRequest("Request body 格式不正確。");
+
+        if (body.ProductId is null || body.ProductId == Guid.Empty)
+            return ctx.BadRequest("缺少 productId 欄位。");
+        if (string.IsNullOrWhiteSpace(body.Name)) return ctx.BadRequest("缺少 name 欄位。");
+        if (string.IsNullOrWhiteSpace(body.Email)) return ctx.BadRequest("缺少 email 欄位。");
+        if (string.IsNullOrWhiteSpace(body.Mobile)) return ctx.BadRequest("缺少 mobile 欄位。");
+
+        // 人機驗證（未設定金鑰時 verifier 會放行）。
+        if (!await _captcha.VerifyAsync(body.CaptchaToken, "outofnotice", ct))
+            return ctx.BadRequest("人機驗證失敗，請重新整理後再試。");
+
+        var productId = body.ProductId.Value;
+        var email = body.Email!.Trim();
+
+        using var conn = await _db.CreateOpenConnectionAsync(ct);
+
+        // 商品必須存在，避免登記到不存在的商品。
+        var productExists = await conn.ExecuteScalarAsync<int>(
+            "SELECT COUNT(1) FROM Products WHERE productid = @productId", new { productId });
+        if (productExists == 0) return ctx.NotFound("找不到商品。");
+
+        // 去重：同商品 + 同 Email 且尚未通知者，視為已登記（冪等，不重複寫入）。
+        var pending = await conn.ExecuteScalarAsync<int>(
+            "SELECT COUNT(1) FROM Outofnotices WHERE productid = @productId AND email = @email AND isnotice = 0",
+            new { productId, email });
+        if (pending > 0) return ctx.Ok(new { message = "您已登記過此商品的到貨通知。", duplicated = true });
+
+        await conn.ExecuteAsync(@"
+INSERT INTO Outofnotices (outofnoticeid, productid, memberid, name, email, mobile, createdate, isnotice)
+VALUES (@outofnoticeid, @productid, @memberid, @name, @email, @mobile, @createdate, 0)",
+            new
+            {
+                outofnoticeid = Guid.NewGuid(),
+                productid     = productId,
+                memberid      = ExtractMemberId(ctx.CurrentUser),
+                name          = body.Name!.Trim(),
+                email,
+                mobile        = body.Mobile!.Trim(),
+                createdate    = DateTime.UtcNow.AddHours(8),
+            });
+
+        return ctx.Created(new { message = "感謝您，到貨時將通知您！" });
+    }
+
+    // 登入會員帶 Bearer 時自動關聯 memberid；匿名登記則為 null（對齊 StoreOrderController）。
+    private static Guid? ExtractMemberId(ClaimsPrincipal? user)
+    {
+        if (user is null) return null;
+        var role = user.FindFirstValue(ClaimTypes.Role);
+        if (!string.Equals(role, "member", StringComparison.OrdinalIgnoreCase)) return null;
+        var id = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(id, out var guid) ? guid : null;
+    }
+
+    private sealed record OutofnoticeRequest(
+        Guid? ProductId, string? Name, string? Email, string? Mobile, string? CaptchaToken);
 
     private static (int page, int pageSize) ParsePaging(RouteContext ctx)
     {

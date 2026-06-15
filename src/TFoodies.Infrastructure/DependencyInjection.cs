@@ -15,6 +15,7 @@ using TFoodies.Infrastructure.Sms;
 using TFoodies.Infrastructure.Email;
 using TFoodies.Infrastructure.Blob;
 using TFoodies.Infrastructure.Store;
+using TFoodies.Infrastructure.Captcha;
 
 namespace TFoodies.Infrastructure;
 
@@ -99,6 +100,12 @@ public static class DependencyInjection
         // ── Blob Storage（Singleton — BlobContainerClient 是 thread-safe）────────
         services.Configure<AzureBlobOptions>(configuration.GetSection(AzureBlobOptions.SectionName));
         services.AddSingleton<IBlobService, AzureBlobService>();
+
+        // ── reCAPTCHA v3 人機驗證（HttpClient pool，Singleton — 無狀態）────────────
+        // 前台公開寫入端點（缺貨通知登記）用。SecretKey 留空則略過驗證（本地 / 尚未佈署）。
+        services.Configure<ReCaptchaOptions>(configuration.GetSection(ReCaptchaOptions.SectionName));
+        services.AddHttpClient(nameof(GoogleReCaptchaVerifier));
+        services.AddSingleton<ICaptchaVerifier, GoogleReCaptchaVerifier>();
 
         return services;
     }

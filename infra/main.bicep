@@ -90,6 +90,12 @@ param EzPay__HashKey string = ''
 @secure()
 param EzPay__HashIV string = ''
 
+// reCAPTCHA v3（前台缺貨「到貨通知我」登記的人機驗證）。
+// SecretKey 為後端機密；留空則後端略過驗證（功能仍可運作，但不阻擋濫用）。
+@secure()
+param ReCaptcha__SecretKey string = ''
+param ReCaptcha__MinScore string = '0.5'
+
 var tags = {
   app: 'tfoodies'
   env: env
@@ -204,6 +210,9 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'EzPay__MerchantId', value: EzPay__MerchantId }
         { name: 'EzPay__HashKey', value: EzPay__HashKey }
         { name: 'EzPay__HashIV', value: EzPay__HashIV }
+        // reCAPTCHA v3（缺貨到貨通知登記人機驗證）
+        { name: 'ReCaptcha__SecretKey', value: ReCaptcha__SecretKey }
+        { name: 'ReCaptcha__MinScore', value: ReCaptcha__MinScore }
       ]
     }
   }
@@ -212,6 +221,9 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
 
 // ---------- 前台 store：Container Registry + Container App (Nuxt SSR) ----------
 param siteUrl string = 'https://www.tfoodies.com'
+
+// reCAPTCHA v3 網站金鑰（公開值，非機密）；空=前端略過 grecaptcha。來源 GitHub var RECAPTCHA_SITE_KEY。
+param recaptchaSiteKey string = ''
 
 // 自訂網域：寫進 bicep 才能在每次整包部署時保留 ingress binding，
 // 否則 az deployment group create 的 PUT 會把手動綁定（az containerapp hostname bind）洗掉。
@@ -303,6 +315,8 @@ resource storeApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'NUXT_PUBLIC_API_BASE', value: 'https://${functionApp.properties.defaultHostName}/api' }
             { name: 'NUXT_PUBLIC_SITE_URL', value: siteUrl }
             { name: 'NUXT_PUBLIC_BLOB_URL', value: storeBlobPublicUrl }
+            // reCAPTCHA v3 網站金鑰（公開值）；空=前端略過 grecaptcha。
+            { name: 'NUXT_PUBLIC_RECAPTCHA_SITE_KEY', value: recaptchaSiteKey }
           ]
         }
       ]

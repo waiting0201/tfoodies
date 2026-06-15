@@ -60,6 +60,7 @@ public class RouteTable
         Register<StoreController>("GET", "store/events/detail",    (c, ctx) => c.GetEventDetail(ctx));
         Register<StoreController>("GET", "store/events",           (c, ctx) => c.GetEvents(ctx));
         Register<StoreController>("GET", "store/shopping-guide",   (c, ctx) => c.GetShoppingGuide(ctx));
+        Register<StoreController>("POST", "store/outofnotices",    (c, ctx) => c.CreateOutofnotice(ctx)); // 缺貨「到貨通知我」登記
 
         // ── Store 下單 ──────────────────────────────────────────────────────
         Register<StoreOrderController>("POST", "store/discount/apply", (c, ctx) => c.ApplyDiscount(ctx));

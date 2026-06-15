@@ -67,6 +67,56 @@ function showToast(msg: string) {
 }
 onBeforeUnmount(() => { if (toastTimer) clearTimeout(toastTimer) })
 
+// 缺貨「到貨通知我」登記彈窗（對齊舊系統 _Footer.cshtml #checkOutofnotice + Ajax/PostOutofnotice）。
+// reCAPTCHA v3（隱形）→ POST /store/outofnotices。舊系統的圖形驗證碼以 v3 取代，故無驗證碼輸入框。
+const { execute: execRecaptcha } = useRecaptcha()
+const noticeOpen = ref(false)
+const noticeSubmitting = ref(false)
+const noticeError = ref('')
+const noticeForm = reactive({ name: '', email: '', mobile: '' })
+
+function openNotice() {
+  noticeError.value = ''
+  // 登入會員預填姓名（store 僅保存姓名，Email/電話請使用者自行填寫）。
+  noticeForm.name = memberAuth.memberName || ''
+  noticeForm.email = ''
+  noticeForm.mobile = ''
+  noticeOpen.value = true
+}
+function closeNotice() { noticeOpen.value = false }
+
+async function submitNotice() {
+  noticeError.value = ''
+  const prod = p.value
+  if (!prod) return
+  if (!noticeForm.name.trim()) { noticeError.value = '請填寫姓名。'; return }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(noticeForm.email.trim())) { noticeError.value = 'Email 格式不正確。'; return }
+  if (!noticeForm.mobile.trim()) { noticeError.value = '請填寫電話。'; return }
+
+  noticeSubmitting.value = true
+  try {
+    const captchaToken = await execRecaptcha('outofnotice')
+    await $fetch(`${config.public.apiBase}/store/outofnotices`, {
+      method: 'POST',
+      // API 以 camelCase 反序列化（大小寫敏感）。
+      body: {
+        productId: prod.productid,
+        name: noticeForm.name.trim(),
+        email: noticeForm.email.trim(),
+        mobile: noticeForm.mobile.trim(),
+        captchaToken,
+      },
+    })
+    noticeOpen.value = false
+    showToast('感謝您，到貨時將通知您！')
+  } catch (e: unknown) {
+    const msg = (e as { data?: { message?: string } })?.data?.message
+    noticeError.value = msg || '送出失敗，請稍後再試。'
+  } finally {
+    noticeSubmitting.value = false
+  }
+}
+
 // Reflect existing favourites so the heart loads in the right state (and click toggles correctly).
 async function refreshFavedState() {
   const prod = p.value
@@ -207,7 +257,7 @@ useJsonLd(() => {
 
             <div class="buybtn-wrap">
               <a v-if="p.added > 0" href="javascript:;" class="btn outline-btn solidhover js-add-cart" :data-productid="p.productid" :data-title="p.title" @click.prevent="addToCart">{{ justAdded ? '已加入購物車' : '加入購物車' }}</a>
-              <a v-else href="javascript:;" class="btn outline-btn solidhover popup-contact" :data-productid="p.productid">到貨通知我</a>
+              <a v-else href="javascript:;" class="btn outline-btn solidhover popup-contact" :data-productid="p.productid" @click.prevent="openNotice">到貨通知我</a>
               <a
                 href="javascript:;"
                 class="btn outline-btn solidhover mylistbtn"
@@ -299,6 +349,34 @@ useJsonLd(() => {
         </div>
       </div>
     </div>
+    <!-- 缺貨「到貨通知我」登記彈窗（reCAPTCHA v3 隱形驗證，無圖形驗證碼輸入框）。 -->
+    <Transition name="notice-fade">
+      <div v-if="noticeOpen" class="notice-overlay" @click.self="closeNotice">
+        <div class="notice-modal" role="dialog" aria-modal="true" aria-labelledby="noticeTitle">
+          <a href="javascript:;" class="notice-close" aria-label="關閉" @click.prevent="closeNotice">×</a>
+          <h3 id="noticeTitle" class="notice-title">到貨通知</h3>
+          <p class="notice-sub">留下聯絡方式，商品到貨時我們會主動通知您。</p>
+          <form class="notice-form" @submit.prevent="submitNotice">
+            <label class="notice-field">
+              <span class="notice-label"><i>*</i>姓名</span>
+              <input v-model="noticeForm.name" type="text" class="input" maxlength="50" autocomplete="name">
+            </label>
+            <label class="notice-field">
+              <span class="notice-label"><i>*</i>電子郵件</span>
+              <input v-model="noticeForm.email" type="email" class="input" maxlength="150" autocomplete="email">
+            </label>
+            <label class="notice-field">
+              <span class="notice-label"><i>*</i>電話</span>
+              <input v-model="noticeForm.mobile" type="tel" class="input" maxlength="15" autocomplete="tel">
+            </label>
+            <p v-if="noticeError" class="notice-err">{{ noticeError }}</p>
+            <button type="submit" class="btn basic notice-submit" :disabled="noticeSubmitting">
+              {{ noticeSubmitting ? '送出中…' : '送出' }}
+            </button>
+          </form>
+        </div>
+      </div>
+    </Transition>
     <Transition name="fav-toast">
       <div v-if="toast" class="fav-toast" role="status" aria-live="polite">{{ toast }}</div>
     </Transition>
@@ -346,5 +424,102 @@ useJsonLd(() => {
 .fav-toast-leave-to {
   opacity: 0;
   transform: translate(-50%, 0.75rem);
+}
+
+/* 到貨通知彈窗 */
+.notice-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.notice-modal {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  padding: 2rem 1.75rem 1.75rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.notice-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.85rem;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: #9aa3a3;
+  text-decoration: none;
+}
+
+.notice-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.25rem;
+  color: #156467;
+}
+
+.notice-sub {
+  margin: 0 0 1.25rem;
+  font-size: 0.85rem;
+  color: #7a8585;
+}
+
+.notice-field {
+  display: block;
+  margin-bottom: 0.9rem;
+}
+
+.notice-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.85rem;
+  color: #2c3e3e;
+}
+
+.notice-label i {
+  margin-right: 0.25rem;
+  font-style: normal;
+  color: #d9534f;
+}
+
+.notice-field .input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.95rem;
+  border: 1px solid #d4dcdc;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+.notice-err {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: #d9534f;
+}
+
+.notice-submit {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.notice-submit:disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.notice-fade-enter-active,
+.notice-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.notice-fade-enter-from,
+.notice-fade-leave-to {
+  opacity: 0;
 }
 </style>
