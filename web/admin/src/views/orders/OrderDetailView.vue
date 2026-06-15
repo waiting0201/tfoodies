@@ -40,6 +40,8 @@ interface OrderDetail {
   atmExpiry: string | null
   receiverName: string
   receiverMobile: string
+  receiverCity: string | null
+  receiverArea: string | null
   receiverAddress: string
   receiverTime: number
   remark: string | null
@@ -199,7 +201,7 @@ onMounted(load)
   <main class="odetail">
     <div class="odetail__nav">
       <button class="odetail__back" @click="router.push('/admin/orders')">&larr; 返回訂單列表</button>
-      <button v-if="order" class="odetail__edit-btn" @click="downloadDeliver">出貨單下載</button>
+      <button v-if="order" class="odetail__edit-btn odetail__edit-btn--gray" @click="downloadDeliver">出貨單下載</button>
       <button v-if="order" class="odetail__edit-btn" @click="router.push(`/admin/orders/${code}/edit`)">編輯訂單</button>
     </div>
 
@@ -301,7 +303,7 @@ onMounted(load)
               </div>
               <div class="odetail__field odetail__field--full">
                 <span class="odetail__label">收件地址</span>
-                <span class="odetail__value">{{ order.receiverAddress }}</span>
+                <span class="odetail__value">{{ (order.receiverCity || '') + (order.receiverArea || '') + (order.receiverAddress || '') }}</span>
               </div>
             </div>
           </div>
@@ -530,6 +532,10 @@ onMounted(load)
   transition: background 0.15s;
 }
 .odetail__edit-btn:hover { background: var(--tf-color-primary-dark); }
+
+/* 灰色變體（出貨單下載：次要動作） */
+.odetail__edit-btn--gray { background: #e9ecef; color: #495057; }
+.odetail__edit-btn--gray:hover { background: #dee2e6; }
 
 .odetail__title {
   font-family: var(--tf-font-heading);

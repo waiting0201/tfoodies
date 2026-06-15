@@ -248,6 +248,7 @@ VALUES (@orderdetailid, @orderid, @productid, @qty, @price, @discount, @subtotal
 
         using var multi = await conn.QueryMultipleAsync(@"
 SELECT o.orderid, o.ordercode, o.orderdate,
+       o.warehouseid, o.logisticid,
        m.memberid, m.name AS memberName, m.mobile AS memberMobile,
        o.total, o.freight, ISNULL(o.discount,0) AS discount,
        o.paytype, o.paystatus, o.deliverstatus, o.paydate, o.deliverdate,
@@ -255,13 +256,15 @@ SELECT o.orderid, o.ordercode, o.orderdate,
        o.companytitle, o.companynumber, o.lovecode,
        o.codeatm, o.expirepaydate,
        o.recivername, o.recivermobile, o.reciverzipcodeid, o.reciveraddress, o.recivertime,
+       z.city AS reciverCity, z.area AS reciverArea,
        o.remark, o.note, o.trackingnumber, o.createdate
 FROM Orders o JOIN Members m ON m.memberid=o.memberid
+LEFT JOIN Zipcodes z ON z.zipcodeid = o.reciverzipcodeid
 WHERE o.ordercode = @code;
 
 SELECT od.orderdetailid, od.productid, p.title AS productTitle,
        p.productnum, p.photo,
-       od.qty, od.price, od.subtotal, od.isgift
+       od.qty, od.price, od.discount, od.subtotal, od.isgift
 FROM Orderdetails od
 JOIN Products p ON p.productid = od.productid
 JOIN Orders o2 ON o2.orderid = od.orderid
@@ -278,6 +281,8 @@ WHERE o2.ordercode = @code;",
             code           = header.ordercode,
             orderDate      = header.orderdate,
             createdAt      = header.createdate,
+            warehouseId    = header.warehouseid,
+            logisticId     = header.logisticid,
             memberId       = header.memberid,
             memberName     = header.memberName,
             memberMobile   = header.memberMobile,
@@ -299,6 +304,9 @@ WHERE o2.ordercode = @code;",
             atmExpiry      = header.expirepaydate,
             receiverName   = header.recivername,
             receiverMobile = header.recivermobile,
+            receiverZipcodeId = header.reciverzipcodeid,
+            receiverCity   = header.reciverCity,
+            receiverArea   = header.reciverArea,
             receiverAddress= header.reciveraddress,
             receiverTime   = header.recivertime,
             remark         = header.remark,
@@ -313,6 +321,7 @@ WHERE o2.ordercode = @code;",
                 photo       = l.photo,
                 qty         = l.qty,
                 unitPrice   = l.price,
+                discount    = l.discount,
                 subtotal    = l.subtotal,
                 isGift      = l.isgift == 1,
             })
@@ -335,11 +344,24 @@ WHERE o2.ordercode = @code;",
             "SELECT orderid FROM Orders WHERE ordercode = @code", new { code });
         if (orderId is null) return ctx.NotFound("找不到訂單");
 
+        // 出貨倉變更時重算 warehousetypeid（與 Create 一致；無指定倉則維持線上倉）
+        int warehouseTypeId = (int)WarehouseType.Online;
+        if (body.WarehouseId.HasValue)
+        {
+            warehouseTypeId = await conn.ExecuteScalarAsync<int?>(
+                "SELECT warehousetype FROM Warehouses WHERE warehouseid=@id",
+                new { id = body.WarehouseId.Value }) ?? (int)WarehouseType.Online;
+        }
+
         // Update order header
         await conn.ExecuteAsync(@"
 UPDATE Orders SET
+    warehouseid      = @WarehouseId,
+    warehousetypeid  = @WarehouseTypeId,
+    logisticid       = @LogisticId,
     recivername      = @ReceiverName,
     recivermobile    = @ReceiverMobile,
+    reciverzipcodeid = @ReceiverZipcodeId,
     reciveraddress   = @ReceiverAddress,
     recivertime      = @ReceiverTime,
     paytype          = @PayType,
@@ -361,10 +383,14 @@ UPDATE Orders SET
 WHERE orderid = @OrderId",
             new
             {
-                ReceiverName    = body.ReceiverName,
-                ReceiverMobile  = body.ReceiverMobile,
-                ReceiverAddress = body.ReceiverAddress,
-                ReceiverTime    = body.ReceiverTime,
+                WarehouseId     = body.WarehouseId,
+                WarehouseTypeId = warehouseTypeId,
+                LogisticId      = body.LogisticId,
+                ReceiverName     = body.ReceiverName,
+                ReceiverMobile   = body.ReceiverMobile,
+                ReceiverZipcodeId= body.ReceiverZipcodeId,
+                ReceiverAddress  = body.ReceiverAddress,
+                ReceiverTime     = body.ReceiverTime,
                 PayType         = body.PayType,
                 PayStatus       = body.PayStatus,
                 PayDate         = body.PayDate,
@@ -410,19 +436,23 @@ WHERE orderid = @OrderId",
             if (item.OrderDetailId.HasValue)
             {
                 await conn.ExecuteAsync(@"
-UPDATE Orderdetails SET qty=@Qty, price=@Price, subtotal=@Subtotal, isgift=@IsGift
+UPDATE Orderdetails SET qty=@Qty, price=@Price, discount=@Discount, subtotal=@Subtotal, isgift=@IsGift
 WHERE orderdetailid=@Id",
-                    new { Qty = item.Qty, Price = item.Price, Subtotal = item.Subtotal,
+                    new { Qty = item.Qty, Price = item.Price,
+                          Discount = item.Discount is > 0 and < 10 ? item.Discount : null,
+                          Subtotal = item.Subtotal,
                           IsGift = item.IsGift ? 1 : 0, Id = item.OrderDetailId.Value });
             }
             else
             {
                 await conn.ExecuteAsync(@"
-INSERT INTO Orderdetails (orderdetailid, orderid, productid, qty, price, subtotal, isgift)
-VALUES (@Id, @OrderId, @ProductId, @Qty, @Price, @Subtotal, @IsGift)",
+INSERT INTO Orderdetails (orderdetailid, orderid, productid, qty, price, discount, subtotal, isgift)
+VALUES (@Id, @OrderId, @ProductId, @Qty, @Price, @Discount, @Subtotal, @IsGift)",
                     new { Id = Guid.NewGuid(), OrderId = orderId.Value,
                           ProductId = item.ProductId, Qty = item.Qty,
-                          Price = item.Price, Subtotal = item.Subtotal,
+                          Price = item.Price,
+                          Discount = item.Discount is > 0 and < 10 ? item.Discount : null,
+                          Subtotal = item.Subtotal,
                           IsGift = item.IsGift ? 1 : 0 });
             }
         }
@@ -845,6 +875,7 @@ ORDER BY od.isgift", new { orderId = header.orderid })).ToList();
 
     private sealed record AdminOrderDetailRow(
         Guid orderid, string ordercode, DateTime orderdate,
+        Guid? warehouseid, Guid? logisticid,
         Guid memberid, string memberName, string memberMobile,
         int total, int freight, int discount,
         int paytype, int paystatus, int deliverstatus,
@@ -854,13 +885,14 @@ ORDER BY od.isgift", new { orderId = header.orderid })).ToList();
         string? codeatm, DateTime? expirepaydate,
         string recivername, string recivermobile,
         int reciverzipcodeid, string reciveraddress, int recivertime,
+        string? reciverCity, string? reciverArea,
         string? remark, string? note, string? trackingnumber,
         DateTime createdate);
 
     private sealed record AdminOrderLineRow(
         Guid orderdetailid, Guid productid, string productTitle,
         string? productnum, string? photo,
-        int qty, int price, int subtotal, int isgift);
+        int qty, int price, int? discount, int subtotal, int isgift);
 
     private sealed record StatusRow(Guid orderid, int deliverstatus, int paystatus = 0);
 
@@ -935,8 +967,11 @@ ORDER BY od.isgift", new { orderId = header.orderid })).ToList();
     private sealed record PayRequest(DateTime? PayDate);
 
     private sealed record UpdateOrderRequest(
+        Guid? WarehouseId,
+        Guid? LogisticId,
         string ReceiverName,
         string ReceiverMobile,
+        int ReceiverZipcodeId,
         string ReceiverAddress,
         int ReceiverTime,
         int PayType,
@@ -962,6 +997,7 @@ ORDER BY od.isgift", new { orderId = header.orderid })).ToList();
         Guid ProductId,
         int Qty,
         int Price,
+        int? Discount,
         int Subtotal,
         bool IsGift);
 }

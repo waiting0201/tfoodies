@@ -18,6 +18,8 @@ interface EditItem {
   photo: string | null
   unitPrice: number
   qty: number
+  discount: number | null  // 折數（如 8 = 八折）；空 = 不折扣
+  subtotal: number         // 折後小計，可手動覆寫
   isGift: boolean
 }
 
@@ -29,6 +31,49 @@ interface ProductResult {
   photo: string | null
 }
 
+interface Warehouse { warehouseid: string; warehousetype: number; title: string }
+interface Logistic { logisticid: string; title: string; isenable: boolean }
+interface ZipArea { zipcodeId: number; area: string; zipcode: string }
+
+// ── 參照資料（出貨倉 / 物流商 / 縣市鄉鎮）──────────────────────────
+const warehouses = ref<Warehouse[]>([])
+const logistics = ref<Logistic[]>([])
+const cities = ref<string[]>([])
+const areas = ref<ZipArea[]>([])
+
+async function loadRefData() {
+  try {
+    const [w, l, c] = await Promise.all([
+      apiFetch<Warehouse[]>('/admin/warehouses'),
+      apiFetch<Logistic[]>('/admin/logistics'),
+      apiFetch<{ cities: string[] }>('/admin/zipcodes/cities'),
+    ])
+    warehouses.value = w
+    logistics.value = l.filter(x => x.isenable)
+    cities.value = c.cities
+  } catch {
+    /* 載入失敗保持空清單，送出時驗證會擋下 */
+  }
+}
+
+// 載入指定縣市的鄉鎮，並重置已選 zipcodeid
+async function loadAreas(city: string) {
+  areas.value = []
+  form.receiverZipcodeId = 0
+  if (!city) return
+  try {
+    const res = await apiFetch<{ areas: ZipArea[] }>(`/admin/zipcodes/areas?city=${encodeURIComponent(city)}`)
+    areas.value = res.areas
+  } catch {
+    areas.value = []
+  }
+}
+
+// 使用者手動切換縣市時觸發
+function onCityChange() {
+  loadAreas(form.receiverCity)
+}
+
 // ── 唯讀顯示資料 ──────────────────────────────────────────────────
 
 const memberName = ref('')
@@ -37,8 +82,12 @@ const memberMobile = ref('')
 // ── 表單資料 ──────────────────────────────────────────────────────
 
 const form = reactive({
+  warehouseId: '',    // 出貨倉（必填，對齊舊系統編輯頁）
+  logisticId: '',     // 物流商（必填，對齊舊系統編輯頁）
   receiverName: '',
   receiverMobile: '',
+  receiverCity: '',          // 收件縣市（級聯用，不直接送出）
+  receiverZipcodeId: 0,      // 由鄉鎮選擇帶出（必填外鍵）
   receiverAddress: '',
   receiverTime: 0,
   payType: 1,
@@ -80,8 +129,11 @@ async function load() {
     memberName.value = data.memberName ?? ''
     memberMobile.value = data.memberMobile ?? ''
     Object.assign(form, {
+      warehouseId:     data.warehouseId     ?? '',
+      logisticId:      data.logisticId      ?? '',
       receiverName:    data.receiverName    ?? '',
       receiverMobile:  data.receiverMobile  ?? '',
+      receiverCity:    data.receiverCity    ?? '',
       receiverAddress: data.receiverAddress ?? '',
       receiverTime:    data.receiverTime    ?? 0,
       payType:         data.payType         ?? 1,
@@ -108,8 +160,15 @@ async function load() {
       photo:         i.photo ?? null,
       unitPrice:     i.unitPrice,
       qty:           i.qty,
+      discount:      i.discount ?? null,
+      subtotal:      i.subtotal ?? (i.unitPrice * i.qty),
       isGift:        i.isGift ?? false,
     }))
+    // 載入該縣市鄉鎮後套用原本的 zipcodeid（loadAreas 會先歸零，故須在其後設定）
+    if (form.receiverCity) {
+      await loadAreas(form.receiverCity)
+      if (data.receiverZipcodeId) form.receiverZipcodeId = data.receiverZipcodeId
+    }
   } catch (e) {
     loadError.value = (e as ApiError).problem?.detail ?? (e as Error).message ?? '載入失敗'
   } finally {
@@ -138,10 +197,22 @@ async function searchProducts() {
   }
 }
 
+// 輸入即時搜尋（autocomplete，300ms debounce）
+let productDebounce: ReturnType<typeof setTimeout> | undefined
+function onProductInput() {
+  if (productDebounce) clearTimeout(productDebounce)
+  if (!productKeyword.value.trim()) {
+    productResults.value = []
+    return
+  }
+  productDebounce = setTimeout(() => { searchProducts() }, 300)
+}
+
 function addProduct(p: ProductResult) {
   const existing = items.value.find(i => i.productId === p.productId)
   if (existing) {
     existing.qty++
+    recalcItem(existing)
   } else {
     items.value.push({
       orderDetailId: null,
@@ -151,6 +222,8 @@ function addProduct(p: ProductResult) {
       photo:         p.photo,
       unitPrice:     p.price,
       qty:           1,
+      discount:      null,
+      subtotal:      p.price,
       isGift:        false,
     })
   }
@@ -162,10 +235,18 @@ function removeItem(index: number) {
   items.value.splice(index, 1)
 }
 
+// 依數量與折數重算小計（折數須 1–9，否則視為不折扣）。手動覆寫 subtotal 後不會被動更新。
+function recalcItem(item: EditItem) {
+  const d = item.discount
+  item.subtotal = (d != null && d > 0 && d < 10)
+    ? Math.round(item.unitPrice * item.qty * d / 10)
+    : item.unitPrice * item.qty
+}
+
 // ── 合計計算 ──────────────────────────────────────────────────────
 
 const itemSubtotal = computed(() =>
-  items.value.reduce((acc, i) => acc + i.unitPrice * i.qty, 0)
+  items.value.reduce((acc, i) => acc + (i.subtotal || 0), 0)
 )
 
 const grandTotal = computed(() =>
@@ -179,14 +260,20 @@ const saveError = ref('')
 
 async function handleSubmit() {
   saveError.value = ''
+  if (!form.warehouseId)            { saveError.value = '請選擇出貨倉';     return }
+  if (!form.logisticId)             { saveError.value = '請選擇物流商';     return }
   if (!form.receiverName.trim())    { saveError.value = '請填寫收件人姓名'; return }
   if (!form.receiverMobile.trim())  { saveError.value = '請填寫收件人手機'; return }
+  if (!form.receiverCity || !form.receiverZipcodeId) { saveError.value = '請選擇收件縣市與鄉鎮'; return }
   if (!form.receiverAddress.trim()) { saveError.value = '請填寫收件地址';   return }
   if (items.value.length === 0)     { saveError.value = '請至少保留一項商品'; return }
 
   const payload = {
+    warehouseId:     form.warehouseId || null,
+    logisticId:      form.logisticId || null,
     receiverName:    form.receiverName,
     receiverMobile:  form.receiverMobile,
+    receiverZipcodeId: form.receiverZipcodeId,
     receiverAddress: form.receiverAddress,
     receiverTime:    form.receiverTime,
     payType:         form.payType,
@@ -197,9 +284,9 @@ async function handleSubmit() {
     trackingNumber:  form.trackingNumber || null,
     invoiceType:     form.invoiceType,
     invoiceCode:     form.invoiceCode || null,
-    companyTitle:    form.invoiceType === 2 ? form.companyTitle  || null : null,
-    companyNumber:   form.invoiceType === 2 ? form.companyNumber || null : null,
-    loveCode:        form.invoiceType === 3 ? form.loveCode      || null : null,
+    companyTitle:    form.invoiceType === 3 ? form.companyTitle  || null : null,
+    companyNumber:   form.invoiceType === 3 ? form.companyNumber || null : null,
+    loveCode:        form.invoiceType === 2 ? form.loveCode      || null : null,
     freight:         form.freight,
     discount:        form.discount,
     total:           grandTotal.value,
@@ -210,7 +297,8 @@ async function handleSubmit() {
       productId:     i.productId,
       qty:           i.qty,
       price:         i.unitPrice,
-      subtotal:      i.unitPrice * i.qty,
+      discount:      (i.discount != null && i.discount > 0 && i.discount < 10) ? i.discount : null,
+      subtotal:      i.subtotal,
       isGift:        i.isGift,
     })),
   }
@@ -226,7 +314,7 @@ async function handleSubmit() {
   }
 }
 
-onMounted(load)
+onMounted(() => { loadRefData(); load() })
 </script>
 
 <template>
@@ -275,6 +363,22 @@ onMounted(load)
                 </div>
               </div>
               <div class="form-row">
+                <div class="form-field">
+                  <label class="label" for="receiverCity">收件縣市 <span class="oedit__req">*</span></label>
+                  <select id="receiverCity" v-model="form.receiverCity" class="select" @change="onCityChange">
+                    <option value="">請選擇縣市</option>
+                    <option v-for="c in cities" :key="c" :value="c">{{ c }}</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label class="label" for="receiverArea">鄉鎮市區 <span class="oedit__req">*</span></label>
+                  <select id="receiverArea" v-model.number="form.receiverZipcodeId" class="select" :disabled="!form.receiverCity">
+                    <option :value="0">請選擇鄉鎮市區</option>
+                    <option v-for="a in areas" :key="a.zipcodeId" :value="a.zipcodeId">{{ a.area }}（{{ a.zipcode }}）</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
                 <div class="form-field form-field--full">
                   <label class="label" for="receiverAddress">收件地址 <span class="oedit__req">*</span></label>
                   <input id="receiverAddress" v-model="form.receiverAddress" class="input" required />
@@ -294,19 +398,18 @@ onMounted(load)
             <div class="form-card">
               <h2 class="form-section__title">訂購商品</h2>
 
-              <!-- 搜尋新增商品 -->
+              <!-- 搜尋新增商品（autocomplete：輸入即時搜尋） -->
               <div class="oedit__product-search">
                 <label class="label">新增商品</label>
                 <div class="oedit__search-row">
                   <input
                     v-model="productKeyword"
                     class="input oedit__search-input"
-                    placeholder="輸入商品名稱後按 Enter 搜尋"
-                    @keyup.enter="searchProducts"
+                    placeholder="輸入商品名稱或編號，自動搜尋"
+                    autocomplete="off"
+                    @input="onProductInput"
                   />
-                  <button type="button" class="btn btn--secondary btn--sm oedit__search-btn" :disabled="productSearching" @click="searchProducts">
-                    {{ productSearching ? '搜尋中…' : '搜尋' }}
-                  </button>
+                  <span v-if="productSearching" class="oedit__search-spinner">搜尋中…</span>
                 </div>
 
                 <div v-if="productResults.length > 0" class="oedit__dropdown">
@@ -335,7 +438,7 @@ onMounted(load)
                   <span class="oedit__col-name">商品名稱</span>
                   <span class="oedit__col-price">單價</span>
                   <span class="oedit__col-qty">數量</span>
-                  <span class="oedit__col-gift">贈品</span>
+                  <span class="oedit__col-discount">折扣</span>
                   <span class="oedit__col-sub">小計</span>
                   <span class="oedit__col-action"></span>
                 </div>
@@ -349,12 +452,23 @@ onMounted(load)
                   </span>
                   <span class="oedit__col-price">NT$ {{ item.unitPrice.toLocaleString() }}</span>
                   <span class="oedit__col-qty">
-                    <input v-model.number="item.qty" type="number" min="1" class="oedit__qty-input" />
+                    <input v-model.number="item.qty" type="number" min="1" class="oedit__qty-input" @input="recalcItem(item)" />
                   </span>
-                  <span class="oedit__col-gift">
-                    <input type="checkbox" v-model="item.isGift" />
+                  <span class="oedit__col-discount">
+                    <input
+                      v-model.number="item.discount"
+                      type="number"
+                      min="1"
+                      max="9"
+                      placeholder="—"
+                      title="折數（如 8 = 八折），空白為不折扣"
+                      class="oedit__qty-input"
+                      @input="recalcItem(item)"
+                    />
                   </span>
-                  <span class="oedit__col-sub">NT$ {{ (item.unitPrice * item.qty).toLocaleString() }}</span>
+                  <span class="oedit__col-sub">
+                    <input v-model.number="item.subtotal" type="number" min="0" class="oedit__qty-input oedit__sub-input" />
+                  </span>
                   <span class="oedit__col-action">
                     <button type="button" class="btn btn--ghost btn--sm" @click="removeItem(idx)">移除</button>
                   </span>
@@ -401,6 +515,20 @@ onMounted(load)
               <h2 class="form-section__title">出貨資訊</h2>
               <div class="form-row">
                 <div class="form-field form-field--full">
+                  <label class="label" for="warehouseId">出貨倉 <span class="oedit__req">*</span></label>
+                  <select id="warehouseId" v-model="form.warehouseId" class="select">
+                    <option value="">請選擇出貨倉</option>
+                    <option v-for="w in warehouses" :key="w.warehouseid" :value="w.warehouseid">{{ w.title }}</option>
+                  </select>
+                </div>
+                <div class="form-field form-field--full">
+                  <label class="label" for="logisticId">物流商 <span class="oedit__req">*</span></label>
+                  <select id="logisticId" v-model="form.logisticId" class="select">
+                    <option value="">請選擇物流商</option>
+                    <option v-for="l in logistics" :key="l.logisticid" :value="l.logisticid">{{ l.title }}</option>
+                  </select>
+                </div>
+                <div class="form-field form-field--full">
                   <label class="label" for="deliverStatus">出貨狀態</label>
                   <select id="deliverStatus" v-model="form.deliverStatus" class="select">
                     <option :value="0">未出貨</option>
@@ -437,7 +565,7 @@ onMounted(load)
                   <label class="label" for="invoiceCode">發票號碼</label>
                   <input id="invoiceCode" v-model="form.invoiceCode" class="input" placeholder="系統自動產生，可人工覆蓋" />
                 </div>
-                <template v-if="form.invoiceType === 2">
+                <template v-if="form.invoiceType === 3">
                   <div class="form-field form-field--full">
                     <label class="label" for="companyTitle">公司抬頭</label>
                     <input id="companyTitle" v-model="form.companyTitle" class="input" />
@@ -447,7 +575,7 @@ onMounted(load)
                     <input id="companyNumber" v-model="form.companyNumber" class="input" maxlength="8" />
                   </div>
                 </template>
-                <div v-if="form.invoiceType === 3" class="form-field form-field--full">
+                <div v-if="form.invoiceType === 2" class="form-field form-field--full">
                   <label class="label" for="loveCode">愛心捐贈碼</label>
                   <input id="loveCode" v-model="form.loveCode" class="input" />
                 </div>
@@ -674,6 +802,14 @@ onMounted(load)
   white-space: nowrap;
 }
 
+.oedit__search-spinner {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  color: var(--tf-color-muted);
+  align-self: center;
+}
+
 /* 下拉 */
 .oedit__dropdown {
   border: 1px solid var(--tf-color-border);
@@ -736,7 +872,7 @@ onMounted(load)
 .oedit__items-header,
 .oedit__item-row {
   display: grid;
-  grid-template-columns: 2.5rem 1fr 7rem 6rem 3.5rem 7rem 5rem;
+  grid-template-columns: 2.5rem 1fr 6rem 4.5rem 4.5rem 7rem 4rem;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
@@ -757,9 +893,11 @@ onMounted(load)
 
 .oedit__col-thumb { display: flex; align-items: center; justify-content: center; }
 .oedit__col-name  { display: flex; flex-direction: column; gap: 0.15rem; }
-.oedit__col-price,
-.oedit__col-sub   { white-space: nowrap; }
-.oedit__col-gift  { display: flex; justify-content: center; }
+.oedit__col-price { white-space: nowrap; }
+.oedit__col-qty .oedit__qty-input,
+.oedit__col-discount .oedit__qty-input,
+.oedit__col-sub .oedit__qty-input { width: 100%; }
+.oedit__sub-input { text-align: right; }
 .oedit__col-action { display: flex; justify-content: flex-end; }
 
 .oedit__item-thumb {
