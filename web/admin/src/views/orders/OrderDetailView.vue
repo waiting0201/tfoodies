@@ -502,7 +502,7 @@ onMounted(load)
 .odetail__nav {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 1rem;
 }
 
@@ -514,6 +514,7 @@ onMounted(load)
   font-size: 0.9rem;
   padding: 0;
   font-family: inherit;
+  margin-right: auto;   /* 把後面的「出貨單下載／編輯訂單」推到最右 */
 }
 .odetail__back:hover { color: var(--tf-color-primary-dark); text-decoration: underline; }
 

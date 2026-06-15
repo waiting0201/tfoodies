@@ -30,17 +30,8 @@ public sealed class FiscOptions
     /// <summary>網站特店自訂代碼（最大 10 位，注意與 MerchantID 不同）。</summary>
     public string MerID { get; set; } = "";
 
-    /// <summary>
-    /// 本 Function App 的公開 API 基底（含 /api）。後台線上刷卡的回呼網址（AdminAuthResUrl）由此導出。
-    /// </summary>
+    /// <summary>本 API 公開基底（含 /api）。前台/後台授權回呼網址由此導出。</summary>
     public string ApiBaseUrl { get; set; } = "";
-
-    /// <summary>
-    /// 前台 store 網域基底（含 /api，例：https://www.tfoodies.com/api）。store 以反向代理把
-    /// /api/store/payment/return 轉發到 Functions，使「刷卡頁網域 = AuthResURL 網域 = 財金登錄網域」
-    /// （還原舊系統單體同網域送單的條件）。留空則 fallback 用 ApiBaseUrl。
-    /// </summary>
-    public string StoreApiBaseUrl { get; set; } = "";
 
     /// <summary>前台訂單結果頁完整網址，供 return 端點處理完成後 302 導回。</summary>
     public string StoreSuccessUrl { get; set; } = "";
@@ -48,11 +39,10 @@ public sealed class FiscOptions
     /// <summary>後台訂單列表基底網址，供 return-admin 導回 {AdminSuccessUrl}/{orderCode}。</summary>
     public string AdminSuccessUrl { get; set; } = "";
 
-    // ── 導出值（由各自網域基底組出，不由設定綁定）──
-    // 前台與後台刷卡頁分屬不同網域，AuthResURL 必須各自落在「發起刷卡頁的同網域」（財金以此檢核）。
+    // ── 導出值（由 ApiBaseUrl 組出，不由設定綁定）──
 
-    /// <summary>前台刷卡授權回呼網址 = {StoreApiBaseUrl 或 ApiBaseUrl}/store/payment/return（store 網域）。</summary>
-    public string AuthResUrl => Combine(string.IsNullOrWhiteSpace(StoreApiBaseUrl) ? ApiBaseUrl : StoreApiBaseUrl, "store/payment/return");
+    /// <summary>前台刷卡授權回呼網址 = {ApiBaseUrl}/store/payment/return。</summary>
+    public string AuthResUrl => Combine(ApiBaseUrl, "store/payment/return");
 
     /// <summary>後台線上刷卡授權回呼網址 = {ApiBaseUrl}/store/payment/return-admin。</summary>
     public string AdminAuthResUrl => Combine(ApiBaseUrl, "store/payment/return-admin");

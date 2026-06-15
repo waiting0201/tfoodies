@@ -197,10 +197,6 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'Fisc__TerminalID', value: Fisc__TerminalID }
         { name: 'Fisc__MerID', value: Fisc__MerID }
         { name: 'Fisc__ApiBaseUrl', value: Fisc__ApiBaseUrl }
-        // 前台 AuthResURL/結果頁用「實際服務網域」storePublicUrl（過渡期=storeCustomDomain），
-        // store 反代 /api/store/payment/return 到 Functions，使刷卡頁網域=AuthResURL網域=結果頁網域一致。
-        // ⚠️ 該網域仍須為財金登錄網域，否則財金檢核會擋（過渡網域需請財金加登錄，或切正式網域後測）。
-        { name: 'Fisc__StoreApiBaseUrl', value: '${storePublicUrl}/api' }
         { name: 'Fisc__StoreSuccessUrl', value: '${storePublicUrl}/Order/Success' }
         { name: 'Fisc__AdminSuccessUrl', value: '${empty(adminSiteUrl) ? 'https://${swaAdmin.properties.defaultHostname}' : adminSiteUrl}/admin/orders' }
         // ezPay 電子發票

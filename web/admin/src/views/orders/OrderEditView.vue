@@ -375,10 +375,11 @@ onMounted(load)
                 <div class="form-field form-field--full">
                   <label class="label" for="payType">付款方式</label>
                   <select id="payType" v-model="form.payType" class="select">
-                    <option :value="1">ATM轉帳</option>
-                    <option :value="2">信用卡</option>
-                    <option :value="3">貨到付款</option>
-                    <option :value="4">超商取貨付款</option>
+                    <option :value="1">信用卡線上刷卡</option>
+                    <option :value="2">宅配貨到付款</option>
+                    <option :value="3">ATM轉帳付款</option>
+                    <option :value="5">現金支付</option>
+                    <option :value="6">電匯</option>
                   </select>
                 </div>
                 <div class="form-field form-field--full">
@@ -427,8 +428,9 @@ onMounted(load)
                   <label class="label" for="invoiceType">發票類型</label>
                   <select id="invoiceType" v-model="form.invoiceType" class="select">
                     <option :value="1">二聯式</option>
-                    <option :value="2">三聯式（統編）</option>
-                    <option :value="3">愛心捐贈</option>
+                    <option :value="2">愛心捐贈</option>
+                    <option :value="3">三聯式（統編）</option>
+                    <option :value="4">免開</option>
                   </select>
                 </div>
                 <div class="form-field form-field--full">

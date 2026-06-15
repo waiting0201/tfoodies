@@ -13,15 +13,13 @@ public static class FiscWebpos
     {
         var payable = summary.Total + summary.Freight - summary.Discount;
 
-        // 欄位集合與舊系統正式環境實測可運作的表單一字不差（ShoppingProfile.cshtml）：
-        // merID/MerchantID/TerminalID/lidm/purchAmt/AuthResURL/enCodeType/PayType/AutoCap。
-        // 不送 MerchantName——舊可運作表單未含此欄，FOCAS_WEBPOS 對欄位集合驗證，多餘欄位可能被擋。
+        // 欄位集合與舊系統正式可運作表單一致（ShoppingProfile.cshtml:344-353，共 9 欄）：
+        // merID/MerchantID/TerminalID/lidm/purchAmt/AuthResURL/enCodeType/PayType/AutoCap（實測成功，不需 customize）。
         return new Dictionary<string, string>
         {
             ["merID"]        = fisc.MerID,
             ["MerchantID"]   = fisc.MerchantID,
             ["TerminalID"]   = fisc.TerminalID,
-            ["customize"]    = "0",            // 不使用客製化授權頁（手冊 3.1.1）
             ["lidm"]         = summary.OrderCode,
             ["purchAmt"]     = payable.ToString(),
             ["AuthResURL"]   = authResUrl,
