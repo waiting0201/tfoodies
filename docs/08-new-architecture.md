@@ -211,7 +211,7 @@ Controllers/
   Admin/
     OrderAdminController.cs      ← /admin/orders（OrderMs RBAC）
                                    GET /admin/orders, GET /admin/orders/{code}
-                                   POST /admin/orders（手動建單；未提供 zipcode 時回退會員地區）
+                                   POST /admin/orders（手動建單；含出貨倉/物流/縣市鄉鎮級聯/明細折數折扣；未指定 zipcode 才回退會員地區）
                                    PUT /admin/orders/{code}（全欄位編輯，含 items diff）
                                    PATCH /admin/orders/{code}/pending|ship|cancel|pay
                                    pay 走完整流程：呼叫 MarkPaidAsync（建 Income + 開電子發票 + 寄信，冪等）

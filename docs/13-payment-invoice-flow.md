@@ -67,6 +67,8 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 
 [OrderCreateView.vue](../web/admin/src/views/orders/OrderCreateView.vue) → `POST /admin/orders` → `Create`。**新增本身不刷卡、不開發票、不建 Income**，只把訂單建成「未付款」（`paystatus=0`，硬寫；`payType=4 免付款`才設 NoPayment，但建單下拉未提供此選項），帶著建單時選的 `invoiceType`/統編/愛心碼。
 
+建單表單（對齊舊系統 `OrderMs/AddOrders`）含：會員、**訂單日期**（必填，預設今天、可補登；`OrderDate` 無值才回退當天）、**出貨倉**（必填，`GET /admin/warehouses`）、**物流商**（必填，`GET /admin/logistics`）、收件人、**收件縣市/鄉鎮級聯**（必填，`GET /admin/zipcodes/cities`+`/areas`，帶出 `reciverzipcodeid`）、商品（autocomplete；每列可填**折數折扣**與**可覆寫小計**）、運費、訂單折扣、發票。明細 `discount` 存**折數**（如 8=八折），金額效果反映於 `subtotal`。
+
 新增成功後**導向該訂單詳情頁**（`/admin/orders/{orderCode}`），刷卡/開票走與其他訂單**完全相同**的詳情頁流程：
 
 - 信用卡(1)＋未付款 → 「線上刷卡」按鈕 → charge 流程 → `MarkPaidAsync` → Income＋電子發票

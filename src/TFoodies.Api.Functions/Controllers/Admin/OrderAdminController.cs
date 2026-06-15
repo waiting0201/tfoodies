@@ -187,7 +187,7 @@ INSERT INTO Orders (
                     warehouseid = body.WarehouseId,
                     logisticid = body.LogisticId,
                     ordercode = orderCode,
-                    orderdate = today,
+                    orderdate = body.OrderDate ?? today,  // 管理員可補登日期；未指定則當天
                     recivername = body.ReceiverName,
                     recivermobile = body.ReceiverMobile,
                     reciverzipcodeid = zipcodeId,
@@ -224,7 +224,8 @@ VALUES (@orderdetailid, @orderid, @productid, @qty, @price, @discount, @subtotal
                         productid = item.ProductId,
                         qty = item.Qty,
                         price = item.Price,
-                        discount = (int?)null,
+                        // discount 為「折數」（如 8 = 八折），對齊舊系統 OrderMs/AddOrders；金額效果已反映於 subtotal。
+                        discount = item.Discount is > 0 and < 10 ? item.Discount : null,
                         subtotal = item.Subtotal > 0 ? item.Subtotal : item.Price * item.Qty,
                         isgift = item.IsGift ? 1 : 0,
                     }, tx);
@@ -892,6 +893,7 @@ ORDER BY od.isgift", new { orderId = header.orderid })).ToList();
     private sealed record CreateOrderRequest(
         Guid MemberId,
         int OrderType,
+        DateOnly? OrderDate,
         Guid? WarehouseId,
         Guid? LogisticId,
         string ReceiverName,
@@ -918,7 +920,7 @@ ORDER BY od.isgift", new { orderId = header.orderid })).ToList();
         List<CreateOrderItem> Items);
 
     private sealed record CreateOrderItem(
-        Guid ProductId, int Qty, int Price, int Subtotal, bool IsGift);
+        Guid ProductId, int Qty, int Price, int Subtotal, bool IsGift, int? Discount);
 
     private sealed record AdminOrderListItem(
         Guid OrderId, string Code, DateTime OrderDate,

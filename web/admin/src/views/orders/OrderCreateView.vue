@@ -1,15 +1,59 @@
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiFetch, ApiError } from '../../lib/apiClient'
 import { toBlobUrl } from '../../lib/blobUrl'
 
 const router = useRouter()
 
+// ── 參照資料（出貨倉 / 物流商 / 縣市鄉鎮）────────────────────────────
+
+interface Warehouse { warehouseid: string; warehousetype: number; title: string }
+interface Logistic { logisticid: string; title: string; isenable: boolean }
+interface ZipArea { zipcodeId: number; area: string; zipcode: string }
+
+const warehouses = ref<Warehouse[]>([])
+const logistics = ref<Logistic[]>([])
+const cities = ref<string[]>([])
+const areas = ref<ZipArea[]>([])
+
+onMounted(async () => {
+  try {
+    const [w, l, c] = await Promise.all([
+      apiFetch<Warehouse[]>('/admin/warehouses'),
+      apiFetch<Logistic[]>('/admin/logistics'),
+      apiFetch<{ cities: string[] }>('/admin/zipcodes/cities'),
+    ])
+    warehouses.value = w
+    logistics.value = l.filter(x => x.isenable)
+    cities.value = c.cities
+  } catch {
+    /* 參照資料載入失敗時保持空清單，送出時驗證會擋下 */
+  }
+})
+
+// 載入指定縣市的鄉鎮，並重置已選 zipcodeid（手動覆寫前先清空）
+async function loadAreas(city: string) {
+  areas.value = []
+  form.receiverZipcodeId = 0
+  if (!city) return
+  try {
+    const res = await apiFetch<{ areas: ZipArea[] }>(`/admin/zipcodes/areas?city=${encodeURIComponent(city)}`)
+    areas.value = res.areas
+  } catch {
+    areas.value = []
+  }
+}
+
+// 使用者手動切換縣市時觸發（不用 watch，避免選會員程式化帶入時的競態）
+function onCityChange() {
+  loadAreas(form.receiverCity)
+}
+
 // ── 會員搜尋 ──────────────────────────────────────────────────────
 
 interface MemberResult {
-  memberId: string
+  id: string          // 後端 /admin/members 清單回傳的欄位名為 id（= memberid）
   name: string
   mobile: string
   email: string
@@ -35,13 +79,34 @@ async function searchMembers() {
   }
 }
 
-function selectMember(m: MemberResult) {
+interface MemberDetail {
+  name: string
+  mobile: string
+  zipcodeId: number | null
+  city: string | null
+  area: string | null
+  address: string | null
+}
+
+async function selectMember(m: MemberResult) {
   selectedMember.value = m
   memberResults.value = []
   memberKeyword.value = ''
-  // 預填收件資訊
+  // 預填收件資訊（清單端點僅有姓名/手機）
   form.receiverName = m.name
   form.receiverMobile = m.mobile
+  // 取會員明細帶入地址（縣市/鄉鎮/地址），對齊舊系統「同購買人」行為
+  try {
+    const d = await apiFetch<MemberDetail>(`/admin/members/${m.id}`)
+    if (d.address) form.receiverAddress = d.address
+    if (d.city) {
+      form.receiverCity = d.city
+      await loadAreas(d.city)            // 先載入該縣市鄉鎮（會把 zipcodeId 歸零）
+      if (d.zipcodeId) form.receiverZipcodeId = d.zipcodeId  // 再套用會員的鄉鎮
+    }
+  } catch {
+    /* 帶入地址失敗時略過，使用者可自行填寫 */
+  }
 }
 
 function clearMember() {
@@ -65,6 +130,8 @@ interface OrderItem {
   photo: string | null
   unitPrice: number
   qty: number
+  discount: number | null  // 折數（如 8 = 八折）；空 = 不折扣。對齊舊系統
+  subtotal: number         // 折後小計，預設由 qty×單價×折數 算出，可手動覆寫
 }
 
 const productKeyword = ref('')
@@ -87,11 +154,23 @@ async function searchProducts() {
   }
 }
 
+// 輸入即時搜尋（autocomplete，300ms debounce）
+let productDebounce: ReturnType<typeof setTimeout> | undefined
+function onProductInput() {
+  if (productDebounce) clearTimeout(productDebounce)
+  if (!productKeyword.value.trim()) {
+    productResults.value = []
+    return
+  }
+  productDebounce = setTimeout(() => { searchProducts() }, 300)
+}
+
 function addProduct(p: ProductResult) {
   // 若已加入，增加數量
   const existing = orderItems.value.find(i => i.productId === p.productId)
   if (existing) {
     existing.qty++
+    recalcItem(existing)
   } else {
     orderItems.value.push({
       productId: p.productId,
@@ -100,6 +179,8 @@ function addProduct(p: ProductResult) {
       photo: p.photo,
       unitPrice: p.price,
       qty: 1,
+      discount: null,
+      subtotal: p.price,
     })
   }
   productResults.value = []
@@ -110,11 +191,33 @@ function removeItem(index: number) {
   orderItems.value.splice(index, 1)
 }
 
+// 依數量與折數重算小計（折數須 1–9，否則視為不折扣）。手動覆寫 subtotal 後不會被動更新，
+// 直到使用者再改數量或折數才重算。對齊舊系統 AddOrders 的 recountSubTotal。
+function recalcItem(item: OrderItem) {
+  const d = item.discount
+  item.subtotal = (d != null && d > 0 && d < 10)
+    ? Math.round(item.unitPrice * item.qty * d / 10)
+    : item.unitPrice * item.qty
+}
+
 // ── 表單主資料 ────────────────────────────────────────────────────
 
+// 今天日期字串（YYYY-MM-DD，本地時區），作為訂單日期預設值
+function todayStr(): string {
+  const d = new Date()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
+
 const form = reactive({
+  orderDate: todayStr(),  // 訂單日期（必填，可補登；對齊舊系統）
+  warehouseId: '',    // 出貨倉（必填，對齊舊系統）
+  logisticId: '',     // 物流商（必填，對齊舊系統）
   receiverName: '',
   receiverMobile: '',
+  receiverCity: '',          // 收件縣市（級聯用，不直接送出）
+  receiverZipcodeId: 0,      // 由鄉鎮選擇帶出（必填外鍵）
   receiverAddress: '',
   recivertime: 0,     // 0=不限, 1=上午, 2=下午（對應 DB recivertime）
   payType: 2,         // DB EnumPayType：1=信用卡 2=貨到付款 3=ATM 5=現金 6=電匯
@@ -130,7 +233,7 @@ const form = reactive({
 // ── 合計計算 ──────────────────────────────────────────────────────
 
 const itemSubtotal = computed(() =>
-  orderItems.value.reduce((acc, i) => acc + i.unitPrice * i.qty, 0)
+  orderItems.value.reduce((acc, i) => acc + (i.subtotal || 0), 0)
 )
 
 // 滿 2000 免運
@@ -151,19 +254,24 @@ async function handleSubmit() {
 
   // 基本驗證
   if (!selectedMember.value) { submitError.value = '請選擇會員'; return }
+  if (!form.orderDate) { submitError.value = '請選擇訂單日期'; return }
+  if (!form.warehouseId) { submitError.value = '請選擇出貨倉'; return }
+  if (!form.logisticId) { submitError.value = '請選擇物流商'; return }
   if (!form.receiverName.trim()) { submitError.value = '請填寫收件人姓名'; return }
   if (!form.receiverMobile.trim()) { submitError.value = '請填寫收件人手機'; return }
+  if (!form.receiverCity || !form.receiverZipcodeId) { submitError.value = '請選擇收件縣市與鄉鎮'; return }
   if (!form.receiverAddress.trim()) { submitError.value = '請填寫收件地址'; return }
   if (orderItems.value.length === 0) { submitError.value = '請至少新增一項商品'; return }
 
   // 欄位名稱需完全符合後端 CreateOrderRequest（camelCase）。
   const payload = {
-    memberId: selectedMember.value.memberId,
+    memberId: selectedMember.value.id,
     orderType: 2,                 // 線下單
+    orderDate: form.orderDate || null,
     receiverName: form.receiverName,
     receiverMobile: form.receiverMobile,
     receiverAddress: form.receiverAddress,
-    receiverZipcodeId: 0,         // 0 → 後端回退用會員登記地區
+    receiverZipcodeId: form.receiverZipcodeId,  // 由縣市/鄉鎮級聯帶出
     receiverTime: form.recivertime,
     payType: form.payType,
     payStatus: 0,                 // 未付款
@@ -173,8 +281,8 @@ async function handleSubmit() {
     companyTitle: form.invoiceType === 3 ? form.companytitle || null : null,
     companyNumber: form.invoiceType === 3 ? form.companynumber || null : null,
     loveCode: form.invoiceType === 2 ? form.lovecode || null : null,
-    warehouseId: null,
-    logisticId: null,
+    warehouseId: form.warehouseId || null,
+    logisticId: form.logisticId || null,
     trackingNumber: null,
     note: null,
     remark: form.remark || null,
@@ -185,7 +293,8 @@ async function handleSubmit() {
       productId: i.productId,
       qty: i.qty,
       price: i.unitPrice,
-      subtotal: i.unitPrice * i.qty,
+      discount: (i.discount != null && i.discount > 0 && i.discount < 10) ? i.discount : null,
+      subtotal: i.subtotal,
       isGift: false,
     })),
   }
@@ -253,7 +362,7 @@ async function handleSubmit() {
               <div v-if="memberResults.length > 0" class="ocreate__dropdown">
                 <button
                   v-for="m in memberResults"
-                  :key="m.memberId"
+                  :key="m.id"
                   type="button"
                   class="ocreate__dropdown-item"
                   @click="selectMember(m)"
@@ -291,6 +400,22 @@ async function handleSubmit() {
               </div>
             </div>
             <div class="form-row">
+              <div class="form-field">
+                <label class="label" for="receiverCity">收件縣市 <span class="ocreate__req">*</span></label>
+                <select id="receiverCity" v-model="form.receiverCity" class="select" @change="onCityChange">
+                  <option value="">請選擇縣市</option>
+                  <option v-for="c in cities" :key="c" :value="c">{{ c }}</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label class="label" for="receiverArea">鄉鎮市區 <span class="ocreate__req">*</span></label>
+                <select id="receiverArea" v-model.number="form.receiverZipcodeId" class="select" :disabled="!form.receiverCity">
+                  <option :value="0">請選擇鄉鎮市區</option>
+                  <option v-for="a in areas" :key="a.zipcodeId" :value="a.zipcodeId">{{ a.area }}（{{ a.zipcode }}）</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
               <div class="form-field form-field--full">
                 <label class="label" for="receiverAddress">收件地址 <span class="ocreate__req">*</span></label>
                 <input id="receiverAddress" v-model="form.receiverAddress" class="input" required />
@@ -310,19 +435,18 @@ async function handleSubmit() {
           <div class="form-card">
             <h2 class="form-section__title">訂購商品</h2>
 
-            <!-- 商品搜尋 -->
+            <!-- 商品搜尋（autocomplete：輸入即時搜尋） -->
             <div class="ocreate__member-search">
               <label class="label">新增商品</label>
               <div class="ocreate__search-row">
                 <input
                   v-model="productKeyword"
                   class="input ocreate__search-input"
-                  placeholder="輸入商品名稱後按 Enter 搜尋"
-                  @keyup.enter="searchProducts"
+                  placeholder="輸入商品名稱或編號，自動搜尋"
+                  autocomplete="off"
+                  @input="onProductInput"
                 />
-                <button type="button" class="btn btn--secondary btn--sm ocreate__search-btn" :disabled="productSearching" @click="searchProducts">
-                  {{ productSearching ? '搜尋中…' : '搜尋' }}
-                </button>
+                <span v-if="productSearching" class="ocreate__search-spinner">搜尋中…</span>
               </div>
 
               <!-- 商品搜尋結果 -->
@@ -352,6 +476,7 @@ async function handleSubmit() {
                 <span class="ocreate__col-name">商品名稱</span>
                 <span class="ocreate__col-price">單價</span>
                 <span class="ocreate__col-qty">數量</span>
+                <span class="ocreate__col-discount">折扣</span>
                 <span class="ocreate__col-sub">小計</span>
                 <span class="ocreate__col-action"></span>
               </div>
@@ -370,9 +495,29 @@ async function handleSubmit() {
                     type="number"
                     min="1"
                     class="ocreate__qty-input"
+                    @input="recalcItem(item)"
                   />
                 </span>
-                <span class="ocreate__col-sub">NT$ {{ (item.unitPrice * item.qty).toLocaleString() }}</span>
+                <span class="ocreate__col-discount">
+                  <input
+                    v-model.number="item.discount"
+                    type="number"
+                    min="1"
+                    max="9"
+                    placeholder="—"
+                    title="折數（如 8 = 八折），空白為不折扣"
+                    class="ocreate__qty-input"
+                    @input="recalcItem(item)"
+                  />
+                </span>
+                <span class="ocreate__col-sub">
+                  <input
+                    v-model.number="item.subtotal"
+                    type="number"
+                    min="0"
+                    class="ocreate__qty-input ocreate__sub-input"
+                  />
+                </span>
                 <span class="ocreate__col-action">
                   <button type="button" class="btn btn--ghost btn--sm" @click="removeItem(idx)">移除</button>
                 </span>
@@ -385,6 +530,31 @@ async function handleSubmit() {
 
         <!-- ── 右欄（aside）：設定 + 合計 + 提交 ─────────────── -->
         <div class="ocreate__aside">
+
+          <!-- 出貨設定 -->
+          <div class="form-card">
+            <h2 class="form-section__title">出貨設定</h2>
+            <div class="form-row">
+              <div class="form-field form-field--full">
+                <label class="label" for="orderDate">訂單日期 <span class="ocreate__req">*</span></label>
+                <input id="orderDate" v-model="form.orderDate" type="date" class="input" required />
+              </div>
+              <div class="form-field form-field--full">
+                <label class="label" for="warehouseId">出貨倉 <span class="ocreate__req">*</span></label>
+                <select id="warehouseId" v-model="form.warehouseId" class="select">
+                  <option value="">請選擇出貨倉</option>
+                  <option v-for="w in warehouses" :key="w.warehouseid" :value="w.warehouseid">{{ w.title }}</option>
+                </select>
+              </div>
+              <div class="form-field form-field--full">
+                <label class="label" for="logisticId">物流商 <span class="ocreate__req">*</span></label>
+                <select id="logisticId" v-model="form.logisticId" class="select">
+                  <option value="">請選擇物流商</option>
+                  <option v-for="l in logistics" :key="l.logisticid" :value="l.logisticid">{{ l.title }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
 
           <!-- 付款方式 -->
           <div class="form-card">
@@ -651,6 +821,14 @@ async function handleSubmit() {
   white-space: nowrap;
 }
 
+.ocreate__search-spinner {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  color: var(--tf-color-muted);
+  align-self: center;
+}
+
 /* 搜尋結果下拉 */
 .ocreate__dropdown {
   border: 1px solid var(--tf-color-border);
@@ -729,7 +907,7 @@ async function handleSubmit() {
 .ocreate__items-header,
 .ocreate__item-row {
   display: grid;
-  grid-template-columns: 2.5rem 1fr 7rem 7rem 7rem 5rem;
+  grid-template-columns: 2.5rem 1fr 6rem 4.5rem 4.5rem 7rem 4rem;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
@@ -751,9 +929,14 @@ async function handleSubmit() {
 
 .ocreate__col-thumb { display: flex; align-items: center; justify-content: center; }
 .ocreate__col-name { display: flex; flex-direction: column; gap: 0.15rem; }
-.ocreate__col-price,
-.ocreate__col-sub { white-space: nowrap; }
-.ocreate__col-qty { }
+.ocreate__col-price { white-space: nowrap; }
+.ocreate__col-qty,
+.ocreate__col-discount,
+.ocreate__col-sub { }
+.ocreate__col-qty .ocreate__qty-input,
+.ocreate__col-discount .ocreate__qty-input,
+.ocreate__col-sub .ocreate__qty-input { width: 100%; }
+.ocreate__sub-input { text-align: right; }
 .ocreate__col-action { display: flex; justify-content: flex-end; }
 
 .ocreate__item-thumb {
