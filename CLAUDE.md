@@ -25,6 +25,7 @@
 | 後台 Vue 元件設計規範（清單、表單、按鈕、Badge、CSS 變數定義） | [docs/10-admin-ui-design.md](docs/10-admin-ui-design.md) | `frontend-architect` · `visual-design-architect` |
 | 部署前台 store（Container Apps SSR：建 ACR/環境、首次部署映像、自訂網域切換、退役舊 SWA） | [docs/11-store-deployment.md](docs/11-store-deployment.md) | `backend-engineer` |
 | 設定金流（FISC）/電子發票（ezPay）參數（四層同名對照、回呼網址導出、WEBPOS 欄位/成功判定/錯誤碼對照，依手冊 v2.7） | [docs/12-payment-invoice-config.md](docs/12-payment-invoice-config.md) | `backend-engineer` |
+| 了解前後台刷卡 + 電子發票**串接流程**（MarkPaidAsync/IssueInvoiceAsync 共用核心、store/admin create→return 流程、標記已付款/補開發票、冪等） | [docs/13-payment-invoice-flow.md](docs/13-payment-invoice-flow.md) | `backend-engineer` |
 
 ## 速查關鍵事實
 

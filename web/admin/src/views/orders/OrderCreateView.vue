@@ -192,9 +192,10 @@ async function handleSubmit() {
 
   submitting.value = true
   try {
-    await apiFetch('/admin/orders', { method: 'POST', body: JSON.stringify(payload) })
+    // 接住回傳的 orderCode，新增後導向訂單詳情頁（信用卡單可直接按「線上刷卡」、其他可按「標記已付款」）。
+    const res = await apiFetch<{ orderCode: string }>('/admin/orders', { method: 'POST', body: JSON.stringify(payload) })
     submitSuccess.value = true
-    setTimeout(() => router.push('/admin/orders'), 1500)
+    setTimeout(() => router.push(`/admin/orders/${res.orderCode}`), 1500)
   } catch (e) {
     const err = e as ApiError
     if (err.problem?.status === 501) {
