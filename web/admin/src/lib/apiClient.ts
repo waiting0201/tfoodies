@@ -22,10 +22,29 @@ export class ApiError extends Error {
   status: number
   problem: ProblemDetails
   constructor(status: number, problem: ProblemDetails) {
-    super(problem.title ?? `HTTP ${status}`)
+    super(problem.detail ?? problem.title ?? `HTTP ${status}`)
     this.status = status
     this.problem = problem
   }
+}
+
+// 後端錯誤格式為 { error: { code, message, details } }（見 ApiErrorResponse），
+// 這裡正規化進 ProblemDetails.detail/correlationId，讓各畫面統一讀 problem.detail
+// 就能拿到具體原因（如 ezPay 開票/作廢失敗訊息），不必各自解析巢狀結構。
+async function parseProblem(res: Response): Promise<ProblemDetails> {
+  let problem: ProblemDetails = { status: res.status, title: res.statusText }
+  try {
+    const body = await res.json()
+    problem = {
+      ...problem,
+      ...body,
+      detail: body?.error?.message ?? body?.detail,
+      correlationId: body?.error?.details ?? body?.correlationId,
+    }
+  } catch {
+    /* non-JSON error body */
+  }
+  return problem
 }
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -37,15 +56,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: 'include' })
 
-  if (!res.ok) {
-    let problem: ProblemDetails = { status: res.status, title: res.statusText }
-    try {
-      problem = { ...problem, ...(await res.json()) }
-    } catch {
-      /* non-JSON error body */
-    }
-    throw new ApiError(res.status, problem)
-  }
+  if (!res.ok) throw new ApiError(res.status, await parseProblem(res))
 
   return (res.status === 204 ? undefined : await res.json()) as T
 }
@@ -60,11 +71,7 @@ export async function apiDownload(path: string, fallbackName = 'download'): Prom
   if (token) headers.set('Authorization', `Bearer ${token}`)
 
   const res = await fetch(`${API_BASE}${path}`, { headers, credentials: 'include' })
-  if (!res.ok) {
-    let problem: ProblemDetails = { status: res.status, title: res.statusText }
-    try { problem = { ...problem, ...(await res.json()) } } catch { /* non-JSON */ }
-    throw new ApiError(res.status, problem)
-  }
+  if (!res.ok) throw new ApiError(res.status, await parseProblem(res))
 
   // 從 Content-Disposition 取檔名（後端會帶），否則用 fallback。
   const cd = res.headers.get('Content-Disposition') ?? ''

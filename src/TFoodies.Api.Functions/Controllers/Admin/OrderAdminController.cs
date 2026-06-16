@@ -26,7 +26,8 @@ namespace TFoodies.Api.Functions.Controllers.Admin;
 ///   PATCH /admin/orders/{code}/cancel    — 取消訂單
 ///   PATCH /admin/orders/{code}/pay       — 標記已付款（後台人工確認，走完整流程：建 Income + 開票 + 寄信）
 ///   POST  /admin/orders/{code}/charge    — 對未付款的信用卡訂單發起財金線上刷卡
-///   POST  /admin/orders/{code}/invoice   — 補開電子發票
+///   POST  /admin/orders/{code}/invoice   — 補開電子發票（未開／作廢後重新開立）
+///   POST  /admin/orders/{code}/invoice/void — 作廢電子發票
 ///   PUT   /admin/orders/{code}           — 編輯訂單（含明細差異更新）
 /// </summary>
 public sealed class OrderAdminController
@@ -623,6 +624,26 @@ VALUES (NEWID(), @orderdetailid, @warehousestockid, @qty, @createdate)",
         if (result.IsFailure) return ctx.UnprocessableEntity($"開立發票失敗：{result.Error.Message}");
         return ctx.Ok(new { message = "已開立電子發票" });
     }
+
+    // POST /admin/orders/{code}/invoice/void — 作廢電子發票（退貨/開錯）。
+    // 作廢後訂單發票狀態轉「已作廢(2)」，可再呼叫 IssueInvoice 以新號重新開立。
+    public async Task<IActionResult> VoidInvoice(RouteContext ctx)
+    {
+        var guard = await AdminGuard.AuthorizeAsync(ctx, _perms, "InvoiceMs", AdminOperation.Update);
+        if (guard.Result is not null) return guard.Result;
+
+        var code = ctx.RequirePathParam("code");
+        var body = await ctx.TryReadBodyAsync<VoidInvoiceRequest>();
+        var reason = string.IsNullOrWhiteSpace(body?.Reason) ? "退貨" : body!.Reason!.Trim();
+
+        var result = await _completion.VoidInvoiceAsync(code, reason,
+            ct: ctx.Request.HttpContext.RequestAborted);
+
+        if (result.IsFailure) return ctx.UnprocessableEntity($"作廢發票失敗：{result.Error.Message}");
+        return ctx.Ok(new { message = "已作廢電子發票" });
+    }
+
+    private sealed record VoidInvoiceRequest(string? Reason);
 
     // ══════════════════════════════════════════════════════════════════
     // EXPORTS（Excel）

@@ -89,6 +89,7 @@ public class RouteTable
         Register<OrderAdminController>("PATCH", @"admin/orders/(?<code>[^/]+)/cancel",                    (c, ctx) => c.Cancel(ctx));
         Register<OrderAdminController>("PATCH", @"admin/orders/(?<code>[^/]+)/pay",                       (c, ctx) => c.MarkPaid(ctx));
         Register<OrderAdminController>("POST",  @"admin/orders/(?<code>[^/]+)/charge",                    (c, ctx) => c.Charge(ctx));
+        Register<OrderAdminController>("POST",  @"admin/orders/(?<code>[^/]+)/invoice/void",              (c, ctx) => c.VoidInvoice(ctx));
         Register<OrderAdminController>("POST",  @"admin/orders/(?<code>[^/]+)/invoice",                   (c, ctx) => c.IssueInvoice(ctx));
         Register<OrderAdminController>("GET",   @"admin/orders/(?<code>[^/]+)$",                          (c, ctx) => c.Detail(ctx));
         Register<OrderAdminController>("PUT",   @"admin/orders/(?<code>[^/]+)$",                          (c, ctx) => c.Update(ctx));

@@ -18,7 +18,8 @@ MarkPaidAsync(orderCode, lastPan4, txnRef, payDate?)
 └─ await IssueInvoiceAsync(orderCode, incomeId)   ← 同步開電子發票
 
 IssueInvoiceAsync(orderCode, incomeId?)（冪等）
-├─ 跳過條件：invoicestatus != NotIssued 或 invoicetype == None
+├─ 跳過條件：invoicetype == None（免開）或 invoicestatus == Issued(1)（已開）
+│    └─ 可開立：status ∈ {未開(0), 已作廢(2)}；status=2 即「作廢後重新開立」取得新號
 ├─ 呼叫 ezPay IInvoiceService.IssueAsync(Immediate) → 取得發票號
 └─ 交易內（UPDATE Orders ... WHERE invoicestatus=0 護欄）：
      UPDATE Orders(invoicestatus=已開, invoicecode=ezPay 發票號)
@@ -81,9 +82,30 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 | 動作 | 端點 | 行為 |
 |---|---|---|
 | 標記已付款（ATM/現金確認，非刷卡）| `PATCH /admin/orders/{code}/pay` → `MarkPaid` | 呼叫 `MarkPaidAsync` 走完整流程（建 Income＋開票＋寄信）|
-| 補開發票（開票失敗或當下未開）| `POST /admin/orders/{code}/invoice` → `IssueInvoice` | 直接呼叫 `IssueInvoiceAsync` |
+| 補開／重新開立發票（開票失敗、當下未開、或作廢後重開）| `POST /admin/orders/{code}/invoice` → `IssueInvoice` | 直接呼叫 `IssueInvoiceAsync` |
+| 作廢發票（退貨／開錯）| `POST /admin/orders/{code}/invoice/void` → `VoidInvoice` | 呼叫 `VoidInvoiceAsync`（ezPay 作廢＋invoicestatus=2）|
 
-按鈕在訂單詳情頁依條件顯示：線上刷卡（信用卡＋未付款）、補開發票（二/三聯＋未開）。
+按鈕在訂單詳情頁依條件顯示（二/三聯發票）：線上刷卡（信用卡＋未付款）、補開發票（未開 status=0）、**重新開立發票**（已作廢 status=2）、**作廢發票**（已開 status=1）。
+
+## 訂單詳情頁作廢 → 重新開立流程（對齊舊系統 `AjaxController/CancelInv`）
+
+```
+已開發票(status=1)
+ └─「作廢發票」按鈕 → POST /invoice/void（prompt 輸入原因，預設「退貨」）
+       → VoidInvoiceAsync：僅 status=1 才作廢（冪等護欄）
+         ├─ ezPay invoice/void（InvoiceNo＋InvalidReason）
+         └─ UPDATE Orders invoicestatus=2（不刪本地 Invoices，保留稽核）
+   ▼ status=2（已作廢）
+ └─「重新開立發票」按鈕 → POST /invoice → IssueInvoiceAsync
+       → 前置放寬：允許 status∈{0,2}；冪等護欄 WHERE invoicestatus IN (0,2)
+         → ezPay 重開取得**新發票號** → UPDATE Orders invoicestatus=1, invoicecode=新號
+           + INSERT 新 Invoices（incomeid=null）
+   ▼ status=1（已開，新號）
+```
+
+> **與舊系統差異**：舊系統作廢後設 `invoicestatus=0`＋`invoicecode=null`（重置為未開）；新系統設 `status=2`（明確「已作廢」終態，符合本檔發票管理小節規範），改由「放寬 `IssueInvoiceAsync` 允許從 status=2 重開」達成同等的「作廢→重開」能力。作廢原因由使用者輸入（舊系統硬寫「退貨」）。
+>
+> ⚠️ **`/admin/invoices` 列表顯示限制**：發票狀態存於 `Orders.invoicestatus`（DB schema 唯讀，`Invoices` 表無 status 欄位）。同一訂單作廢後重開會在 `Invoices` 留兩筆（舊作廢號＋新號），但兩筆 join 同一 `Orders` 都顯示最新狀態，故**舊作廢發票號在列表會顯示為新狀態**而非「已作廢」。如需逐張發票精確狀態，須以 ezPay 後台為準。
 
 ## 電子發票（ezPay）管理
 

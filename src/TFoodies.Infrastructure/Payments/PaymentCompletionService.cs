@@ -1,6 +1,7 @@
 using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using TFoodies.Application.Abstractions;
 using TFoodies.Domain.Common;
 using TFoodies.Domain.Enums;
@@ -18,12 +19,14 @@ public sealed class PaymentCompletionService : IPaymentCompletionService
     private readonly ICodeNumberService _codes;
     private readonly IInvoiceService _invoices;
     private readonly IEmailService _email;
+    private readonly ILogger<PaymentCompletionService> _logger;
 
     public PaymentCompletionService(
         IDbConnectionFactory db, ICodeNumberService codes,
-        IInvoiceService invoices, IEmailService email)
+        IInvoiceService invoices, IEmailService email,
+        ILogger<PaymentCompletionService> logger)
     {
-        _db = db; _codes = codes; _invoices = invoices; _email = email;
+        _db = db; _codes = codes; _invoices = invoices; _email = email; _logger = logger;
     }
 
     public async Task<bool> MarkPaidAsync(string orderCode, string? lastPan4, string txnRef, DateOnly? payDate = null, CancellationToken ct = default)
@@ -42,9 +45,22 @@ public sealed class PaymentCompletionService : IPaymentCompletionService
         }
 
         // 開立電子發票（即時）。失敗不影響「付款已完成」這個事實：invoicestatus 留「未開」，
-        // 後台可手動補開。try/catch 涵蓋未設定金鑰等非預期例外（EzPayCodec 建 PostData 會 throw）。
-        try { await IssueInvoiceAsync(orderCode, paid.IncomeId, ct); }
-        catch { /* 開票失敗不影響付款完成；狀態維持未開供後台補開 */ }
+        // 後台可手動補開。兩種失敗都記 log（付款流程不對外回 Result，否則原因會完全消失）：
+        //   - IssueInvoiceAsync 回 Result.Failure（ezPay 拒絕、免開發票、已開立等）→ Warning
+        //   - 拋例外（未設定金鑰等非預期，EzPayCodec 建 PostData 會 throw）→ Error
+        try
+        {
+            var invoice = await IssueInvoiceAsync(orderCode, paid.IncomeId, ct);
+            if (invoice.IsFailure)
+                _logger.LogWarning(
+                    "付款完成但開立電子發票失敗，訂單 {OrderCode}：{Error}（發票留未開，可後台補開）",
+                    orderCode, invoice.Error.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "付款完成後開立電子發票拋出例外，訂單 {OrderCode}（發票留未開，可後台補開）", orderCode);
+        }
 
         return true;
     }
@@ -132,7 +148,9 @@ JOIN Orders o2 ON o2.orderid=od.orderid WHERE o2.ordercode=@orderCode;",
 
         if (order is null) return Result.Failure(Error.NotFound("訂單"));
         if (order.invoicetype == (int)InvoiceType.None) return Result.Failure(Error.Validation("此訂單免開發票"));
-        if (order.invoicestatus != (int)InvoiceStatus.NotIssued) return Result.Failure(Error.Conflict("發票已開立或已作廢"));
+        // 允許「未開(0)」首次開立，以及「已作廢(2)」重新開立（取得新發票號）；「已開(1)」才視為衝突。
+        if (order.invoicestatus is not ((int)InvoiceStatus.NotIssued or (int)InvoiceStatus.Void))
+            return Result.Failure(Error.Conflict("發票已開立"));
 
         var totalAmt = order.total + order.freight - order.discount;
 
@@ -172,9 +190,10 @@ JOIN Orders o2 ON o2.orderid=od.orderid WHERE o2.ordercode=@orderCode;",
         using var tx = conn.BeginTransaction(IsolationLevel.RepeatableRead);
         try
         {
-            // 冪等護欄：只有仍為「未開」時才寫入，避免 return + notify 雙觸發重複建檔。
+            // 冪等護欄：只有仍為「未開(0)」或「已作廢(2)」時才寫入，避免 return + notify 雙觸發重複建檔；
+            // 已作廢→重新開立時，invoicecode 一併換成新發票號。
             var rows = await conn.ExecuteAsync(
-                "UPDATE Orders SET invoicestatus=1, invoicecode=@num WHERE ordercode=@orderCode AND invoicestatus=0",
+                "UPDATE Orders SET invoicestatus=1, invoicecode=@num WHERE ordercode=@orderCode AND invoicestatus IN (0,2)",
                 new { num = invoiceNumber, orderCode }, tx);
             if (rows == 0) { tx.Rollback(); return Result.Success(); } // 已被其他流程開立
 
@@ -210,6 +229,39 @@ VALUES (NEWID(), @invoiceId, @accountingId, @orderid, @price, @tax, @note)",
             return Result.Success();
         }
         catch { tx.Rollback(); throw; }
+    }
+
+    // ── 作廢電子發票（ezPay）+ 把訂單標記為「已作廢」（對齊舊系統 AjaxController/CancelInv）──────
+    //   供後台訂單詳情頁「作廢發票」端點呼叫。冪等：僅當 invoicestatus=已開(1) 時作廢。
+    //   作廢後不刪本地 Invoices 記錄（保留稽核），訂單可再呼叫 IssueInvoiceAsync 重新開立。
+
+    public async Task<Result> VoidInvoiceAsync(string orderCode, string reason, CancellationToken ct = default)
+    {
+        using var conn = (SqlConnection)await _db.CreateOpenConnectionAsync(ct);
+
+        var order = await conn.QuerySingleOrDefaultAsync<VoidOrderRow>(
+            "SELECT orderid, invoicestatus, invoicecode FROM Orders WHERE ordercode=@orderCode",
+            new { orderCode });
+
+        if (order is null) return Result.Failure(Error.NotFound("訂單"));
+        if (order.invoicestatus != (int)InvoiceStatus.Issued || string.IsNullOrWhiteSpace(order.invoicecode))
+            return Result.Failure(Error.Validation("僅已開立的發票可作廢"));
+
+        // ezPay 加密/HTTP 例外（如未設定金鑰）轉為 Result.Failure，讓端點回乾淨訊息而非 500。
+        Result<InvoiceResult> result;
+        try { result = await _invoices.VoidAsync(order.invoicecode!, reason, ct); }
+        catch (Exception ex) { return Result.Failure(new Error("ezpay", ex.Message)); }
+
+        if (!result.IsSuccess) return Result.Failure(result.Error);
+        if (result.Value is null || !result.Value.Success)
+            return Result.Failure(new Error("ezpay", result.Value?.Message ?? "ezPay 作廢失敗"));
+
+        // 冪等護欄：只有仍為「已開」時才標記作廢，避免重複觸發。
+        await conn.ExecuteAsync(
+            "UPDATE Orders SET invoicestatus=2 WHERE ordercode=@orderCode AND invoicestatus=1",
+            new { orderCode });
+
+        return Result.Success();
     }
 
     // ── 付款完成通知信版型（與訂單/忘記密碼信共用品牌視覺）─────────────────────────────
@@ -332,4 +384,6 @@ VALUES (NEWID(), @invoiceId, @accountingId, @orderid, @price, @tax, @note)",
         string memberName, string? memberEmail);
 
     private sealed record InvoiceLineRow(string title, int qty, int price, int subtotal);
+
+    private sealed record VoidOrderRow(Guid orderid, int invoicestatus, string? invoicecode);
 }

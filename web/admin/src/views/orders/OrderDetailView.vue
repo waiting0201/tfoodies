@@ -175,7 +175,7 @@ async function handleCharge() {
   }
 }
 
-// 補開電子發票（開票失敗或當下未開的訂單）。
+// 補開電子發票（開票失敗、當下未開、或作廢後重新開立的訂單）。
 async function handleIssueInvoice() {
   actionBusy.value = true
   actionError.value = ''
@@ -184,6 +184,26 @@ async function handleIssueInvoice() {
     await load()
   } catch (e) {
     actionError.value = (e as ApiError).problem?.detail ?? (e as Error).message ?? '開立發票失敗'
+  } finally {
+    actionBusy.value = false
+  }
+}
+
+// 作廢電子發票（退貨/開錯）。作廢後狀態轉「已作廢」，可再按「重新開立發票」以新號重開。
+async function handleVoidInvoice() {
+  if (!order.value) return
+  const reason = prompt(`作廢發票 ${order.value.invoiceCode}？\n請輸入作廢原因：`, '退貨')
+  if (reason === null) return
+  actionBusy.value = true
+  actionError.value = ''
+  try {
+    await apiFetch(`/admin/orders/${code}/invoice/void`, {
+      method: 'POST',
+      body: JSON.stringify({ reason: reason.trim() || '退貨' }),
+    })
+    await load()
+  } catch (e) {
+    actionError.value = (e as ApiError).problem?.detail ?? (e as Error).message ?? '作廢發票失敗'
   } finally {
     actionBusy.value = false
   }
@@ -384,11 +404,17 @@ onMounted(load)
               @click="handleCharge"
             >線上刷卡</button>
             <button
-              v-if="(order.invoiceType === 1 || order.invoiceType === 3) && order.invoiceStatus === 0"
+              v-if="(order.invoiceType === 1 || order.invoiceType === 3) && (order.invoiceStatus === 0 || order.invoiceStatus === 2)"
               class="odetail__btn odetail__btn--accent"
               :disabled="actionBusy"
               @click="handleIssueInvoice"
-            >補開發票</button>
+            >{{ order.invoiceStatus === 2 ? '重新開立發票' : '補開發票' }}</button>
+            <button
+              v-if="(order.invoiceType === 1 || order.invoiceType === 3) && order.invoiceStatus === 1"
+              class="odetail__btn odetail__btn--danger"
+              :disabled="actionBusy"
+              @click="handleVoidInvoice"
+            >作廢發票</button>
           </div>
 
         </div><!-- /.odetail__cards-aside -->

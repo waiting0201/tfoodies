@@ -19,10 +19,20 @@ public interface IPaymentCompletionService
     Task<bool> MarkPaidAsync(string orderCode, string? lastPan4, string txnRef, DateOnly? payDate = null, CancellationToken ct = default);
 
     /// <summary>
-    /// 開立電子發票（ezPay 即時）並建立本地 Invoices/Invoicedetails。冪等：發票已開/已作廢/免開則回失敗（不重複開）。
-    /// 供 MarkPaidAsync 自動呼叫，亦供後台「補開發票」端點單獨呼叫。
+    /// 開立電子發票（ezPay 即時）並建立本地 Invoices/Invoicedetails。
+    /// 可開立的前提：發票類型非「免開」，且狀態為「未開(0)」或「已作廢(2)」（後者＝作廢後重新開立，取得新發票號）。
+    /// 冪等：以 <c>WHERE invoicestatus IN (0,2)</c> 護欄避免 return+notify 雙觸發重複建檔。
+    /// 供 MarkPaidAsync 自動呼叫，亦供後台「補開發票 / 作廢後重新開立」端點單獨呼叫。
     /// </summary>
     /// <param name="orderCode">訂單編號。</param>
-    /// <param name="incomeId">關聯的收入 ID（付款流程帶入；後台補開時可為 null）。</param>
+    /// <param name="incomeId">關聯的收入 ID（付款流程帶入；後台補開／重開時可為 null）。</param>
     Task<Result> IssueInvoiceAsync(string orderCode, Guid? incomeId = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// 作廢電子發票（ezPay invoice/void）並把訂單標記為「已作廢(2)」。冪等：僅當訂單發票狀態為「已開(1)」時才作廢。
+    /// 作廢後可再呼叫 <see cref="IssueInvoiceAsync"/> 重新開立（取得新發票號）。供後台訂單詳情頁「作廢發票」端點呼叫。
+    /// </summary>
+    /// <param name="orderCode">訂單編號。</param>
+    /// <param name="reason">作廢原因（寫入 ezPay InvalidReason，例：退貨）。</param>
+    Task<Result> VoidInvoiceAsync(string orderCode, string reason, CancellationToken ct = default);
 }
