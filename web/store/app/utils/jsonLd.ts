@@ -54,6 +54,101 @@ export function articleJsonLd(opts: {
   }
 }
 
+/**
+ * schema.org/Recipe — the format Google recipe cards and AI answer engines consume for
+ * cooking content (ingredients, steps, time, yield). Ingredients + seasonings are merged
+ * into recipeIngredient; steps become HowToStep nodes. duration is minutes → ISO-8601.
+ */
+export function recipeJsonLd(opts: {
+  name: string
+  description?: string | null
+  image?: string | null
+  url?: string
+  /** Cooking time in minutes (legacy `duration`). */
+  durationMinutes?: number | null
+  /** Servings (legacy `portion`). */
+  yield?: number | null
+  ingredients?: string[]
+  steps?: { title?: string | null; text?: string | null }[]
+  videoUrl?: string | null
+}): Json {
+  const stripHtml = (v?: string | null) => (v ? metaDescription(v, 1000) : '')
+  const instructions = (opts.steps ?? [])
+    .map((s) => stripHtml(s.text) || stripHtml(s.title))
+    .filter(Boolean)
+    .map((text, i) => ({
+      '@type': 'HowToStep',
+      position: i + 1,
+      text,
+      ...(opts.steps?.[i]?.title ? { name: opts.steps[i]!.title } : {}),
+    }))
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Recipe',
+    name: opts.name,
+    ...(opts.description ? { description: metaDescription(opts.description, 300) } : {}),
+    ...(opts.image ? { image: opts.image } : {}),
+    ...(opts.url ? { mainEntityOfPage: opts.url } : {}),
+    ...(opts.durationMinutes ? { totalTime: `PT${Math.trunc(opts.durationMinutes)}M` } : {}),
+    ...(opts.yield ? { recipeYield: `${Math.trunc(opts.yield)} 人份` } : {}),
+    ...(opts.ingredients?.length ? { recipeIngredient: opts.ingredients } : {}),
+    ...(instructions.length ? { recipeInstructions: instructions } : {}),
+    ...(opts.videoUrl ? { video: { '@type': 'VideoObject', contentUrl: opts.videoUrl } } : {}),
+    author: { '@type': 'Organization', name: '食在呼 TFoodies' },
+    publisher: { '@type': 'Organization', name: '食在呼 TFoodies' },
+  }
+}
+
+/**
+ * schema.org/Organization — the publisher entity. Injected once globally (app.vue) with a
+ * stable @id so other nodes (Article/Recipe publisher, WebSite) can reference it. Contact +
+ * address mirror the 聯絡資訊 page. siteUrl must be absolute, no trailing slash.
+ */
+export function organizationJsonLd(siteUrl: string): Json {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': `${siteUrl}/#organization`,
+    name: '食在呼 TFoodies',
+    legalName: '庭富國際有限公司',
+    url: `${siteUrl}/`,
+    logo: `${siteUrl}/content/images/logo.png`,
+    email: 'hi@tfoodies.com',
+    contactPoint: {
+      '@type': 'ContactPoint',
+      contactType: 'customer service',
+      telephone: '+886-4-2436-6659',
+      email: 'hi@tfoodies.com',
+      areaServed: 'TW',
+      availableLanguage: 'zh-Hant',
+    },
+    address: {
+      '@type': 'PostalAddress',
+      addressCountry: 'TW',
+      addressRegion: '台中市',
+      addressLocality: '北屯區',
+      postalCode: '406',
+      streetAddress: '東山路一段192巷56弄18號',
+    },
+  }
+}
+
+/**
+ * schema.org/WebSite — site identity for search engines / AI engines. Injected once globally
+ * (app.vue); publisher references the Organization @id. siteUrl absolute, no trailing slash.
+ */
+export function websiteJsonLd(siteUrl: string): Json {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    '@id': `${siteUrl}/#website`,
+    name: '食在呼 TFoodies',
+    url: `${siteUrl}/`,
+    inLanguage: 'zh-Hant-TW',
+    publisher: { '@id': `${siteUrl}/#organization` },
+  }
+}
+
 /** schema.org/BreadcrumbList from ordered { name, url } crumbs (url absolute or path). */
 export function breadcrumbJsonLd(items: { name: string; url?: string }[]): Json {
   return {

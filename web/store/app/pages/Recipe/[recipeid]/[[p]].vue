@@ -24,12 +24,20 @@ useSeo(() => ({
 
 useJsonLd(() => {
   if (!item.value) return null
+  const ingredientLines = [...item.value.ingredients, ...item.value.seasonings]
+    .map((g) => [g.title, g.value].filter(Boolean).join(' ').trim())
+    .filter(Boolean)
   return [
-    articleJsonLd({
-      headline: item.value.title,
+    recipeJsonLd({
+      name: item.value.title,
       description: item.value.intro,
       image: ogImage.value,
       url: `${siteUrl}/Recipe/${item.value.recipeid}/1`,
+      durationMinutes: item.value.duration,
+      yield: item.value.portion,
+      ingredients: ingredientLines,
+      steps: item.value.steps.map((s) => ({ title: s.title, text: s.value })),
+      videoUrl: item.value.youtube,
     }),
     breadcrumbJsonLd([
       { name: '美味料理', url: `${siteUrl}/Recipes` },

@@ -61,16 +61,19 @@ export function useSeo(source: MaybeRefOrGetter<SeoInput>) {
 /**
  * Inject one or more JSON-LD structured-data blocks. Pass a getter returning the node(s);
  * returns null/[] until the page data resolves. Build nodes with the helpers in utils/jsonLd.
+ * `keyPrefix` namespaces the dedup keys — global (app.vue) and per-page blocks must differ,
+ * or same-key entries collide and one overwrites the other.
  */
 export function useJsonLd(
   source: MaybeRefOrGetter<Record<string, unknown> | Record<string, unknown>[] | null | undefined>,
+  keyPrefix = 'ld-json',
 ) {
   useHead(() => {
     const value = toValue(source)
     const nodes = (Array.isArray(value) ? value : value ? [value] : []).filter(Boolean)
     return {
       script: nodes.map((node, i) => ({
-        key: `ld-json-${i}`,
+        key: `${keyPrefix}-${i}`,
         type: 'application/ld+json',
         innerHTML: JSON.stringify(node),
       })),

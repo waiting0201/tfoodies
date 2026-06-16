@@ -373,7 +373,8 @@ web/store/app/
 │    useXxxData.ts         ← useFetch 包裝，打 Store API（/store/...）
 ├─ utils/
 │    seo.ts               ← stripHtml/truncate/metaDescription/absoluteUrl
-│    jsonLd.ts            ← productJsonLd / articleJsonLd / breadcrumbJsonLd（schema.org）
+│    jsonLd.ts            ← schema.org builders：productJsonLd / articleJsonLd / recipeJsonLd /
+│                             breadcrumbJsonLd / organizationJsonLd / websiteJsonLd
 │    slug.ts             ← title(斜線) ↔ URL(連字號) 轉換
 └─ server/api/
      __sitemap-urls.ts    ← @nuxtjs/sitemap 動態來源：runtime 查 Store list API 彙整內容 URL
@@ -385,9 +386,10 @@ web/store/app/
 
 **捲動進場（`.page` 區塊）**：`.page` 預設 `opacity:0`（main.css），靠 legacy onScreen 外掛捲到視窗內加 `.onScreen` 淡入。`main.js` 只在首次載入綁一次，後續經由 SPA 換頁渲染的 `.page` 不會被綁、永久隱形。`plugins/legacy-effects.client.ts` 的 `reinitSliders()` 於每次 `page:finish` 重綁（先 `onScreen('remove')` 卸載具名 `scroll.onScreen` handler 避免累積），並 `trigger('scroll')` 讓首屏區塊立即顯示。影響所有用 `.page` 的頁（Reports、News/Recipes/Issues/Events 列表、活動詳情）。
 
-**SEO 機制**：
+**SEO / GEO 機制**：
 - **meta**：每頁呼叫 `useSeo()`（詳情頁帶 og:image=blob 圖、canonical=`shortener` 或站台 URL）。
-- **JSON-LD**：商品=`Product`(offers/price/TWD/availability)、News/Recipe/Issue/Event=`Article`、詳情頁附 `BreadcrumbList`。
+- **JSON-LD（per-page）**：商品=`Product`(offers/price/TWD/availability)、News/Issue/Event/Knowledge=`Article`、**料理=`Recipe`**（recipeIngredient 併食材+調味料、recipeInstructions=HowToStep、totalTime=`PT{duration}M`、recipeYield、video）、詳情頁附 `BreadcrumbList`。
+- **JSON-LD（全站，GEO）**：`app.vue` 注入一次 `Organization`（`@id=#organization`，含 legalName/logo/contactPoint/PostalAddress，對齊聯絡頁）+ `WebSite`（`@id=#website`，publisher 參照 Organization），供搜尋/AI 引擎建立發布者實體。注入用 `useJsonLd(..., 'ld-global')` 的 keyPrefix 與頁面節點分隔避免覆蓋。
 - **sitemap.xml**：`@nuxtjs/sitemap`，靜態路由自動收錄，動態內容由 `server/api/__sitemap-urls.ts` 於 runtime 查 API（含商品/型錄/消息/料理/綠誌/小知識/活動，以及 `GET /store/brands` 列出的上線品牌頁）。
 - **robots.txt**：`@nuxtjs/robots` 產生（不再有靜態檔），`Disallow: /Member/ /Cart /Checkout /Order/` 並自動附 `Sitemap:`；被 disallow 的頁面自動補 `noindex` meta。
 
