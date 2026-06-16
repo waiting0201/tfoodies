@@ -28,7 +28,8 @@ export default defineNuxtConfig({
 
   // 文章詳細頁（最新消息/綠誌/小知識/活動花絮）重新設計的共用樣式。
   // 選擇器全部收斂在 .article-detail / .events-detail 命名空間下，不影響 legacy main.css。
-  css: ['~/assets/css/article-detail.css'],
+  // layout-fixes.css：覆寫 legacy main.css 副作用（body overflow-x:hidden 破壞 position:sticky）。
+  css: ['~/assets/css/article-detail.css', '~/assets/css/layout-fixes.css'],
 
   // Shared by @nuxtjs/sitemap, @nuxtjs/robots and useSeo() canonical/og:url.
   site: {

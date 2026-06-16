@@ -1,0 +1,10 @@
+/* 全站版面修正（覆寫 legacy main.css 的副作用，不修改 verbatim 的 main.css 本身）。
+
+   position:sticky 失效修正：
+   legacy main.css 有 `body, html { overflow-x: hidden }`。把 overflow-x:hidden 同時下在
+   <body> 上，會讓 <body> 變成 scroll container（overflow-y 依規範計算成 auto），但頁面實際
+   是在 <html> 上捲動 —— 於是任何 `position: sticky` 後代會以「不捲動的 <body>」為參考，永遠
+   釘不住（checkout 訂單摘要、recipe hero、article-detail 側欄都受影響）。
+   保留 <html> 的橫向裁切（仍可抑制水平捲軸），只讓 <body> 不再是 scroll container，sticky 即恢復。
+   選擇器 `html body`（特異度 0,0,2）勝過 legacy 的 `body`（0,0,1），免用 !important。 */
+html body { overflow-x: visible; }

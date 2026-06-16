@@ -300,7 +300,8 @@
     gap: 3rem;
     align-items: start;
   }
-  .article-detail .article-detail__aside-sticky { position: sticky; top: 1.5rem; }
+  /* 釘在固定 header（menu）之下：--header-sticky-top 由 header-sticky-offset plugin 動態量測 */
+  .article-detail .article-detail__aside-sticky { position: sticky; top: var(--header-sticky-top, 1.5rem); }
   .article-detail .recipe-grid { grid-template-columns: repeat(3, 1fr); }
   .events-detail .gallery { grid-template-columns: repeat(3, 1fr); gap: 1rem; }
 }

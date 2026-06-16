@@ -407,7 +407,8 @@ async function copyLink() {
 /* 平板以上：主視覺左右排、食材調味兩欄 */
 @media (min-width: 768px) {
   .hero { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: start; gap: 2.5rem; }
-  .hero__media { position: sticky; top: 1.5rem; }
+  /* 釘在固定 header（menu）之下：--header-sticky-top 由 header-sticky-offset plugin 動態量測 */
+  .hero__media { position: sticky; top: var(--header-sticky-top, 1.5rem); }
   .hero__title { font-size: 2.1rem; }
   .panels { grid-template-columns: 1fr 1fr; gap: 1.75rem; }
 }

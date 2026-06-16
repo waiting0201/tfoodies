@@ -543,7 +543,9 @@ async function submitOrder() {
 .hint { font-size: .8em; color: #aaa; margin: .4em 0 0; line-height: 1.5; }
 
 /* ── Summary aside ── */
-.checkout-aside { position: sticky; top: 1em; }
+/* --header-sticky-top = 固定 header 高度 + 間距（header-sticky-offset plugin 動態量測），
+   讓摘要釘在 menu 之下；SSR/未量測時退回 1em。 */
+.checkout-aside { position: sticky; top: var(--header-sticky-top, 1em); }
 .summary-card { border: 1px solid #eee; border-radius: 6px; padding: 1.4em 1.5em; background: #fafdfd; }
 .sum-items { list-style: none; margin: 0 0 1.1em; padding: 0 0 1.1em; border-bottom: 1px solid #ececec; }
 .sum-item { display: flex; justify-content: space-between; gap: .8em; margin-bottom: .7em; font-size: .9em; color: #555; }
