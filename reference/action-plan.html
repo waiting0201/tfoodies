@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<title>食在呼 TFoodies｜讓訪客開始下單 行動方案</title>
+<style>
+  :root{
+    --teal:#0f766e; --teal-2:#14b8a6; --teal-soft:#ccfbf1;
+    --amber:#d97706; --ink:#1f2937; --ink-soft:#4b5563;
+    --line:#e5e7eb; --bg-soft:#f8fafc; --red:#b91c1c; --green:#15803d;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+  body{font-family:"PingFang TC","Heiti TC","Noto Sans CJK TC","Microsoft JhengHei",sans-serif;
+    color:var(--ink); margin:0; font-size:13.5px; line-height:1.8;}
+  .page{page-break-after:always; padding:48px 56px 64px; position:relative; min-height:100vh;}
+  .page:last-child{page-break-after:auto;}
+
+  /* 封面 */
+  .cover{background:linear-gradient(150deg,#0f766e 0%,#115e59 55%,#134e4a 100%);
+    color:#fff; display:flex; flex-direction:column; justify-content:center;
+    padding:80px 64px; min-height:100vh;}
+  .cover .kicker{letter-spacing:5px; font-size:13px; opacity:.85; font-weight:600;
+    border-left:4px solid var(--teal-2); padding-left:14px; margin-bottom:34px;}
+  .cover h1{font-size:46px; line-height:1.25; margin:0; font-weight:800;}
+  .cover .sub{font-size:17px; margin-top:28px; max-width:560px; line-height:1.95; opacity:.93;}
+  .cover .one{margin-top:40px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.3);
+    border-radius:14px; padding:20px 24px; max-width:600px;}
+  .cover .one b{color:#5eead4;}
+  .cover .meta{margin-top:48px; font-size:13px; opacity:.8; line-height:2;}
+  .cover .dot{position:absolute; border-radius:50%;}
+
+  h2.sec{font-size:23px; color:var(--teal); margin:0 0 4px; font-weight:800;
+    display:flex; align-items:baseline; gap:12px;}
+  h2.sec .no{font-size:13px; background:var(--teal); color:#fff; border-radius:7px; padding:3px 10px; font-weight:700;}
+  .sec-line{height:3px; width:60px; background:var(--amber); margin:10px 0 22px; border-radius:3px;}
+  h3{font-size:16px; color:var(--teal); margin:22px 0 8px; font-weight:700;}
+  p{margin:7px 0;} ul{margin:7px 0; padding-left:20px;} li{margin:5px 0;}
+  strong{color:var(--teal);}
+  .lead{font-size:14px; color:var(--ink-soft); background:var(--bg-soft);
+    border-left:4px solid var(--teal-2); padding:13px 17px; border-radius:0 8px 8px 0; margin:0 0 22px;}
+  .footer{position:absolute; bottom:22px; left:56px; right:56px; display:flex;
+    justify-content:space-between; font-size:10px; color:#9ca3af; border-top:1px solid var(--line); padding-top:8px;}
+
+  /* 漏斗 */
+  .funnel{margin:18px 0;}
+  .step{display:flex; align-items:center; gap:14px; margin:8px 0;}
+  .step .bar{height:42px; border-radius:9px; display:flex; align-items:center; padding:0 18px;
+    color:#fff; font-weight:700; font-size:14px;}
+  .step .note{font-size:12px; color:var(--ink-soft);}
+  .step.ok .bar{background:var(--teal-2);}
+  .step.leak .bar{background:var(--red);}
+  .step.dead .bar{background:#cbd5e1; color:#64748b;}
+  .leak-tag{color:var(--red); font-weight:800;}
+
+  .card{border:1px solid var(--line); border-radius:12px; padding:16px 20px; margin:12px 0; background:#fff;}
+  .card.tint{background:var(--teal-soft); border-color:#99f6e4;}
+  .card.warn{background:#fef2f2; border-color:#fecaca;}
+  .card h4{margin:0 0 8px; color:var(--teal); font-size:15px;}
+  .card.warn h4{color:var(--red);}
+
+  .fix{display:flex; gap:16px; margin:14px 0;}
+  .fix .badge{flex:0 0 92px; border-radius:12px; padding:12px 8px; text-align:center; color:#fff; font-weight:800; height:fit-content;}
+  .fix .badge small{display:block; font-weight:500; font-size:11px; opacity:.9; margin-top:3px;}
+  .fix.fast .badge{background:var(--amber);}
+  .fix.slow .badge{background:var(--teal);}
+  .fix .body{flex:1;}
+  .fix .body h3{margin:0 0 6px;}
+
+  .check li{list-style:none; position:relative; padding-left:24px;}
+  .check li:before{content:"☐"; position:absolute; left:0; color:var(--teal-2); font-weight:800; font-size:15px;}
+
+  table{width:100%; border-collapse:collapse; margin:12px 0; font-size:12.5px;}
+  th{background:var(--teal); color:#fff; text-align:left; padding:9px 12px; font-weight:600;}
+  td{border-bottom:1px solid var(--line); padding:9px 12px; vertical-align:top;}
+  tr:nth-child(even) td{background:var(--bg-soft);}
+
+  .big-num{display:flex; gap:16px; margin:16px 0;}
+  .big-num .n{flex:1; text-align:center; background:var(--bg-soft); border-radius:12px; padding:16px 10px;}
+  .big-num .n b{display:block; font-size:24px; color:var(--teal); font-weight:800;}
+  .big-num .n span{font-size:11.5px; color:var(--ink-soft);}
+  .note{font-size:12px; color:var(--ink-soft); background:#fffbeb; border:1px solid #fde68a;
+    border-radius:8px; padding:11px 15px; margin:12px 0;}
+</style>
+</head>
+<body>
+
+<!-- 封面 -->
+<section class="cover">
+  <span class="dot" style="width:240px;height:240px;background:rgba(20,184,166,.18);top:-60px;right:-60px;"></span>
+  <span class="dot" style="width:140px;height:140px;background:rgba(20,184,166,.12);bottom:90px;right:130px;"></span>
+  <div class="kicker">ACTION PLAN · 一個問題，一個解法</div>
+  <h1>讓「看文章的人」<br>開始下單</h1>
+  <p class="sub">不談一整年的大策略。只解決現在唯一卡住的事：流量進得來、文章有人看，卻幾乎沒有人買。</p>
+  <div class="one">
+    <p style="margin:0;font-size:15px;">問題一句話：<b>內容很會「吸引人來看」，但「看完」和「買」之間是斷的。</b><br>解法一句話：<b>把廣告帶到能買的頁面，並在文章裡鋪一條通往購物車的路。</b></p>
+  </div>
+  <div class="meta">食在呼 TFoodies｜行動方案 v1.0　·　2026 年 6 月<br>聚焦目標：把「進站不下單」轉為「開始有訂單」</div>
+</section>
+
+<!-- 1 診斷 -->
+<section class="page">
+  <h2 class="sec"><span class="no">01</span>問題在哪：漏斗斷在第一關</h2>
+  <div class="sec-line"></div>
+  <p class="lead">廣告有帶來流量（人進得來），但他們<strong>連購物車都沒加</strong>，看完文章就離開。這代表問題<strong>不在流量</strong>，繼續加廣告預算只是把錢倒進破洞。</p>
+
+  <h3>你的購買漏斗現況</h3>
+  <div class="funnel">
+    <div class="step ok"><div class="bar" style="width:92%;">① 廣告帶來流量　人進得來 ✔</div></div>
+    <div class="step ok"><div class="bar" style="width:78%;">② 看文章 / 食譜　有人看 ✔</div></div>
+    <div class="step leak"><div class="bar" style="width:30%;">③ 加入購物車</div><span class="note"><span class="leak-tag">← 破洞就在這裡</span>　看完就走，沒人加購</span></div>
+    <div class="step dead"><div class="bar" style="width:18%;">④ 進入結帳</div><span class="note">前面沒人進來，這關自然空</span></div>
+    <div class="step dead"><div class="bar" style="width:10%;">⑤ 付款成功</div><span class="note">—</span></div>
+  </div>
+
+  <h3>為什麼會斷在這裡？兩個原因</h3>
+  <div class="card warn">
+    <h4>原因 A：廣告把「想買的冷流量」帶到了「文章頁」</h4>
+    <p style="margin:0;">文章是用來「養」客人、做 SEO 的，<strong>不是用來成交第一次看到你的人</strong>。冷流量需要的是「這是什麼、多少錢、為什麼安心、現在買有什麼好處」——文章給不了，他就走了。</p>
+  </div>
+  <div class="card warn">
+    <h4>原因 B：文章看完，沒有一條路通往「買」</h4>
+    <p style="margin:0;">最可惜的是<strong>食譜</strong>：讀者看完想煮，卻找不到食材在哪買。「想煮 → 需要食材 → 能下單」這條最自然的路，現在是斷的，人就流失了。</p>
+  </div>
+  <div class="note">食譜是食品電商的金礦——看食譜的人本來就「準備要買食材」。把這條橋接上，連免費的自然搜尋流量都能變訂單。</div>
+  <div class="footer"><span>食在呼 TFoodies｜讓訪客開始下單 行動方案</span><span>02</span></div>
+</section>
+
+<!-- 2 解法 -->
+<section class="page">
+  <h2 class="sec"><span class="no">02</span>解法：一快一久，補起破洞</h2>
+  <div class="sec-line"></div>
+
+  <div class="fix fast">
+    <div class="badge">快<small>幾天<br>見效</small></div>
+    <div class="body">
+      <h3>修法 A　把廣告的落地頁換掉</h3>
+      <p>想「立刻有人買」的廣告，<strong>不要連到文章，連到一個明星商品頁＋首購優惠</strong>。</p>
+      <ul>
+        <li>挑 <strong>1 個最有把握的商品</strong>當主打，廣告直接連到它的商品頁。</li>
+        <li>頁面一眼看懂：<strong>是什麼、多少錢、為什麼安心（檢驗/來源）、現在買有優惠</strong>。</li>
+        <li>首購折扣碼<strong>直接顯示出來</strong>，不要藏在角落。</li>
+        <li>文章留給 SEO 與自然流量，<strong>別再拿文章扛成交</strong>。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="fix slow">
+    <div class="badge">久<small>真正<br>的武器</small></div>
+    <div class="body">
+      <h3>修法 B　把文章變成「會帶貨」的文章</h3>
+      <p>這是你最強的資產。讓看文章的人（含免費的自然流量）也能順手下單：</p>
+      <ul>
+        <li><strong>食譜頁底部</strong>放「本食譜用到的食材 → 一鍵加入購物車」。</li>
+        <li>每篇文章結尾放 <strong>1–3 個相關商品卡</strong>，按了就能買。</li>
+        <li>文章中段放一句行動呼籲（CTA）：「想試試？馬上備齊食材 →」。</li>
+      </ul>
+      <div class="card tint" style="margin-top:6px;">
+        <p style="margin:0;">💡 好消息：你的 store <strong>綠誌詳情頁本來就有「相關商品/食譜」區塊</strong>，食譜頁很可能只是<strong>還沒接上</strong>——補起來會比想像中快。</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>先做哪一個？</h3>
+  <table>
+    <tr><th style="width:90px;">順序</th><th>做什麼</th><th>為什麼</th></tr>
+    <tr><td><strong>第 1 步</strong></td><td>修法 A：換廣告落地頁</td><td>幾天內就能看到「開始有訂單」，止血最快</td></tr>
+    <tr><td><strong>第 2 步</strong></td><td>修法 B：食譜/文章帶貨橋</td><td>讓內容長期免費帶單，越滾越省廣告費</td></tr>
+  </table>
+  <div class="footer"><span>食在呼 TFoodies｜讓訪客開始下單 行動方案</span><span>03</span></div>
+</section>
+
+<!-- 3 行動清單 -->
+<section class="page">
+  <h2 class="sec"><span class="no">03</span>本週行動清單與成功指標</h2>
+  <div class="sec-line"></div>
+  <p class="lead">不用一次做完所有事。照下面勾，<strong>這週就能動手</strong>，兩週後用一個數字判斷有沒有效。</p>
+
+  <h3>✅ 本週行動清單</h3>
+  <ul class="check">
+    <li>選定 <strong>1 個明星商品</strong>，檢查它的商品頁有沒有清楚寫「是什麼・價格・安心理由・優惠」。</li>
+    <li>設定一組<strong>首購折扣碼</strong>，並讓它在頁面上顯眼。</li>
+    <li>把現有廣告的<strong>落地連結改成那個商品頁</strong>（不要再連文章）。</li>
+    <li>選 <strong>3 篇最熱門的食譜/文章</strong>，先手動在結尾放上「相關商品 / 加入購物車」連結。</li>
+    <li>（技術）盤點食譜詳情頁，把「食材一鍵加入購物車」區塊接上。</li>
+  </ul>
+
+  <h3>📊 怎麼知道有沒有效（看這一個數字）</h3>
+  <div class="big-num">
+    <div class="n"><b>加入購物車率</b><span>加購人數 ÷ 進站人數<br><strong style="color:var(--amber)">這是這次的關鍵指標</strong></span></div>
+    <div class="n"><b>從 ≈0%</b><span>現況：幾乎沒人加購</span></div>
+    <div class="n"><b>→ 目標 3%+</b><span>2 週後的第一個里程碑</span></div>
+  </div>
+  <p>邏輯很簡單：<strong>先讓「加入購物車」這關活起來</strong>，有人加購，後面結帳、付款才有東西可優化。只要加購率從 0 開始往上走，就代表破洞補對了，這時再加廣告預算放大才划算。</p>
+
+  <div class="card tint">
+    <h4>一句話總結</h4>
+    <p style="margin:0;">現在的問題不是「沒人來」，是「來了沒東西可買 / 不知道怎麼買」。<strong>把廣告帶到能買的頁面，把文章接上購物車</strong>——讓加購率動起來，訂單就會跟著來。</p>
+  </div>
+  <div class="note">需要的話，下一步我可以直接幫你檢視商品頁與食譜頁的程式碼，把「加入購物車」這條路實際做出來。</div>
+  <div class="footer"><span>食在呼 TFoodies｜讓訪客開始下單 行動方案</span><span>04</span></div>
+</section>
+
+</body>
+</html>

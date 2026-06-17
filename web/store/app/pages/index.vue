@@ -67,7 +67,7 @@ const { data } = useHomeData()
           </div>
         </div>
         <div class="index-fb-wrap">
-          <div data-href="https://www.facebook.com/trulyfoodies/" data-tabs="timeline" data-small-header="true" data-adapt-container-width="true" data-hide-cover="false" data-show-facepile="false" data-width="500" data-height="380" class="fb-page"></div>
+          <FacebookPage />
         </div>
       </div>
     </section>

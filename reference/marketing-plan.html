@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<title>食在呼 TFoodies 行銷方案書</title>
+<style>
+  :root{
+    --teal:#0f766e;        /* 主色 深青 */
+    --teal-2:#14b8a6;      /* 輔色 青綠 */
+    --teal-soft:#ccfbf1;   /* 淺青底 */
+    --amber:#d97706;       /* 強調 暖橙 */
+    --ink:#1f2937;         /* 內文 */
+    --ink-soft:#4b5563;
+    --line:#e5e7eb;
+    --bg-soft:#f8fafc;
+    --green:#15803d;
+    --red:#b91c1c;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+  body{
+    font-family:"PingFang TC","Heiti TC","Noto Sans CJK TC","Microsoft JhengHei",sans-serif;
+    color:var(--ink);
+    margin:0;
+    font-size:13px;
+    line-height:1.75;
+  }
+  .page{
+    page-break-after:always;
+    padding:46px 54px 60px;
+    position:relative;
+    min-height:100vh;
+  }
+  .page:last-child{page-break-after:auto;}
+
+  /* ---------- 封面 ---------- */
+  .cover{
+    background:linear-gradient(150deg,#0f766e 0%,#115e59 55%,#134e4a 100%);
+    color:#fff;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    padding:80px 64px;
+    min-height:100vh;
+  }
+  .cover .kicker{
+    letter-spacing:6px; font-size:13px; opacity:.85; font-weight:600;
+    border-left:4px solid var(--teal-2); padding-left:14px; margin-bottom:36px;
+  }
+  .cover h1{font-size:54px; line-height:1.15; margin:0 0 6px; font-weight:800;}
+  .cover h1 small{display:block; font-size:22px; font-weight:500; letter-spacing:8px; opacity:.85; margin-top:14px;}
+  .cover .sub{font-size:18px; margin-top:34px; max-width:560px; line-height:1.9; opacity:.92;}
+  .cover .meta{margin-top:64px; font-size:13px; opacity:.8; line-height:2;}
+  .cover .tags{margin-top:40px;}
+  .cover .tags span{
+    display:inline-block; border:1px solid rgba(255,255,255,.45); border-radius:30px;
+    padding:5px 16px; font-size:12px; margin:0 8px 10px 0; letter-spacing:1px;
+  }
+  .cover .dot{position:absolute; border-radius:50%;}
+
+  /* ---------- 通用 ---------- */
+  h2.sec{
+    font-size:24px; color:var(--teal); margin:0 0 4px; font-weight:800;
+    display:flex; align-items:baseline; gap:12px;
+  }
+  h2.sec .no{
+    font-size:14px; background:var(--teal); color:#fff; border-radius:7px;
+    padding:3px 10px; font-weight:700;
+  }
+  .sec-line{height:3px; width:64px; background:var(--amber); margin:10px 0 22px; border-radius:3px;}
+  h3{font-size:16px; color:var(--teal); margin:24px 0 8px; font-weight:700;}
+  h4{font-size:14px; color:var(--ink); margin:16px 0 6px; font-weight:700;}
+  p{margin:6px 0;}
+  ul{margin:6px 0 6px; padding-left:20px;}
+  li{margin:4px 0;}
+  strong{color:var(--teal);}
+  .lead{font-size:14px; color:var(--ink-soft); background:var(--bg-soft);
+    border-left:4px solid var(--teal-2); padding:12px 16px; border-radius:0 8px 8px 0; margin:0 0 22px;}
+
+  table{width:100%; border-collapse:collapse; margin:12px 0; font-size:12px;}
+  th{background:var(--teal); color:#fff; text-align:left; padding:9px 12px; font-weight:600;}
+  td{border-bottom:1px solid var(--line); padding:9px 12px; vertical-align:top;}
+  tr:nth-child(even) td{background:var(--bg-soft);}
+  table.kpi th{background:var(--teal-2);}
+
+  .grid2{display:flex; gap:18px;}
+  .grid2 > *{flex:1;}
+  .card{
+    border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin:10px 0;
+    background:#fff;
+  }
+  .card.tint{background:var(--teal-soft); border-color:#99f6e4;}
+  .card h4{margin-top:0; color:var(--teal);}
+
+  .swot{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;}
+  .swot .box{border-radius:12px; padding:14px 16px;}
+  .swot .s{background:#ecfdf5; border:1px solid #a7f3d0;}
+  .swot .w{background:#fef2f2; border:1px solid #fecaca;}
+  .swot .o{background:#eff6ff; border:1px solid #bfdbfe;}
+  .swot .t{background:#fff7ed; border:1px solid #fed7aa;}
+  .swot h4{margin:0 0 6px; font-size:14px;}
+  .swot .s h4{color:#047857;} .swot .w h4{color:#b91c1c;}
+  .swot .o h4{color:#1d4ed8;} .swot .t h4{color:#c2410c;}
+  .swot ul{font-size:11.5px; padding-left:18px; margin:0;}
+
+  .persona{display:flex; gap:14px; margin-top:12px;}
+  .persona .p{flex:1; border:1px solid var(--line); border-top:4px solid var(--teal-2);
+    border-radius:10px; padding:14px;}
+  .persona .p h4{margin:0 0 4px; color:var(--teal);}
+  .persona .p .age{font-size:11px; color:var(--ink-soft); margin-bottom:8px;}
+  .persona .p ul{font-size:11px; padding-left:16px; margin:6px 0;}
+
+  .timeline{margin-top:14px;}
+  .phase{display:flex; gap:14px; margin-bottom:14px;}
+  .phase .tag{flex:0 0 130px; background:var(--teal); color:#fff; border-radius:10px;
+    padding:10px 12px; font-weight:700; font-size:12px; text-align:center; line-height:1.5; height:fit-content;}
+  .phase .tag small{display:block; font-weight:400; opacity:.85; font-size:10px; margin-top:2px;}
+  .phase .body{flex:1; border:1px solid var(--line); border-radius:10px; padding:10px 14px; background:#fff;}
+  .phase .body strong{display:block; margin-bottom:4px;}
+  .phase .body ul{margin:0; padding-left:18px; font-size:11.5px;}
+
+  .pill{display:inline-block; background:var(--teal-soft); color:var(--teal);
+    border-radius:20px; padding:2px 10px; font-size:11px; font-weight:600; margin:2px 4px 2px 0;}
+  .num-stat{display:flex; gap:14px; margin:16px 0;}
+  .num-stat .n{flex:1; text-align:center; background:var(--bg-soft); border-radius:12px; padding:14px 8px;}
+  .num-stat .n b{display:block; font-size:26px; color:var(--teal); font-weight:800;}
+  .num-stat .n span{font-size:11px; color:var(--ink-soft);}
+
+  .footer{position:absolute; bottom:22px; left:54px; right:54px;
+    display:flex; justify-content:space-between; font-size:10px; color:#9ca3af;
+    border-top:1px solid var(--line); padding-top:8px;}
+
+  .toc-item{display:flex; align-items:center; padding:9px 0; border-bottom:1px dashed var(--line); font-size:14px;}
+  .toc-item .tn{flex:0 0 36px; color:var(--amber); font-weight:800;}
+  .toc-item .tt{flex:1; font-weight:600; color:var(--ink);}
+  .toc-item .td{flex:0 0 auto; color:var(--ink-soft); font-size:11px;}
+
+  .note{font-size:11px; color:var(--ink-soft); background:#fffbeb; border:1px solid #fde68a;
+    border-radius:8px; padding:10px 14px; margin:12px 0;}
+  .check li{list-style:none; position:relative; padding-left:22px;}
+  .check li:before{content:"✓"; position:absolute; left:0; color:var(--teal-2); font-weight:800;}
+</style>
+</head>
+<body>
+
+<!-- ============ 封面 ============ -->
+<section class="cover">
+  <span class="dot" style="width:240px;height:240px;background:rgba(20,184,166,.18);top:-60px;right:-60px;"></span>
+  <span class="dot" style="width:140px;height:140px;background:rgba(20,184,166,.12);bottom:80px;right:120px;"></span>
+  <div class="kicker">MARKETING PROPOSAL · 2026</div>
+  <h1>食在呼 TFoodies<small>整合行銷成長方案書</small></h1>
+  <p class="sub">以「安心溯源 × 內容信任 × 會員終身價值」為核心，盤點現有平台能力，規劃可落地的數位行銷與營運成長藍圖。</p>
+  <div class="tags">
+    <span>食品電商</span><span>內容行銷</span><span>會員經營(CRM)</span>
+    <span>團購／預購</span><span>聯盟行銷</span><span>SEO／GEO</span><span>再行銷</span>
+  </div>
+  <div class="meta">
+    提案對象：食在呼 TFoodies 經營團隊<br>
+    版本：v1.0　·　日期：2026 年 6 月<br>
+    範疇：前台商城 + 後台 ERP 既有能力之行銷活化與未來布局
+  </div>
+</section>
+
+<!-- ============ 目錄 ============ -->
+<section class="page">
+  <h2 class="sec"><span class="no">目錄</span>Contents</h2>
+  <div class="sec-line"></div>
+  <div class="toc-item"><span class="tn">01</span><span class="tt">執行摘要</span><span class="td">願景、核心命題與預期成果</span></div>
+  <div class="toc-item"><span class="tn">02</span><span class="tt">市場與品牌定位</span><span class="td">食品電商情勢與差異化定位</span></div>
+  <div class="toc-item"><span class="tn">03</span><span class="tt">平台能力盤點與 SWOT</span><span class="td">既有功能即行銷資產</span></div>
+  <div class="toc-item"><span class="tn">04</span><span class="tt">目標客群與輪廓</span><span class="td">三大主力 Persona</span></div>
+  <div class="toc-item"><span class="tn">05</span><span class="tt">核心行銷策略（六大引擎）</span><span class="td">內容／會員／團購／聯盟／再行銷／搜尋</span></div>
+  <div class="toc-item"><span class="tn">06</span><span class="tt">年度檔期與促銷規劃</span><span class="td">節慶日曆與機制設計</span></div>
+  <div class="toc-item"><span class="tn">07</span><span class="tt">數位廣告與流量策略</span><span class="td">獲客漏斗與投放配置</span></div>
+  <div class="toc-item"><span class="tn">08</span><span class="tt">未來性與成長藍圖</span><span class="td">訂閱制、AI 推薦、會員分級、App</span></div>
+  <div class="toc-item"><span class="tn">09</span><span class="tt">KPI 與成效衡量</span><span class="td">北極星指標與儀表板</span></div>
+  <div class="toc-item"><span class="tn">10</span><span class="tt">執行時程與配置原則</span><span class="td">四階段 Roadmap</span></div>
+  <div class="toc-item"><span class="tn">11</span><span class="tt">預算評估與費用明細</span><span class="td">一次性開發、年度經常性、三種規模方案</span></div>
+  <div class="footer"><span>食在呼 TFoodies｜整合行銷成長方案書</span><span>02</span></div>
+</section>
+
+<!-- ============ 01 執行摘要 ============ -->
+<section class="page">
+  <h2 class="sec"><span class="no">01</span>執行摘要</h2>
+  <div class="sec-line"></div>
+  <p class="lead">食在呼 TFoodies 是一個「前台商城 + 後台 ERP」一體的台灣食品電商。本方案不另起爐灶，而是<strong>把平台既有但尚未被充分行銷化的能力（內容、會員、團購、聯盟、發票/簡訊、分析）轉化為成長引擎</strong>，以可量測的節奏推進。</p>
+
+  <h3>核心命題</h3>
+  <div class="grid2">
+    <div class="card tint">
+      <h4>安心，是食品電商的入場券</h4>
+      <p>平台已具備「綠誌、檢驗報告、小知識、食譜」等內容資產與品牌頁。把<strong>溯源與檢驗</strong>從「靜態頁面」升級為「行銷主張」，建立購買前的信任。</p>
+    </div>
+    <div class="card tint">
+      <h4>會員終身價值，是利潤的引擎</h4>
+      <p>食品為高回購品類。透過<strong>會員分級、再行銷與訂閱制</strong>，把一次性訪客結帳轉為長期關係，拉高 LTV、攤平獲客成本。</p>
+    </div>
+  </div>
+
+  <h3>四大成長槓桿</h3>
+  <table>
+    <tr><th style="width:130px;">槓桿</th><th>對應既有能力</th><th>行銷化方向</th></tr>
+    <tr><td><strong>內容信任</strong></td><td>食譜／綠誌／小知識／檢驗報告／部落客合作</td><td>內容＝SEO 流量入口＋轉換素材＋社群分享資產</td></tr>
+    <tr><td><strong>會員經營</strong></td><td>會員中心、收藏、訪客分析(MongoDB)、簡訊/EDM</td><td>分眾 CRM、購物車挽回、補貨通知再行銷</td></tr>
+    <tr><td><strong>社群裂變</strong></td><td>團購/預購表單、聯盟追蹤(RID/Click_ID)</td><td>團購機制化、KOL/部落客分潤、口碑擴散</td></tr>
+    <tr><td><strong>促銷工程</strong></td><td>折扣碼、滿 2000 免運、套裝商品</td><td>檔期日曆、客單價提升、加價購／組合</td></tr>
+  </table>
+
+  <h3>預期成果（12 個月）</h3>
+  <div class="num-stat">
+    <div class="n"><b>+40%</b><span>自然搜尋流量<br>（內容 SEO/GEO）</span></div>
+    <div class="n"><b>+25%</b><span>會員回購率<br>（CRM／再行銷）</span></div>
+    <div class="n"><b>+15%</b><span>平均客單價<br>（組合／免運門檻）</span></div>
+    <div class="n"><b>3.0x</b><span>EDM／簡訊<br>ROI 目標</span></div>
+  </div>
+  <div class="note">以上為策略目標區間，實際數值應於第 0 階段建立基準後校準。所有指標皆以平台既有的 GA、訂單與會員資料可量測為前提。</div>
+  <div class="footer"><span>食在呼 TFoodies｜整合行銷成長方案書</span><span>03</span></div>
+</section>
+
+<!-- ============ 02 市場與品牌定位 ============ -->
+<section class="page">
+  <h2 class="sec"><span class="no">02</span>市場與品牌定位</h2>
+  <div class="sec-line"></div>
+
+  <h3>市場情勢</h3>
+  <ul>
+    <li>台灣食品電商在疫後維持高滲透，消費者已習慣線上採購生鮮、乾貨、保健與伴手禮，<strong>回購頻率高、品類黏著強</strong>。</li>
+    <li>競爭白熱化下，價格戰難以為繼；<strong>「信任」與「內容」成為差異化關鍵</strong>——消費者願為「安心、有故事、有專業背書」的食品付出溢價。</li>
+    <li>通路碎片化：社群團購、LINE、直播帶貨興起，<strong>分眾經營與口碑裂變</strong>比單純廣告投放更具成本效益。</li>
+  </ul>
+
+  <h3>品牌定位陳述</h3>
+  <div class="card tint">
+    <p style="font-size:15px; margin:0;">「食在呼 TFoodies 是<strong>以內容建立信任的安心食品選物平台</strong>——我們不只賣食材，更用食譜、綠誌與檢驗透明度，陪伴注重生活品質的家庭，吃得安心、吃得有靈感。」</p>
+  </div>
+
+  <h3>定位三支柱</h3>
+  <div class="persona">
+    <div class="p"><h4>① 安心溯源</h4><div class="age">Trust</div>
+      <ul><li>檢驗報告公開</li><li>綠誌談理念與產地</li><li>品牌頁說故事</li></ul></div>
+    <div class="p"><h4>② 內容靈感</h4><div class="age">Inspiration</div>
+      <ul><li>食譜帶動連帶銷售</li><li>小知識／FAQ 降低疑慮</li><li>節慶情境提案</li></ul></div>
+    <div class="p"><h4>③ 貼心服務</h4><div class="age">Service</div>
+      <ul><li>補貨通知</li><li>滿額免運</li><li>會員專屬優惠</li></ul></div>
+  </div>
+
+  <h3>競爭差異化主張</h3>
+  <table>
+    <tr><th>面向</th><th>多數食品電商</th><th>食在呼的差異化</th></tr>
+    <tr><td>購買決策</td><td>比價、看評論</td><td>以<strong>檢驗+內容</strong>建立購前信任</td></tr>
+    <tr><td>商品呈現</td><td>單品條列</td><td><strong>套裝/食譜情境</strong>提案式銷售</td></tr>
+    <tr><td>顧客關係</td><td>一次性導購</td><td><strong>會員分級+訂閱</strong>經營終身價值</td></tr>
+    <tr><td>流量來源</td><td>重度依賴付費廣告</td><td><strong>內容 SEO+團購+聯盟</strong>自有流量</td></tr>
+  </table>
+  <div class="footer"><span>食在呼 TFoodies｜整合行銷成長方案書</span><span>04</span></div>
+</section>
+
+<!-- ============ 03 平台能力盤點與 SWOT ============ -->
+<section class="page">
+  <h2 class="sec"><span class="no">03</span>平台能力盤點與 SWOT</h2>
+  <div class="sec-line"></div>
+  <p class="lead">行銷不必從零打造工具——平台<strong>既有功能本身就是行銷資產</strong>。下表盤點可立即行銷化的能力。</p>
+
+  <table>
+    <tr><th style="width:160px;">既有功能</th><th>現況</th><th>行銷化潛力</th></tr>
+    <tr><td>內容專區<br>(食譜/綠誌/小知識)</td><td>已有列表+詳情頁、卡片式新版面、分享元件</td><td><strong>高</strong>｜SEO 流量入口、社群素材、連帶銷售</td></tr>
+    <tr><td>檢驗報告/關於頁</td><td>靜態頁</td><td><strong>高</strong>｜信任主張、廣告素材背書</td></tr>
+    <tr><td>會員中心+收藏</td><td>訂單歷史、收藏清單</td><td><strong>高</strong>｜再行銷、願望清單促購</td></tr>
+    <tr><td>團購/預購表單</td><td>GroupMs 收單（明細功能待補）</td><td><strong>高</strong>｜社群裂變、預售現金流</td></tr>
+    <tr><td>聯盟追蹤 RID/Click_ID</td><td>已寫入訂單</td><td><strong>中高</strong>｜KOL/部落客分潤計算基礎</td></tr>
+    <tr><td>折扣碼/滿額免運</td><td>%數/固定額、效期、一次性</td><td><strong>中</strong>｜檔期促銷、客單價提升</td></tr>
+    <tr><td>簡訊(三竹)+EDM</td><td>交易通知已串</td><td><strong>中</strong>｜行銷簡訊、購物車挽回</td></tr>
+    <tr><td>補貨通知</td><td>到貨提醒收集</td><td><strong>中</strong>｜需求預測、再行銷觸發</td></tr>
+    <tr><td>訪客分析(MongoDB)+GA</td><td>瀏覽紀錄、地理/裝置</td><td><strong>中</strong>｜分眾、再行銷受眾包</td></tr>
+    <tr><td>電子發票(ezPay)</td><td>已串</td><td><strong>低</strong>｜載具歸戶、發票行銷活動</td></tr>
+  </table>
+
+  <h3>SWOT 分析</h3>
+  <div class="swot">
+    <div class="box s"><h4>S · 優勢</h4><ul>
+      <li>內容資產豐富（食譜/綠誌/檢驗）已具信任基礎</li>
+      <li>前台+ERP 一體，訂單/庫存/會員數據完整</li>
+      <li>金流、發票、簡訊、聯盟追蹤皆已串接</li>
+      <li>新系統正朝現代化 SSR 架構移轉，利於 SEO 與擴充</li>
+    </ul></div>
+    <div class="box w"><h4>W · 劣勢</h4><ul>
+      <li>購物車僅存 Session、未依會員持久化（挽回受限）</li>
+      <li>會員機制偏交易導向，缺分級/點數/訂閱</li>
+      <li>團購/預購明細功能未完備</li>
+      <li>內容更新與社群經營量能待補</li>
+    </ul></div>
+    <div class="box o"><h4>O · 機會</h4><ul>
+      <li>安心食品溢價趨勢、家庭健康意識上升</li>
+      <li>社群團購/LINE 生態利於低成本裂變</li>
+      <li>AI 推薦/GEO 搜尋帶來新流量入口</li>
+      <li>訂閱制（定期定額）適合高回購食品</li>
+    </ul></div>
+    <div class="box t"><h4>T · 威脅</h4><ul>
+      <li>大型平台價格戰與物流補貼</li>
+      <li>廣告成本（CPC/CPM）持續上升</li>
+      <li>食安事件的品牌連帶風險</li>
+      <li>第三方 Cookie 退場影響再行銷</li>
+    </ul></div>
+  </div>
+  <div class="footer"><span>食在呼 TFoodies｜整合行銷成長方案書</span><span>05</span></div>
+</section>
+
+<!-- ============ 04 目標客群 ============ -->
+<section class="page">
+  <h2 class="sec"><span class="no">04</span>目標客群與輪廓</h2>
+  <div class="sec-line"></div>
+  <p class="lead">食品電商客群跨度大，聚焦<strong>三大高價值 Persona</strong>，作為內容、商品組合與投放受眾的對齊基準。</p>
+
+  <div class="persona">
+    <div class="p"><h4>家庭採購主理人</h4><div class="age">32–48 歲｜女性為主</div>
+      <ul>
+        <li><b>動機</b>：為家人挑安心食材、省採買時間</li>
+        <li><b>痛點</b>：怕添加物、想要食譜靈感</li>
+        <li><b>策略</b>：食譜+套裝、滿額免運、定期購</li>
+        <li><b>觸點</b>：FB/IG、LINE、EDM、SEO</li>
+      </ul></div>
+    <div class="p"><h4>健康生活實踐者</h4><div class="age">28–45 歲｜雙薪／單身</div>
+      <ul>
+        <li><b>動機</b>：重視成分、產地、永續</li>
+        <li><b>痛點</b>：資訊不透明、難辨真假宣稱</li>
+        <li><b>策略</b>：綠誌/檢驗報告、小知識內容</li>
+        <li><b>觸點</b>：自然搜尋、部落客、IG</li>
+      </ul></div>
+    <div class="p"><h4>送禮／團購揪團者</h4><div class="age">30–55 歲｜不限</div>
+      <ul>
+        <li><b>動機</b>：節慶送禮、辦公室揪團</li>
+        <li><b>痛點</b>：怕踩雷、要划算、要面子</li>
+        <li><b>策略</b>：團購/預購、禮盒套裝、聯盟分潤</li>
+        <li><b>觸點</b>：LINE 群、社團、KOL</li>
+      </ul></div>
+  </div>
+
+  <h3>客群 × 行銷引擎對照</h3>
+  <table>
+    <tr><th>Persona</th><th>主力引擎</th><th>關鍵商品策略</th><th>主衡量指標</th></tr>
+    <tr><td>家庭採購主理人</td><td>內容 SEO + CRM + 訂閱</td><td>食譜連帶、家庭份量套裝</td><td>回購率、LTV</td></tr>
+    <tr><td>健康生活實踐者</td><td>內容信任 + 自然搜尋</td><td>單品溯源、保健精選</td><td>自然流量、轉換率</td></tr>
+    <tr><td>送禮／團購者</td><td>團購 + 聯盟 + 社群</td><td>禮盒、預購、限時組合</td><td>團單數、新客數</td></tr>
+  </table>
+  <div class="note">建議用平台 GA + 訪客分析(MongoDB) + 訂單資料建立 RFM 分群，將上述 Persona 落地為可投放的受眾包與 EDM 名單。</div>
+  <div class="footer"><span>食在呼 TFoodies｜整合行銷成長方案書</span><span>06</span></div>
+</section>
+
+<!-- ============ 05 核心行銷策略 ============ -->
+<section class="page">
+  <h2 class="sec"><span class="no">05</span>核心行銷策略（六大引擎）</h2>
+  <div class="sec-line"></div>
+
+  <h3>引擎一　內容信任行銷</h3>
+  <p>把既有的<strong>食譜／綠誌／小知識／檢驗報告</strong>從「頁面」升級為「成長系統」：</p>
+  <ul class="check">
+    <li>每月定期產出 4–6 篇食譜，內嵌「一鍵把食材加入購物車」連帶銷售。</li>
+    <li>綠誌深耕產地故事與永續主題，作為品牌溢價與 SEO 長尾入口。</li>
+    <li>小知識/FAQ 對應購前疑慮（保存、料理、成分），降低跳出率。</li>
+    <li>檢驗報告化為「安心標章」視覺，套用於商品頁與廣告素材。</li>
+  </ul>
+
+  <h3>引擎二　會員經營與 CRM</h3>
+  <ul class="check">
+    <li>建立<strong>會員分級</strong>（一般／銀／金）與消費回饋，提升續購誘因。</li>
+    <li>導入<strong>RFM 分眾</strong>，針對沉睡客、高價值客差異化 EDM/簡訊。</li>
+    <li><strong>購物車挽回</strong>：補足購物車持久化後，觸發未結帳提醒（EDM/簡訊）。</li>
+    <li><strong>收藏清單</strong>促購：降價/補貨自動通知收藏該品的會員。</li>
+  </ul>
+
+  <h3>引擎三　團購／預購裂變</h3>
+  <ul class="check">
+    <li>把 GroupMs 表單<strong>機制化</strong>：開團頁、揪團進度、成團門檻、限時。</li>
+    <li>預購收單創造<strong>預售現金流</strong>並驗證新品需求，降低庫存風險。</li>
+    <li>結合節慶禮盒，主攻「送禮／揪團」Persona。</li>
+  </ul>
+
+  <h3>引擎四　聯盟與 KOL 行銷</h3>
+  <ul class="check">
+    <li>善用既有 <strong>RID/Click_ID 追蹤</strong>，建立部落客／KOL 分潤計畫。</li>
+    <li>提供專屬折扣碼 + 追蹤連結，成效可歸因、可結算。</li>
+    <li>延伸現有「部落客合作(Blogs)」專區為長期內容聯盟。</li>
+  </ul>
+
+  <h3>引擎五　再行銷與生命週期觸發</h3>
+  <ul class="check">
+    <li>以 GA/訪客分析建立<strong>再行銷受眾</strong>（瀏覽未購、加車未結）。</li>
+    <li><strong>補貨通知</strong>由被動收集轉為主動到貨再行銷觸發。</li>
+    <li>交易後流程（發票/到貨）夾帶<strong>回購券</strong>與評價邀請。</li>
+  </ul>
+
+  <h3>引擎六　搜尋與 SEO／GEO</h3>
+  <ul class="check">
+    <li>延續近期 SEO/GEO 投入，優化商品/內容頁結構化資料與 meta。</li>
+    <li>新系統 SSR 化提升爬蟲友善度與載入速度，利於排名。</li>
+    <li>佈局 <strong>GEO（生成式引擎優化）</strong>，讓內容被 AI 搜尋／問答引用。</li>
+  </ul>
+  <div class="footer"><span>食在呼 TFoodies｜整合行銷成長方案書</span><span>07</span></div>
+</section>
+
+<!-- ============ 06 檔期與促銷 ============ -->
+<section class="page">
+  <h2 class="sec"><span class="no">06</span>年度檔期與促銷規劃</h2>
+  <div class="sec-line"></div>
+  <p class="lead">食品消費高度受節慶與季節驅動。建立<strong>年度檔期日曆</strong>，讓折扣碼、免運門檻、團購禮盒有節奏地推進。</p>
+
+  <h3>年度檔期日曆</h3>
+  <table>
+    <tr><th style="width:90px;">季度</th><th>主檔期</th><th>主打商品</th><th>機制</th></tr>
+    <tr><td>Q1 春</td><td>農曆年禮盒、開工團購</td><td>年節禮盒、伴手</td><td>預購+團購、送禮套裝</td></tr>
+    <tr><td>Q2 夏</td><td>母親節、夏季消暑</td><td>保健、冷飲食材</td><td>滿額免運、加價購</td></tr>
+    <tr><td>Q3 秋</td><td>中秋、會員月</td><td>中秋禮盒、家庭組</td><td>團購、會員專屬折扣碼</td></tr>
+    <tr><td>Q4 冬</td><td>雙11/雙12、聖誕、尾牙</td><td>進補、年貨預熱</td><td>限時折扣、滿額階梯</td></tr>
+  </table>
+
+  <h3>促銷機制工具箱（對應既有能力）</h3>
+  <div class="grid2">
+    <div class="card">
+      <h4>客單價提升</h4>
+      <ul>
+        <li><span class="pill">滿 2000 免運</span> 設動態進度提示「再買 X 元免運」</li>
+        <li><span class="pill">套裝商品</span> 組合包、家庭份量</li>
+        <li>加價購 / 湊單推薦</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>轉換與拉新</h4>
+      <ul>
+        <li><span class="pill">折扣碼</span> 首購碼、節慶碼、會員碼</li>
+        <li><span class="pill">一次性折扣</span> 挽回/喚醒專用</li>
+        <li><span class="pill">團購/預購</span> 成團回饋</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>促銷設計原則</h3>
+  <ul>
+    <li><strong>毛利保護</strong>：以「免運門檻＋組合」拉客單，避免無差別降價侵蝕毛利。</li>
+    <li><strong>分眾專屬</strong>：折扣碼依會員分級/RFM 差異化，避免老客領全站券。</li>
+    <li><strong>可量測</strong>：每檔期前設目標（GMV/新客/客單），結束後復盤。</li>
+  </ul>
+  <div class="note">折扣機制已支援百分比／固定額、效期與一次性（見後台設定），可直接對應上述設計，無需額外開發即可啟動多數檔期。</div>
+  <div class="footer"><span>食在呼 TFoodies｜整合行銷成長方案書</span><span>08</span></div>
+</section>
+
+<!-- ============ 07 數位廣告與流量 ============ -->
+<section class="page">
+  <h2 class="sec"><span class="no">07</span>數位廣告與流量策略</h2>
+  <div class="sec-line"></div>
+  <p class="lead">以<strong>獲客漏斗</strong>分配預算與內容：上層用內容/社群擴散、下層用精準再行銷收割，降低整體 CAC。</p>
+
+  <h3>獲客漏斗與渠道配置</h3>
+  <table>
+    <tr><th style="width:110px;">漏斗層</th><th>目標</th><th>渠道</th><th>素材主軸</th><th>建議預算占比</th></tr>
+    <tr><td><strong>認知 TOFU</strong></td><td>觸及新客</td><td>Meta/IG、內容 SEO、KOL</td><td>品牌故事、食譜、檢驗安心</td><td>30%</td></tr>
+    <tr><td><strong>考慮 MOFU</strong></td><td>引導比較/收藏</td><td>Google 搜尋、再行銷、EDM</td><td>商品評比、套裝、優惠</td><td>30%</td></tr>
+    <tr><td><strong>轉換 BOFU</strong></td><td>促成首購</td><td>動態再行銷、購物車挽回</td><td>首購碼、免運、限時</td><td>25%</td></tr>
+    <tr><td><strong>留存 RETAIN</strong></td><td>回購/升級</td><td>簡訊、EDM、會員推播</td><td>回購券、新品、訂閱</td><td>15%</td></tr>
+  </table>
+
+  <h3>渠道角色</h3>
+  <div class="grid2">
+    <div class="card tint">
+      <h4>自有流量（低成本、可累積）</h4>
+      <ul><li>內容 SEO／GEO</li><li>會員 EDM／簡訊</li><li>團購／聯盟分潤</li><li>社群經營（FB/IG/LINE）</li></ul>
+    </div>
+    <div class="card">
+      <h4>付費流量（快、可放大）</h4>
+      <ul><li>Meta 廣告（拉新+再行銷）</li><li>Google 搜尋/購物廣告</li><li>KOL 業配</li><li>LINE 成效型廣告</li></ul>
+    </div>
+  </div>
+
+  <h3>數據基礎建設</h3>
+  <ul class="check">
+    <li>升級 GA4 + 電商事件追蹤（瀏覽→加車→結帳→購買）。</li>
+    <li>串接 Meta/Google 轉換 API，因應第三方 Cookie 退場。</li>
+    <li>以 MongoDB 訪客紀錄 + 訂單資料建立第一方受眾，強化精準度。</li>
+  </ul>
+  <div class="footer"><span>食在呼 TFoodies｜整合行銷成長方案書</span><span>09</span></div>
+</section>
+
+<!-- ============ 08 未來性 ============ -->
+<section class="page">
+  <h2 class="sec"><span class="no">08</span>未來性與成長藍圖</h2>
+  <div class="sec-line"></div>
+  <p class="lead">新系統正朝<strong>現代化 SSR 架構</strong>移轉，為下列成長性功能奠定技術基礎。依「高回購食品」特性，優先發展訂閱與會員終身價值。</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h4>① 定期定額訂閱制</h4>
+      <p>針對米、油、保健等高頻消耗品推出「定期購」，鎖定回購、穩定現金流，並提升 LTV。</p>
+    </div>
+    <div class="card">
+      <h4>② 會員分級與點數</h4>
+      <p>分級權益+點數回饋，搭配生日禮、專屬日，把交易關係升級為忠誠關係。</p>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h4>③ AI 個人化推薦</h4>
+      <p>以瀏覽/購買紀錄做「猜你喜歡」「常買回購」「食譜帶貨」，提升轉換與客單。</p>
+    </div>
+    <div class="card">
+      <h4>④ GEO 生成式搜尋優化</h4>
+      <p>讓食譜/綠誌/檢驗內容被 AI 問答引擎引用，搶占下一代搜尋入口。</p>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h4>⑤ LINE 生態整合</h4>
+      <p>LINE 官方帳號 + 分眾推播 + 會員綁定，貼近台灣團購/通訊習慣。</p>
+    </div>
+    <div class="card">
+      <h4>⑥ App／PWA</h4>
+      <p>推播再行銷、一鍵回購、訂閱管理，深化高頻會員黏著。</p>
+    </div>
+  </div>
+
+  <h3>成長飛輪</h3>
+  <div class="card tint">
+    <p style="margin:0;"><strong>內容</strong> 帶來自然流量與信任 → 轉換為 <strong>會員</strong> → 會員資料驅動 <strong>個人化與再行銷</strong> → 提升回購與口碑 → <strong>團購/聯盟</strong> 擴散新客 → 回流支撐更多 <strong>內容</strong> 投資。自有流量越滾越大，付費依賴越來越低。</p>
+  </div>
+  <div class="footer"><span>食在呼 TFoodies｜整合行銷成長方案書</span><span>10</span></div>
+</section>
+
+<!-- ============ 09 KPI ============ -->
+<section class="page">
+  <h2 class="sec"><span class="no">09</span>KPI 與成效衡量</h2>
+  <div class="sec-line"></div>
+  <p class="lead">北極星指標：<strong>會員終身價值（LTV）</strong>。所有引擎最終都應服務於「以更低成本創造更高、更久的會員價值」。</p>
+
+  <table class="kpi">
+    <tr><th>面向</th><th>關鍵指標 KPI</th><th>說明</th><th>12 月目標</th></tr>
+    <tr><td rowspan="2">獲客</td><td>新客數 / 月</td><td>首次成交會員</td><td>逐月成長</td></tr>
+    <tr><td>CAC 獲客成本</td><td>行銷花費 / 新客</td><td>逐季下降</td></tr>
+    <tr><td rowspan="2">流量</td><td>自然搜尋流量</td><td>內容 SEO/GEO 成效</td><td>+40%</td></tr>
+    <tr><td>整體轉換率</td><td>訂單 / 工作階段</td><td>+0.5pp</td></tr>
+    <tr><td rowspan="2">營收</td><td>平均客單價 AOV</td><td>免運門檻/組合成效</td><td>+15%</td></tr>
+    <tr><td>GMV 成長</td><td>總成交金額</td><td>季增</td></tr>
+    <tr><td rowspan="2">留存</td><td>會員回購率</td><td>90 天內再購比</td><td>+25%</td></tr>
+    <tr><td>LTV / CAC</td><td>終身價值÷獲客成本</td><td>&gt; 3.0</td></tr>
+    <tr><td rowspan="2">渠道</td><td>EDM/簡訊 ROI</td><td>帶單÷成本</td><td>&gt; 3.0x</td></tr>
+    <tr><td>團購/聯盟貢獻占比</td><td>裂變渠道營收占比</td><td>≥ 15%</td></tr>
+  </table>
+
+  <h3>成效復盤節奏</h3>
+  <ul class="check">
+    <li><strong>週</strong>：投放與流量儀表板（GA4）盯關鍵漏斗。</li>
+    <li><strong>月</strong>：檔期復盤、EDM/簡訊成效、內容流量回顧。</li>
+    <li><strong>季</strong>：北極星與 LTV/CAC 檢視，調整資源配置。</li>
+  </ul>
+  <div class="note">建議建立統一行銷儀表板，整合 GA4、訂單/會員（ERP）、EDM/簡訊與廣告平台數據，作為決策單一真實來源。</div>
+  <div class="footer"><span>食在呼 TFoodies｜整合行銷成長方案書</span><span>11</span></div>
+</section>
+
+<!-- ============ 10 時程與預算 ============ -->
+<section class="page">
+  <h2 class="sec"><span class="no">10</span>執行時程與配置原則</h2>
+  <div class="sec-line"></div>
+  <p class="lead">採<strong>四階段推進</strong>：先打地基（數據與內容），再啟動引擎（CRM/檔期），最後擴張（裂變與訂閱），每階段皆有可量測產出。</p>
+
+  <div class="timeline">
+    <div class="phase">
+      <div class="tag">階段 0<small>第 0–1 月</small></div>
+      <div class="body"><strong>地基：數據與基準</strong>
+        <ul>
+          <li>GA4 電商事件、轉換 API、儀表板建置</li>
+          <li>建立 KPI 基準值（流量/轉換/AOV/回購）</li>
+          <li>盤點商品/內容資產、安心標章視覺化</li>
+        </ul>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="tag">階段 1<small>第 2–4 月</small></div>
+      <div class="body"><strong>啟動：內容 + CRM</strong>
+        <ul>
+          <li>內容生產線（食譜/綠誌）月更節奏 + SEO 優化</li>
+          <li>會員 RFM 分眾、EDM/簡訊例行化</li>
+          <li>第一個大檔期實戰（折扣碼+免運機制）</li>
+        </ul>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="tag">階段 2<small>第 5–8 月</small></div>
+      <div class="body"><strong>擴張：裂變 + 再行銷</strong>
+        <ul>
+          <li>團購/預購機制化上線，結合節慶禮盒</li>
+          <li>聯盟/KOL 分潤計畫（RID 追蹤）啟動</li>
+          <li>購物車挽回、收藏/補貨再行銷觸發</li>
+        </ul>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="tag">階段 3<small>第 9–12 月</small></div>
+      <div class="body"><strong>深化：訂閱 + 個人化</strong>
+        <ul>
+          <li>定期定額訂閱、會員分級/點數</li>
+          <li>AI 推薦、GEO 內容布局</li>
+          <li>年度復盤，制定下一年成長計畫</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>預算配置原則（建議框架）</h3>
+  <table>
+    <tr><th>類別</th><th>占比建議</th><th>內容</th></tr>
+    <tr><td>付費廣告</td><td>40–50%</td><td>Meta/Google/LINE 拉新+再行銷</td></tr>
+    <tr><td>內容與 KOL</td><td>20–25%</td><td>食譜/綠誌產製、部落客/KOL 合作</td></tr>
+    <tr><td>CRM 與工具</td><td>10–15%</td><td>EDM/簡訊、行銷自動化、儀表板</td></tr>
+    <tr><td>促銷成本</td><td>15–20%</td><td>折扣、免運補貼、團購回饋</td></tr>
+  </table>
+  <div class="note">上述為「占比框架」，下一章 §11 提供對應的<strong>實際金額評估</strong>（一次性開發＋年度經常性＋三種規模方案）。建議另保留 5–10% 機動預算，用於成效良好渠道的即時加碼。</div>
+  <div class="footer"><span>食在呼 TFoodies｜整合行銷成長方案書</span><span>12</span></div>
+</section>
+
+<!-- ============ 11 預算評估與費用明細 ============ -->
+<section class="page">
+  <h2 class="sec"><span class="no">11</span>預算評估與費用明細</h2>
+  <div class="sec-line"></div>
+  <p class="lead">費用分為兩類：<strong>① 一次性技術開發</strong>（讓引擎可運作的功能建置）與 <strong>② 年度經常性行銷支出</strong>（媒體、內容、工具、人力）。金額為台灣市場委外行情區間，供編列預算參考。</p>
+
+  <h3>① 一次性技術開發（建置功能）</h3>
+  <table>
+    <tr><th>開發項目</th><th>對應行銷效益</th><th>委外費用區間</th><th>建議</th></tr>
+    <tr><td>GA4 電商事件＋轉換 API＋儀表板</td><td>全策略數據基礎</td><td>6 萬–12 萬</td><td><strong>第一年必做</strong></td></tr>
+    <tr><td>購物車持久化＋購物車挽回</td><td>救回流失訂單</td><td>8 萬–15 萬</td><td><strong>第一年必做</strong></td></tr>
+    <tr><td>團購／預購機制化</td><td>社群裂變、預售現金流</td><td>12 萬–25 萬</td><td><strong>第一年必做</strong></td></tr>
+    <tr><td>會員分級＋點數</td><td>提升回購與 LTV</td><td>15 萬–30 萬</td><td>第二年</td></tr>
+    <tr><td>定期定額訂閱制</td><td>穩定回購現金流</td><td>20 萬–40 萬</td><td>第二年</td></tr>
+    <tr><td>AI 推薦／個人化</td><td>提升轉換與客單</td><td>15 萬–30 萬</td><td>第二年</td></tr>
+    <tr><td>LINE 官方帳號串接／會員綁定</td><td>分眾推播、裂變</td><td>8 萬–15 萬</td><td>視資源</td></tr>
+    <tr style="font-weight:700;"><td>全部完成合計</td><td>—</td><td>約 84 萬–167 萬</td><td>—</td></tr>
+  </table>
+  <div class="note">⚠️ 重要：平台<strong>新系統正進行現代化移轉</strong>，上述多數項目可<strong>併入既有開發節奏</strong>，邊際成本顯著低於獨立委外。故<strong>第一年僅需優先做「數據基礎＋購物車挽回＋團購」三項，約 26 萬–52 萬</strong>，其餘隨新系統推進即可。</div>
+
+  <h3>② 年度經常性行銷支出（標準型推薦）</h3>
+  <table>
+    <tr><th>類別</th><th>用途</th><th>月費</th><th>年費</th><th>占比</th></tr>
+    <tr><td>付費廣告媒體</td><td>Meta／Google／LINE 拉新＋再行銷</td><td>10 萬</td><td>120 萬</td><td>40%</td></tr>
+    <tr><td>行銷代操／專責人力</td><td>策略、投放、數據、客服協作</td><td>5 萬</td><td>60 萬</td><td>20%</td></tr>
+    <tr><td>內容產製</td><td>食譜/綠誌文案＋攝影（月 4–6 篇）</td><td>3 萬</td><td>36 萬</td><td>12%</td></tr>
+    <tr><td>KOL／部落客合作</td><td>檔期業配（均攤）</td><td>3 萬</td><td>36 萬</td><td>12%</td></tr>
+    <tr><td>促銷補貼 <span style="font-weight:400;color:#9ca3af;">*</span></td><td>折扣碼／滿額免運讓利</td><td>2.5 萬</td><td>30 萬</td><td>10%</td></tr>
+    <tr><td>CRM 工具＋簡訊</td><td>EDM/自動化平台＋三竹簡訊量</td><td>1.5 萬</td><td>18 萬</td><td>6%</td></tr>
+    <tr style="font-weight:700;"><td>合計</td><td>—</td><td>25 萬</td><td>300 萬</td><td>100%</td></tr>
+  </table>
+  <p style="font-size:11px;color:var(--ink-soft);margin-top:2px;">* 促銷補貼屬「營收讓利」而非純現金支出，會由帶動的營收回收，編列時可視為毛利調整項。</p>
+  <div class="footer"><span>食在呼 TFoodies｜整合行銷成長方案書</span><span>13</span></div>
+</section>
+
+<!-- ============ 11(續) 三種規模方案 ============ -->
+<section class="page">
+  <h2 class="sec"><span class="no">11</span>預算評估與費用明細（續）</h2>
+  <div class="sec-line"></div>
+
+  <h3>三種規模方案比較（首年總投入）</h3>
+  <table>
+    <tr><th style="width:120px;">方案</th><th>精實型</th><th>標準型 ★推薦</th><th>積極型</th></tr>
+    <tr><td><strong>適用情境</strong></td><td>預算有限、先驗證模式</td><td>穩健成長、兼顧獲客與留存</td><td>搶市占、快速放大</td></tr>
+    <tr><td>月經常性支出</td><td>約 12 萬</td><td>約 25 萬</td><td>約 50 萬</td></tr>
+    <tr><td>年經常性小計</td><td>約 144 萬</td><td>約 300 萬</td><td>約 600 萬</td></tr>
+    <tr><td>首年技術開發</td><td>約 20 萬<br><span style="font-size:10px;color:#9ca3af;">(數據+購物車)</span></td><td>約 30–45 萬<br><span style="font-size:10px;color:#9ca3af;">(數據+購物車+團購)</span></td><td>約 80–100 萬<br><span style="font-size:10px;color:#9ca3af;">(再加會員/訂閱/AI)</span></td></tr>
+    <tr style="font-weight:700;background:var(--teal-soft);"><td>首年總計</td><td>約 165 萬</td><td>約 330–345 萬</td><td>約 680–700 萬</td></tr>
+    <tr><td>付費廣告月預算</td><td>約 5 萬</td><td>約 10 萬</td><td>約 25 萬</td></tr>
+    <tr><td>內容/KOL 強度</td><td>內容為主、少量 KOL</td><td>內容＋檔期 KOL</td><td>內容＋常態 KOL 矩陣</td></tr>
+  </table>
+  <div class="note">金額為「市場委外行情」估算；若以內部人力或既有新系統開發消化部分項目，實際現金支出可再下降。建議<strong>第一年採標準型</strong>，待 LTV/CAC 模型驗證後，於成效良好的渠道加碼至積極型。</div>
+
+  <h3>分階段投入節奏（對應 §10 Roadmap）</h3>
+  <table>
+    <tr><th>階段</th><th>期間</th><th>主要支出</th><th>該階段約略投入（標準型）</th></tr>
+    <tr><td>階段 0</td><td>0–1 月</td><td>技術：數據建置；少量內容</td><td>15–25 萬</td></tr>
+    <tr><td>階段 1</td><td>2–4 月</td><td>媒體啟動＋內容＋首檔期</td><td>80–100 萬</td></tr>
+    <tr><td>階段 2</td><td>5–8 月</td><td>媒體放大＋團購/聯盟＋再行銷</td><td>110–130 萬</td></tr>
+    <tr><td>階段 3</td><td>9–12 月</td><td>媒體＋訂閱/個人化開發</td><td>100–120 萬</td></tr>
+  </table>
+
+  <h3>投資回收觀點</h3>
+  <ul class="check">
+    <li><strong>多數支出可量測、可調節</strong>：媒體與促銷依成效即時增減，非沉沒成本。</li>
+    <li><strong>技術投入一次、長期複利</strong>：購物車挽回、團購、訂閱等建置後持續產生效益。</li>
+    <li><strong>自有流量降低長期成本</strong>：內容 SEO/GEO 與會員資產越滾越大，逐年攤平 CAC。</li>
+    <li>以標準型估算，若帶動營收使 <strong>LTV/CAC &gt; 3</strong>，行銷投入即為正向獲利槓桿。</li>
+  </ul>
+
+  <div class="card tint" style="margin-top:18px;">
+    <h4>結語</h4>
+    <p style="margin:0;">食在呼 TFoodies 最大的成長機會，不在於「再建一個新功能」，而在於<strong>把既有的內容、會員、團購與數據能力行銷化、系統化</strong>。建議首年以<strong>標準型約 330–345 萬</strong>投入，其中技術開發多可併入新系統移轉以壓低成本。以信任為底、以會員終身價值為標的，循序推進六大引擎，即可在不打價格戰的前提下，建立可持續複利成長的自有流量飛輪。</p>
+  </div>
+  <div class="footer"><span>食在呼 TFoodies｜整合行銷成長方案書</span><span>14</span></div>
+</section>
+
+</body>
+</html>
