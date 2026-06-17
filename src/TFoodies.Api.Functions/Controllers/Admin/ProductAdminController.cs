@@ -224,13 +224,13 @@ UPDATE Products SET
     title=@title, entitle=@entitle, intro=@intro, memo=@memo,
     fixprice=@fixprice, price=@price, capacity=@capacity,
     photo = CASE WHEN @photo = '' THEN photo ELSE @photo END,
-    added=@added, ishot=@ishot, isnew=@isnew, keyword=@keyword, description=@description,
+    added=@added, ishot=@ishot, isnew=@isnew, isdisabled=@isdisabled, keyword=@keyword, description=@description,
     unit=@unit, conversion=@conversion, weight=@weight,
     isset=@isset, isgroupbuy=@isgroupbuy, sort=@sort, shortener=@shortener
-WHERE productid=@productid AND isdisabled=0",
+WHERE productid=@productid",
             MapProductParams(productId, body, DateTime.UtcNow.AddHours(8)), tx);
 
-        if (rows == 0) { tx.Rollback(); return ctx.NotFound("找不到商品或商品已下架。"); }
+        if (rows == 0) { tx.Rollback(); return ctx.NotFound("找不到商品。"); }
 
         await ReplaceTagsAsync(conn, tx, productId, body.TagIds);
         await ReplaceSetProductsAsync(conn, tx, productId, body.IsSet, body.SetProducts);
@@ -810,6 +810,7 @@ WHERE producttypeid=@id",
         added = r.Added,
         ishot = r.IsHot,
         isnew = r.IsNew,
+        isdisabled = r.IsDisabled,
         keyword = r.Keyword,
         description = r.Description,
         unit = r.Unit,
@@ -893,7 +894,7 @@ WHERE producttypeid=@id",
         string? Intro, string? Memo,
         int? FixPrice, int Price,
         string? Capacity, string? Photo, int Added,
-        bool IsHot, bool IsNew,
+        bool IsHot, bool IsNew, bool IsDisabled,
         string? Keyword, string? Description,
         string? Unit, int? Conversion, decimal? Weight,
         bool IsSet, bool IsGroupBuy,

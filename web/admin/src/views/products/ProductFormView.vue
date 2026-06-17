@@ -193,6 +193,7 @@ async function submit() {
     added: form.added,
     isHot: form.isHot,
     isNew: form.isNew,
+    isDisabled: form.isdisabled,
     keyword: form.keyword,
     description: form.description,
     unit: form.unit,
@@ -415,9 +416,9 @@ onMounted(async () => {
           <label class="checkbox-line"><input v-model="form.isHot" type="checkbox" /> 熱銷</label>
           <label class="checkbox-line"><input v-model="form.isNew" type="checkbox" /> 新品</label>
           <label class="checkbox-line"><input v-model="form.isGroupBuy" type="checkbox" /> 團購表單</label>
-          <label class="checkbox-line checkbox-line--danger"><input v-model="form.isdisabled" type="checkbox" /> 下架</label>
+          <label v-if="isEdit" class="checkbox-line checkbox-line--danger"><input v-model="form.isdisabled" type="checkbox" /> 下架</label>
         </div>
-        <p v-if="form.isdisabled" class="hint">註：下架狀態由清單頁的「停用」操作控制；新增時一律為上架。</p>
+        <p v-if="isEdit && form.isdisabled" class="hint">註：勾選後按「儲存變更」即會將商品下架（前台不再顯示）；取消勾選即重新上架。新增商品一律為上架。</p>
       </div>
 
       <!-- 庫存檢視（編輯模式） -->
