@@ -20,6 +20,17 @@ onMounted(() => {
   cartStore.hydrate()
   memberAuth.hydrate()
   refreshFavedState()
+  // 漏斗第二關：瀏覽商品。
+  const prod = p.value
+  if (prod) {
+    track('view_item', {
+      ecommerce: {
+        currency: 'TWD',
+        value: prod.price,
+        items: [{ item_id: prod.productid, item_name: prod.title, price: prod.price, quantity: 1 }],
+      },
+    })
+  }
 })
 
 const qty = ref(1)

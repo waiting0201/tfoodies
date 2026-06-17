@@ -50,6 +50,18 @@ onMounted(async () => {
   cartStore.hydrate()
   await loadCities()
   if (isLoggedIn.value) await prefillBuyerFromMember()
+  // 漏斗第四關：進入結帳。
+  if (cartStore.items.length > 0) {
+    track('begin_checkout', {
+      ecommerce: {
+        currency: 'TWD',
+        value: cartStore.subtotal,
+        items: cartStore.items.map((i) => ({
+          item_id: i.productId, item_name: i.title, price: i.unitPrice, quantity: i.quantity,
+        })),
+      },
+    })
+  }
 })
 
 // ── Form state ────────────────────────────────────────────────────────────────
@@ -224,6 +236,17 @@ async function submitOrder() {
       `${config.public.apiBase}/store/orders`,
       { method: 'POST', body, headers },
     )
+    // 漏斗第五關：購買。先暫存訂單摘要再清空購物車——信用卡會跳轉外部刷卡頁，
+    // 由完成頁(/Order/Success)導回後才實際觸發 purchase 事件（見 Order/Success.vue）。
+    setPendingPurchase({
+      transaction_id: res.orderCode,
+      value: total.value,
+      shipping: freight.value,
+      currency: 'TWD',
+      items: cartStore.items.map((i) => ({
+        item_id: i.productId, item_name: i.title, price: i.unitPrice, quantity: i.quantity,
+      })),
+    })
     // 信用卡：發起財金 FISC WEBPOS 刷卡。後端回傳 form action 與欄位，動態建表單
     // auto-submit 將使用者整頁導向財金刷卡頁；刷卡結果由財金導回 /store/payment/return。
     // ⚠️ 必須先成功取得刷卡 form 才清空購物車——否則 create 失敗時購物車已被清空，

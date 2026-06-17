@@ -77,6 +77,7 @@
 - **預購/團購**：`GroupMs/Index` → `Ajax/PostPreorder` → `Preorders`（明細未實作）。
 - **驗證碼**：reCAPTCHA v3（Login/PostOrder/PasswordSend）；GDI 圖形(`Captcha/VerificationCode`)（補貨通知/預購）。
 - **聯盟追蹤**：`[CheckShopCom]` 存 `RID`/`Click_ID` 至 Session，`PostOrder` 寫入 Orders。
+- 🆕 **數位追蹤/電商事件（新 store）**：經 GTM 容器分流給 GA4 / Meta Pixel / Google Ads。容器以 `runtimeConfig.public.gtmId`（`NUXT_PUBLIC_GTM_ID`）驅動，由 `app/plugins/analytics.client.ts` 僅在瀏覽器端載入；事件透過 `app/utils/track.ts` 的 `track()` 推進 `dataLayer`（GA4 ecommerce 結構）。四個漏斗事件埋點：`view_item`(`pages/Product/[producttitle].vue` onMounted)、`add_to_cart`(`stores/cart.ts` `add()`，凡加入購物車必觸發)、`begin_checkout`(`pages/Checkout/index.vue` onMounted)、`purchase`(`pages/Order/Success.vue` onMounted)。`purchase` 因信用卡會跳轉外部 FISC 刷卡頁，於結帳送單成功時以 `setPendingPurchase()` 將訂單摘要(金額/品項)暫存 sessionStorage，導回完成頁再以 `takePendingPurchase()` 取出觸發；信用卡 `paid!=1`(cardFailed) 不計入營收。⚠️ 接收端(GA4/Pixel 標籤)需在 GTM 後台設定;`purchase` 建議另在 `server/` 端以 Meta 轉換 API(CAPI) 補送以防漏報。
 
 ## 路由與檢視
 - **`RouteConfig.cs`**：SEO 顯式路由（見 [01-architecture.md](01-architecture.md#路由)），預設 `MainMs/Index`，fallback `{controller}/{action}/{id}`。Slug：標題存 `/`、URL 用 `-`。

@@ -225,6 +225,10 @@ param siteUrl string = 'https://www.tfoodies.com'
 // reCAPTCHA v3 網站金鑰（公開值，非機密）；空=前端略過 grecaptcha。來源 GitHub var RECAPTCHA_SITE_KEY。
 param recaptchaSiteKey string = ''
 
+// Google 代碼管理工具(GTM)容器 ID（GTM-XXXXXXX，公開值，非機密）；空=不載入任何追蹤。
+// GA4 / Meta Pixel / Google Ads 皆掛在此容器下。來源 GitHub var GTM_ID。
+param gtmId string = ''
+
 // 自訂網域：寫進 bicep 才能在每次整包部署時保留 ingress binding，
 // 否則 az deployment group create 的 PUT 會把手動綁定（az containerapp hostname bind）洗掉。
 // 值預設為實際生產網域；空字串=不綁定（dev/驗證用）。詳見 docs/11-store-deployment.md §C。
@@ -317,6 +321,8 @@ resource storeApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'NUXT_PUBLIC_BLOB_URL', value: storeBlobPublicUrl }
             // reCAPTCHA v3 網站金鑰（公開值）；空=前端略過 grecaptcha。
             { name: 'NUXT_PUBLIC_RECAPTCHA_SITE_KEY', value: recaptchaSiteKey }
+            // GTM 容器 ID（公開值）；空=不載入追蹤（GA4/Meta Pixel/Google Ads 皆掛此容器）。
+            { name: 'NUXT_PUBLIC_GTM_ID', value: gtmId }
           ]
         }
       ]

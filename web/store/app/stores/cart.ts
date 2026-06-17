@@ -44,6 +44,19 @@ export const useCartStore = defineStore('cart', {
       else this.items.push({ ...item })
       this.addPulse++
       this.persist()
+      // 漏斗第三關：加入購物車（目前最該被衝起來的指標）。
+      track('add_to_cart', {
+        ecommerce: {
+          currency: 'TWD',
+          value: item.unitPrice * item.quantity,
+          items: [{
+            item_id: item.productId,
+            item_name: item.title,
+            price: item.unitPrice,
+            quantity: item.quantity,
+          }],
+        },
+      })
     },
     updateQty(productId: string, quantity: number) {
       const it = this.items.find((i) => i.productId === productId)

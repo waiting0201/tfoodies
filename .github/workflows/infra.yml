@@ -60,7 +60,8 @@ jobs:
               EzPay__HashIV='${{ secrets.EzPay__HashIV }}' \
               EzPay__BaseUrl='${{ vars.EzPay__BaseUrl || 'https://inv.ezpay.com.tw/Api' }}' \
               ReCaptcha__SecretKey='${{ secrets.RECAPTCHA_SECRET_KEY }}' \
-              recaptchaSiteKey='${{ vars.RECAPTCHA_SITE_KEY }}'
+              recaptchaSiteKey='${{ vars.RECAPTCHA_SITE_KEY }}' \
+              gtmId='${{ vars.GTM_ID }}'
       - name: Deploy
         run: |
           az deployment group create \
@@ -88,4 +89,5 @@ jobs:
               EzPay__HashIV='${{ secrets.EzPay__HashIV }}' \
               EzPay__BaseUrl='${{ vars.EzPay__BaseUrl || 'https://inv.ezpay.com.tw/Api' }}' \
               ReCaptcha__SecretKey='${{ secrets.RECAPTCHA_SECRET_KEY }}' \
-              recaptchaSiteKey='${{ vars.RECAPTCHA_SITE_KEY }}'
+              recaptchaSiteKey='${{ vars.RECAPTCHA_SITE_KEY }}' \
+              gtmId='${{ vars.GTM_ID }}'

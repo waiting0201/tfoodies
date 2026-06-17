@@ -49,6 +49,10 @@ export default defineNuxtConfig({
       // 登記彈窗的人機驗證。留空則前端略過 grecaptcha（後端 SecretKey 也留空時一併放行）。
       // 正式環境以 NUXT_PUBLIC_RECAPTCHA_SITE_KEY 覆寫。
       recaptchaSiteKey: process.env.NUXT_PUBLIC_RECAPTCHA_SITE_KEY || '',
+      // Google 代碼管理工具(GTM)容器 ID（GTM-XXXXXXX，公開值）。所有追蹤（GA4、Meta Pixel、
+      // Google Ads 轉換）都掛在這個容器底下，程式碼只負責把電商事件推進 dataLayer（utils/track.ts）。
+      // 留空則 plugins/analytics.client.ts 不載入 GTM。正式環境以 NUXT_PUBLIC_GTM_ID 覆寫。
+      gtmId: process.env.NUXT_PUBLIC_GTM_ID || '',
     },
   },
 

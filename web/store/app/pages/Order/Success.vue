@@ -20,6 +20,15 @@ const lead = computed(() =>
 )
 
 useHead({ title: heading })
+
+// 漏斗第五關：購買成功。讀取結帳時暫存的訂單摘要（含金額/品項，廣告優化才準確）。
+// 信用卡付款失敗(cardFailed)時不計入營收，但仍清掉暫存避免殘留。
+onMounted(() => {
+  const pending = takePendingPurchase()
+  if (pending && !cardFailed.value) {
+    track('purchase', { ecommerce: { ...pending } })
+  }
+})
 </script>
 
 <template>
