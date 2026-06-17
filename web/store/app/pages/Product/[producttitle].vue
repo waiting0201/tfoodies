@@ -628,9 +628,11 @@ useJsonLd(() => {
 }
 .pd-qty-btn:hover { background: var(--soft); }
 .pd-qty-input {
-  width: 34px;
+  width: 48px;
+  min-width: 0;
   height: 100%;
   box-sizing: border-box;
+  padding: 0 4px;
   border: none;
   border-right: 1px solid var(--line);
   border-left: 1px solid var(--line);
@@ -638,6 +640,7 @@ useJsonLd(() => {
   text-align: center;
   color: var(--ink);
   background: transparent;
+  -moz-appearance: textfield;
 }
 .pd-qty-input:focus { outline: none; }
 .pd-btn {
