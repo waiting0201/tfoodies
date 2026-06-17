@@ -35,7 +35,10 @@ function reinitSliders() {
   if (!$) return
 
   // Synced product/recipe carousels — order matters (the *-for slider references the *-nav).
-  slick($, '.slider-for', { slidesToShow: 1, slidesToScroll: 1, arrows: false, fade: true, asNavFor: '.slider-nav' })
+  // adaptiveHeight：商品相簿常混入不同比例的圖（橫式封面 + 直式手機照），fade 模式會把投影片絕對定位
+  // 堆疊、容器高度固定取最高那張，導致矮圖底下留大片空白（看起來像跑版）。開啟後容器高度跟隨目前投影片，
+  // 與下方 .video-slider-for 一致。
+  slick($, '.slider-for', { slidesToShow: 1, slidesToScroll: 1, adaptiveHeight: true, arrows: false, fade: true, asNavFor: '.slider-nav' })
   slick($, '.slider-nav', { slidesToShow: 3, slidesToScroll: 1, asNavFor: '.slider-for', dots: true, centerMode: true, focusOnSelect: true })
   slick($, '.video-slider-for', { slidesToShow: 1, slidesToScroll: 1, adaptiveHeight: true, arrows: false, fade: true, asNavFor: '.video-slider-nav' })
   slick($, '.video-slider-nav', { slidesToShow: 3, slidesToScroll: 1, asNavFor: '.video-slider-for', dots: true, centerMode: true, focusOnSelect: true })
