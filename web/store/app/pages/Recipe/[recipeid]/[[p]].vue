@@ -52,13 +52,42 @@ const shareUrl = computed(() =>
 const fbShare = computed(() => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl.value)}`)
 const lineShare = computed(() => `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl.value)}`)
 
-const copied = ref(false)
+// 共用 toast（複製連結 / 加入購物車 共用同一個提示）
+const toastMsg = ref('')
+let toastTimer: ReturnType<typeof setTimeout> | null = null
+function showToast(msg: string) {
+  toastMsg.value = msg
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { toastMsg.value = '' }, 2200)
+}
+
 async function copyLink() {
   try {
     await navigator.clipboard.writeText(shareUrl.value)
-    copied.value = true
-    setTimeout(() => (copied.value = false), 1800)
+    showToast('已複製連結')
   } catch { /* clipboard 不可用時靜默忽略 */ }
+}
+
+// 帶貨橋：看完食譜「想煮」→ 一鍵把這道菜會用到的相關商品全部加入購物車，
+// 不必逐一點進商品頁。每筆走 cart.add()，會一併觸發 add_to_cart 追蹤事件。
+const cart = useCartStore()
+const buyableProducts = computed(() =>
+  (item.value?.products ?? []).filter((p) => !p.isdisabled),
+)
+function addAllToCart() {
+  const ps = buyableProducts.value
+  if (!ps.length) return
+  for (const p of ps) {
+    cart.add({
+      productId: p.productid,
+      title: p.title,
+      unitPrice: p.price,
+      quantity: 1,
+      photo: p.photo,
+      capacity: p.capacity,
+    })
+  }
+  showToast(`已加入 ${ps.length} 項商品到購物車`)
 }
 </script>
 
@@ -172,6 +201,15 @@ async function copyLink() {
       <section v-if="item.products.length" class="gray-bg allsection">
         <div class="restrict-wide allpadding">
           <div class="adstitle"><h2 class="main">購買相關商品</h2></div>
+
+          <div v-if="buyableProducts.length" class="buy-all">
+            <p class="buy-all__hint">想煮這道菜？把需要的商品一次加入購物車 👇</p>
+            <button type="button" class="buy-all__btn" @click="addAllToCart">
+              🛒 一鍵把 {{ buyableProducts.length }} 項商品加入購物車
+            </button>
+            <a href="/Cart" class="buy-all__cart">前往購物車 →</a>
+          </div>
+
           <div class="responsive promoteSlider clr">
             <ProductCard
               v-for="p in item.products.filter(p => !p.isdisabled).sort((a,b) => b.sort - a.sort)"
@@ -184,7 +222,7 @@ async function copyLink() {
     </template>
 
     <Transition name="copy-toast">
-      <div v-if="copied" class="copy-toast">已複製連結</div>
+      <div v-if="toastMsg" class="copy-toast">{{ toastMsg }}</div>
     </Transition>
   </main>
 </template>
@@ -384,6 +422,37 @@ async function copyLink() {
   transition: background 0.18s ease, color 0.18s ease;
 }
 .back__btn:hover { background: var(--teal); color: #fff; }
+
+/* 帶貨橋：一鍵把食材加入購物車 */
+.buy-all {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 auto 1.75rem;
+  text-align: center;
+}
+.buy-all__hint { margin: 0; font-size: 0.95rem; color: #555; }
+.buy-all__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 2rem;
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: var(--teal);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(38, 183, 188, 0.35);
+  transition: background 0.18s ease, transform 0.12s ease;
+}
+.buy-all__btn:hover { background: var(--teal-dark); }
+.buy-all__btn:active { transform: translateY(1px); }
+.buy-all__cart { font-size: 0.88rem; color: var(--teal); text-decoration: none; }
+.buy-all__cart:hover { color: var(--teal-dark); text-decoration: underline; }
 
 /* 複製連結提示 */
 .copy-toast {
