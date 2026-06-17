@@ -69,6 +69,7 @@
 
 ## 顧客功能地圖
 - **瀏覽**：首頁、Products(`/Products`,`/Products/{type}`)、ProductDetail(`/Product/{title}`)、Brand(`/Brand/{title}`)+無限捲動。
+  - 🆕 **下架商品(`isdisabled=1`)前台一律不出現**：後端 `StoreQueryService` 所有商品查詢(首頁熱門/新品、商品列表、商品詳情、品牌頁/無限捲動、食譜/綠誌相關商品)均帶 `p.isdisabled = 0`；sitemap 來源(`/store/products`)亦已濾除。商品詳情頁 `pages/Product/[producttitle].vue` 若 API 回 null(下架或不存在)直接 `throw createError(404)`，不再殘留可瀏覽的空殼頁(對齊舊系統「查無導回」精神，改用正確 not-found 狀態以利搜尋引擎下架)。
 - **內容行銷**：News / Events / Recipes / Issues(綠誌) / Knowledges(小知識/FAQ) / Blogs / Reports / GreenIssues / About。
   - 🆕 新 store 四個詳細頁（`NewsDetail`/`EventsDetail`/`IssueDetail`/`KnowledgeDetail`）已重新設計成秀氣整齊的卡片式版面（teal 設計語彙，與 `RecipeDetail` 一致），功能對齊舊系統：麵包屑、標題、日期/活動 chips、分享、內文、其他文章側欄；綠誌另含相關商品/食譜；活動花絮改為相片牆＋原生燈箱（取代 magnificPopup）。共用樣式置於 `web/store/app/assets/css/article-detail.css`（命名空間 `.article-detail`/`.events-detail`），共用元件 `ArticleShare.vue`(FB/LINE/複製)、`ArticleAside.vue`(其他文章側欄)。
   - 🆕 **內容帶貨橋（新 store）**：食譜詳情頁 `pages/Recipe/[recipeid]/[[p]].vue` 的「購買相關商品」區塊新增 **「🛒 一鍵把 N 項商品加入購物車」** 按鈕（`addAllToCart()` 把 `item.products`(排除 `isdisabled`) 逐一 `cart.add()`，順帶觸發 `add_to_cart` 追蹤），解決「看完食譜想煮卻找不到食材在哪買、看完就走」的流失。相關商品資料 API(`/store/recipes/detail`) 早已回傳 `products`，原本僅以 `ProductCard`(只連商品頁)呈現。**綠誌(Issue)詳情頁 `pages/Issue/[issuetitle]/[[p]].vue` 已比照加入同一顆按鈕**(用 `sortedProducts`、同樣 `cart.add()`+toast)。

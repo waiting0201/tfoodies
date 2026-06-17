@@ -6,6 +6,11 @@ const slug = computed(() => String(route.params.producttitle ?? ''))
 const title = computed(() => urlSlugToTitle(slug.value))
 
 const { data } = await useProductDetailData(title.value)
+// 下架(isdisabled)或不存在的商品：API 回 null。直接回 404，避免下架商品仍留有可瀏覽的空殼頁面，
+// 也讓搜尋引擎據此下架該網址（對齊舊系統 ProductDetail「查無導回」的精神，但用正確的 not-found 狀態）。
+if (!data.value.product) {
+  throw createError({ statusCode: 404, statusMessage: '商品不存在或已下架', fatal: true })
+}
 const p = computed(() => data.value.product)
 const ntd = (n: number) => 'NT. ' + new Intl.NumberFormat('en-US').format(Math.trunc(n))
 const onSale = computed(() => p.value && p.value.fixprice > p.value.price)
