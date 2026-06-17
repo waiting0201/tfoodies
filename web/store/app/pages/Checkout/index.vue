@@ -246,6 +246,9 @@ async function submitOrder() {
       items: cartStore.items.map((i) => ({
         item_id: i.productId, item_name: i.title, price: i.unitPrice, quantity: i.quantity,
       })),
+      // 僅供 server 端 CAPI 比對（雜湊後送出，不進 dataLayer）。
+      email: form.buyerEmail.trim() || null,
+      phone: form.buyerMobile.trim() || null,
     })
     // 信用卡：發起財金 FISC WEBPOS 刷卡。後端回傳 form action 與欄位，動態建表單
     // auto-submit 將使用者整頁導向財金刷卡頁；刷卡結果由財金導回 /store/payment/return。

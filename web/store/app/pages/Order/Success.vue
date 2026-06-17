@@ -25,9 +25,27 @@ useHead({ title: heading })
 // 信用卡付款失敗(cardFailed)時不計入營收，但仍清掉暫存避免殘留。
 onMounted(() => {
   const pending = takePendingPurchase()
-  if (pending && !cardFailed.value) {
-    track('purchase', { ecommerce: { ...pending } })
-  }
+  if (!pending || cardFailed.value) return
+
+  // email/phone 僅供 server 端 CAPI 比對，絕不可進 dataLayer/GA4。
+  const { email, phone, ...ecommerce } = pending
+
+  // 瀏覽器端 Pixel/GA4（經 GTM）：帶 event_id(=訂單編號) 供 Meta 與 CAPI 去重。
+  track('purchase', { event_id: pending.transaction_id, ecommerce })
+
+  // server 端 Meta CAPI 補送（避免被擋廣告漏單；失敗不影響頁面）。
+  $fetch('/api/meta/capi-purchase', {
+    method: 'POST',
+    body: {
+      eventId: pending.transaction_id,
+      value: pending.value,
+      currency: pending.currency,
+      contents: pending.items.map((i) => ({ id: i.item_id, quantity: i.quantity, item_price: i.price })),
+      email,
+      phone,
+      sourceUrl: window.location.href,
+    },
+  }).catch(() => {})
 })
 </script>
 

@@ -229,6 +229,12 @@ param recaptchaSiteKey string = ''
 // GA4 / Meta Pixel / Google Ads 皆掛在此容器下。來源 GitHub var GTM_ID。
 param gtmId string = ''
 
+// Meta 轉換 API(CAPI)：server 端補送 Purchase 用。pixelId 為公開值，token 為機密。
+// 來源 GitHub var META_PIXEL_ID / GitHub secret META_CAPI_TOKEN。任一為空則 server route 略過送出。
+param metaPixelId string = ''
+@secure()
+param metaCapiToken string = ''
+
 // 自訂網域：寫進 bicep 才能在每次整包部署時保留 ingress binding，
 // 否則 az deployment group create 的 PUT 會把手動綁定（az containerapp hostname bind）洗掉。
 // 值預設為實際生產網域；空字串=不綁定（dev/驗證用）。詳見 docs/11-store-deployment.md §C。
@@ -323,6 +329,9 @@ resource storeApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'NUXT_PUBLIC_RECAPTCHA_SITE_KEY', value: recaptchaSiteKey }
             // GTM 容器 ID（公開值）；空=不載入追蹤（GA4/Meta Pixel/Google Ads 皆掛此容器）。
             { name: 'NUXT_PUBLIC_GTM_ID', value: gtmId }
+            // Meta CAPI（server-only）：Purchase 補送。空=略過。比照既有作法以純值帶入（@secure 防記錄）。
+            { name: 'NUXT_META_PIXEL_ID', value: metaPixelId }
+            { name: 'NUXT_META_CAPI_TOKEN', value: metaCapiToken }
           ]
         }
       ]

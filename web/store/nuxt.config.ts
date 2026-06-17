@@ -38,6 +38,11 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    // Server-only（不放 public，前端拿不到）。Meta 轉換 API(CAPI) 用於 server 端補送 Purchase，
+    // 避免瀏覽器 Pixel 被擋廣告/Cookie 漏單。由 NUXT_META_PIXEL_ID / NUXT_META_CAPI_TOKEN 覆寫；
+    // 任一留空則 server/api/meta/capi-purchase 直接略過（dev 安全）。
+    metaPixelId: process.env.NUXT_META_PIXEL_ID || '',
+    metaCapiToken: process.env.NUXT_META_CAPI_TOKEN || '',
     public: {
       apiBase: 'http://localhost:7071/api',
       siteUrl,

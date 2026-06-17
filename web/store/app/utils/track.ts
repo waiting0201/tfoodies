@@ -15,6 +15,9 @@ export interface PurchasePayload {
   shipping?: number
   currency: string
   items: TrackItem[]
+  // 僅供 server 端 Meta CAPI 比對用（會被雜湊）；不可推進 dataLayer/GA4（避免 PII 外流）。
+  email?: string | null
+  phone?: string | null
 }
 
 interface DataLayerWindow {
