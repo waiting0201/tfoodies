@@ -22,7 +22,8 @@ API 設定類別 `Fisc`（[FiscOptions.cs](../src/TFoodies.Infrastructure/Paymen
 | `Fisc__TerminalID` | ✅ GitHub var | 機台代號（8 位）。測試與正式相同 |
 | `Fisc__MerID` | ✅ GitHub var | 網站特店自訂代碼（≤10 位）。測試與正式相同 |
 | `Fisc__ApiBaseUrl` | ✅ GitHub var | 本 API 公開基底（含 `/api`）。**前台+後台**刷卡回呼（AuthResUrl/AdminAuthResUrl）皆由此導出。正式預設 `https://tfoodies-api.azurewebsites.net/api` |
-| `Fisc__StoreSuccessUrl` | ⚙️ 導出（`storePublicUrl`） | 前台刷卡結果頁 = `{storeCustomDomain 或 siteUrl}/Order/Success`（用實際服務網域，過渡期=4webdemo），正式免單獨設 |
+| `Fisc__StoreSuccessUrl` | ⚙️ 導出（`storePublicUrl`） | 前台刷卡結果頁**fallback** = `{storeCustomDomains[0] 或 siteUrl}/Order/Success`（清單第 1 項=主網域），正式免單獨設 |
+| `Fisc__AllowedStoreOrigins` | ⚙️ 導出（`storeCustomDomains`） | 動態回跳白名單（分號分隔所有服務網域的 https origin）。`return` 依使用者結帳網域同網域導回前先驗此清單（防 open redirect），不在清單退回 StoreSuccessUrl。自動跟網域清單走 |
 | `Fisc__AdminSuccessUrl` | ⚙️ 導出（`adminSiteUrl`/SWA） | 後台訂單頁基底 = `.../admin/orders`；自訂網域以 GitHub var `ADMIN_SITE_URL` 設 |
 
 ### 程式導出（不另設定）
@@ -101,13 +102,13 @@ API 設定類別 `EzPay`（[EzPayOptions.cs](../src/TFoodies.Infrastructure/Invo
 ### 目前網域（過渡期）
 | 用途 | 網域 |
 |---|---|
-| store（前台） | `tfoodies-store.4webdemo.com`（bicep `storeCustomDomain`）|
+| store（前台） | `tfoodies-store.4webdemo.com`（bicep `storeCustomDomains` 清單第 1 項）|
 | admin（後台） | `tfoodies-admin.4webdemo.com`（GitHub var `ADMIN_SITE_URL`）|
 
-AuthResURL（前台/後台）皆 = `Fisc__ApiBaseUrl`（API 網域）；`Fisc__StoreSuccessUrl` 由 `storePublicUrl`（`storeCustomDomain` 優先）導出，付款後 302 導回使用者所在站。
+AuthResURL（前台/後台）皆 = `Fisc__ApiBaseUrl`（API 網域）；`Fisc__StoreSuccessUrl` 由 `storePublicUrl`（= `storeCustomDomains` 清單第 1 項）導出，作為**回跳 fallback**。✅ 多網域服務時前台採**動態回跳**：`create` 帶 `returnOrigin`→ `AuthResURL?origin=`→ `return` 經 `Fisc__AllowedStoreOrigins` 白名單驗證後同網域導回，讀不到/不在白名單才退回 `StoreSuccessUrl`（防 open redirect）。見 [docs/13](13-payment-invoice-flow.md)。
 
 ### 切換到正式網域時要一起改（金流相關）
-1. [main.bicep](../infra/main.bicep)：`storeCustomDomain`、`storeCertName`、`siteUrl` → 正式網域（store 部署細節見 [docs/11](11-store-deployment.md)）。`Fisc__StoreSuccessUrl` 會自動跟著 `storePublicUrl` 變，**不需另改**。
+1. [main.bicep](../infra/main.bicep)：`storeCustomDomains` 清單（4 網域，主網域擺第 1 項）、`siteUrl` → 正式網域（store 部署細節見 [docs/11](11-store-deployment.md)）。`Fisc__StoreSuccessUrl` 會自動跟著 `storePublicUrl` 變，**不需另改**。
 2. GitHub var `ADMIN_SITE_URL` → 正式後台網域。
 3. 財金端：確認正式網域已登錄（舊系統的 `www.tfoodies.com` 應已登錄；新後台網域若不同需加登錄）。
 4. `Fisc__ActionUrl` 切正式 `https://www.focas.fisc.com.tw/...`（測試期間若用 focas-test 才需切回）。

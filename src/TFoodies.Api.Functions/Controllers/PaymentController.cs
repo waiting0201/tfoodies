@@ -45,8 +45,16 @@ public sealed class PaymentController
         if (summary.PayStatus != PayStatus.Unpaid)
             return ctx.Conflict("訂單已付款或目前狀態不可發起刷卡。");
 
+        // 多網域服務：把使用者結帳所在的 store 網域帶進 AuthResURL 的 query，刷卡返回時據以同網域導回
+        // （見 Return）。只在 origin 通過白名單時才帶（防把可疑網域塞進 FISC 表單）；FISC 若不保留 query
+        // string，Return 會自動退回設定的 StoreSuccessUrl，故為「安全網」設計、無退步風險。
+        var origin = ResolveAllowedOrigin(body.ReturnOrigin, ctx.Request.Headers["Origin"].ToString());
+        var authResUrl = origin.Length == 0
+            ? _fisc.AuthResUrl
+            : $"{_fisc.AuthResUrl}?origin={Uri.EscapeDataString(origin)}";
+
         // WEBPOS hidden 欄位（手冊 3.1.1）。purchAmt 由後端權威計算，避免前端竄改。store 與後台共用 helper。
-        var fields = FiscWebpos.BuildFields(summary, _fisc, _fisc.AuthResUrl);
+        var fields = FiscWebpos.BuildFields(summary, _fisc, authResUrl);
         return ctx.Ok(new CreatePaymentResponse(_fisc.ActionUrl, fields));
     }
 
@@ -55,7 +63,11 @@ public sealed class PaymentController
     {
         var ct = ctx.Request.HttpContext.RequestAborted;
         var result = await CompleteFromFormAsync(ctx, ct);
-        return RedirectToResultPage(_fisc.StoreSuccessUrl, result);
+        // 動態回跳：create 時帶進 query 的使用者結帳網域，經白名單再驗證後同網域導回（避免多網域跨域漏單）；
+        // 不在白名單 / FISC 未保留 query → 退回設定的 StoreSuccessUrl（最壞=現狀，並防 open redirect）。
+        var origin = ResolveAllowedOrigin(ctx.Request.Query["origin"].ToString());
+        var successUrl = origin.Length == 0 ? _fisc.StoreSuccessUrl : $"{origin}{_fisc.StoreSuccessPath}";
+        return RedirectToResultPage(successUrl, result);
     }
 
     // POST /store/payment/return-admin（後台線上刷卡的 AuthResURL）— 導回後台訂單詳情頁
@@ -67,6 +79,18 @@ public sealed class PaymentController
         var paid = result.IsSuccess ? "1" : "0";
         var url = $"{_fisc.AdminSuccessUrl.TrimEnd('/')}/{Uri.EscapeDataString(result.Lidm)}?paid={paid}";
         return new RedirectResult(url);
+    }
+
+    // 從候選來源（依序取第一個非空）正規化出 origin，且必須在 Fisc 白名單內才回傳，否則回空字串。
+    // 同時用於 create（決定是否帶 query）與 return（決定是否同網域導回）——兩端都驗證，防 open redirect。
+    private string ResolveAllowedOrigin(params string?[] candidates)
+    {
+        foreach (var c in candidates)
+        {
+            var o = FiscOptions.NormalizeOrigin(c);
+            if (o.Length > 0 && _fisc.AllowedStoreOriginSet.Contains(o)) return o;
+        }
+        return "";
     }
 
     // 解析財金 form 回傳 + 冪等標記已付款（store / admin 返回共用，差別僅在最終 redirect 目標）。
@@ -171,7 +195,8 @@ public sealed class PaymentController
 
     // ── DTOs ──────────────────────────────────────────────────────────────────────
 
-    private sealed record CreatePaymentRequest(string? OrderCode);
+    // ReturnOrigin：前端帶入使用者結帳所在的 store 網域（window.location.origin），供多網域同網域導回。
+    private sealed record CreatePaymentRequest(string? OrderCode, string? ReturnOrigin);
     private sealed record CreatePaymentResponse(string ActionUrl, IReadOnlyDictionary<string, string> Fields);
     private sealed record WebposResult(bool IsSuccess, string Lidm, string? LastPan4, string TxnRef);
 }

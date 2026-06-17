@@ -257,7 +257,9 @@ async function submitOrder() {
     if (form.payType === 1) {
       const init = await $fetch<{ actionUrl: string; fields: Record<string, string> }>(
         `${config.public.apiBase}/store/payment/create`,
-        { method: 'POST', body: { orderCode: res.orderCode } },
+        // returnOrigin：帶上目前所在網域，讓刷卡返回時導回「同一個網域」的結果頁（多網域服務時避免
+        // 跨域把使用者甩到主網域、且 purchase 追蹤的 sessionStorage 跨域讀不到而漏單）。後端會以白名單驗證。
+        { method: 'POST', body: { orderCode: res.orderCode, returnOrigin: window.location.origin } },
       )
       cartStore.items = []
       cartStore.persist()

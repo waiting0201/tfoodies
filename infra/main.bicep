@@ -101,9 +101,15 @@ var tags = {
   env: env
 }
 
-// 前台實際對外服務網址：過渡期用自訂網域(storeCustomDomain)，未設時 fallback siteUrl。
-// 金流回呼/結果頁須用「使用者實際所在的網域」，否則與刷卡頁來源網域不一致（財金檢核會擋）。
-var storePublicUrl = empty(storeCustomDomain) ? siteUrl : 'https://${storeCustomDomain}'
+// 前台金流結果頁(Fisc__StoreSuccessUrl)的「fallback」網域：取自訂網域清單第 1 項（應為主網域），未綁則 siteUrl。
+// 多網域同時服務時，/store/payment/return 會優先依使用者結帳所在網域（經 Fisc__AllowedStoreOrigins 白名單驗證）
+// 動態同網域導回；只有讀不到/不在白名單時才退回此值。見 storeAllowedOrigins 與 docs/13-payment-invoice-flow.md。
+var storePublicUrl = empty(storeCustomDomains) ? siteUrl : 'https://${storeCustomDomains[0].domain}'
+
+// 金流動態回跳白名單：所有對外服務網域的 https origin（分號分隔），供 /store/payment/return
+// 驗證「使用者結帳所在網域」後同網域導回（防 open redirect、避免多網域跨域漏單）。
+// 自動跟著 storeCustomDomains 清單走，不需另設 GitHub var。空清單時 fallback siteUrl。
+var storeAllowedOrigins = empty(storeCustomDomains) ? siteUrl : join(map(storeCustomDomains, d => 'https://${d.domain}'), ';')
 var suffix = uniqueString(resourceGroup().id, env)
 var saName = toLower('tfoodiesfn${env}${take(suffix, 8)}')
 var storageConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${storage.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storage.listKeys().keys[0].value}'
@@ -204,6 +210,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'Fisc__MerID', value: Fisc__MerID }
         { name: 'Fisc__ApiBaseUrl', value: Fisc__ApiBaseUrl }
         { name: 'Fisc__StoreSuccessUrl', value: '${storePublicUrl}/Order/Success' }
+        { name: 'Fisc__AllowedStoreOrigins', value: storeAllowedOrigins }
         { name: 'Fisc__AdminSuccessUrl', value: '${empty(adminSiteUrl) ? 'https://${swaAdmin.properties.defaultHostname}' : adminSiteUrl}/admin/orders' }
         // ezPay 電子發票
         { name: 'EzPay__BaseUrl', value: EzPay__BaseUrl }
@@ -238,13 +245,18 @@ param metaCapiToken string = ''
 // 自訂網域：寫進 bicep 才能在每次整包部署時保留 ingress binding，
 // 否則 az deployment group create 的 PUT 會把手動綁定（az containerapp hostname bind）洗掉。
 // 值預設為實際生產網域；空字串=不綁定（dev/驗證用）。詳見 docs/11-store-deployment.md §C。
-@description('前台 Container App 自訂網域（空=不綁定）')
-param storeCustomDomain string = 'tfoodies-store.4webdemo.com'
-
-// 引用「既有」受管憑證（已 Succeeded），避免重建與重新 DNS 驗證。
-// 此名稱由 az 自動產生且穩定（自動續期會原地更新、不改名）。
-@description('既有受管憑證名稱；空=不綁定網域')
-param storeCertName string = 'tfoodies-store.4webdemo.com-tfoodies-260611010259'
+// 自訂網域清單：每項 { domain, certName }，引用「既有」受管憑證（已 Succeeded，由 az containerapp
+// hostname bind 產生、名稱穩定且自動續期原地更新）。空陣列=不綁定（dev/驗證用）。
+// 正式上線要綁 4 個 hostname 全部直接服務（www.tfoodies.com 為主/canonical、tfoodies.com、
+// www.tfoodies.com.tw、tfoodies.com.tw），切換步驟見 docs/11-store-deployment.md §C。
+// storePublicUrl（金流結果頁網域）取清單第 1 項，故第 1 項應放主網域。
+@description('前台 Container App 自訂網域清單（每項 {domain, certName}；空陣列=不綁定）')
+param storeCustomDomains array = [
+  {
+    domain: 'tfoodies-store.4webdemo.com'
+    certName: 'tfoodies-store.4webdemo.com-tfoodies-260611010259'
+  }
+]
 
 // CI 會以實際映像覆蓋；首次建立用公開 placeholder 以避免 image-not-found。
 var storePlaceholderImage = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
@@ -272,11 +284,11 @@ resource caEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
   properties: {}
 }
 
-// 既有受管憑證（不由本範本建立）；僅在綁定網域時引用其 id。
-resource storeCert 'Microsoft.App/managedEnvironments/managedCertificates@2024-03-01' existing = if (!empty(storeCustomDomain) && !empty(storeCertName)) {
+// 既有受管憑證（不由本範本建立）；每個自訂網域一張，僅引用其 id。
+resource storeCerts 'Microsoft.App/managedEnvironments/managedCertificates@2024-03-01' existing = [for d in storeCustomDomains: {
   parent: caEnv
-  name: storeCertName
-}
+  name: d.certName
+}]
 
 resource storeApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'tfoodies-store'
@@ -289,14 +301,12 @@ resource storeApp 'Microsoft.App/containerApps@2024-03-01' = {
         external: true
         targetPort: 3000
         transport: 'auto'
-        // 自訂網域 binding 必須寫在這裡，否則整包部署會清掉手動綁定。
-        customDomains: empty(storeCustomDomain) || empty(storeCertName) ? [] : [
-          {
-            name: storeCustomDomain
-            bindingType: 'SniEnabled'
-            certificateId: storeCert.id
-          }
-        ]
+        // 自訂網域 binding 必須寫在這裡，否則整包部署會清掉手動綁定。空陣列=不綁定。
+        customDomains: [for (d, i) in storeCustomDomains: {
+          name: d.domain
+          bindingType: 'SniEnabled'
+          certificateId: storeCerts[i].id
+        }]
       }
       registries: [
         {

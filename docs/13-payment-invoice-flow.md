@@ -36,15 +36,25 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 結帳頁（選信用卡 payType=1）
  1. POST /store/orders            → 建未付款訂單，回 orderCode
  2. POST /store/payment/create    → CreatePayment 驗證(信用卡+未付款)
-                                     → FiscWebpos.BuildFields(AuthResUrl=API/store/payment/return)
+        body 帶 returnOrigin = window.location.origin（使用者當前網域）
+                                     → origin 經白名單(AllowedStoreOrigins)驗證；通過才附進
+                                       AuthResURL = API/store/payment/return?origin=<當前網域>
+                                     → FiscWebpos.BuildFields(AuthResUrl=上者)
                                      → 回 { actionUrl, fields }
  3. 前端動態建 <form> → f.submit()（整頁 POST 到財金刷卡頁）
    ▼ 財金 FOCAS_WEBPOS 刷卡頁（顧客輸入卡號授權）
- 4a. 導回 AuthResURL = /store/payment/return → Return
+ 4a. 導回 AuthResURL = /store/payment/return(?origin=…) → Return
         ParseFields(status=="0" 且 authCode 非空 = 成功) → MarkPaidAsync
-        → 302 導回 StoreSuccessUrl?code=&paid=（/Order/Success）
+        → 決定回跳網域：query 的 origin 再經白名單驗證 → {origin}/Order/Success（同使用者網域）；
+          讀不到/不在白名單 → 退回 Fisc__StoreSuccessUrl（fallback，防 open redirect）
+        → 302 導回 <success>?code=&paid=
  4b. 主動通知 /store/payment/notify（背景補償，冪等）→ MarkPaidAsync
 ```
+
+> 🌐 **多網域動態回跳**：store 正式同時服務多網域（www.tfoodies.com 等 4 個），上面 `?origin=` 機制讓刷卡後
+> 導回「使用者結帳的同一個網域」，避免跨域把人甩到主網域、且 `purchase` 追蹤 sessionStorage 跨域漏單。
+> 兩端（create 附帶 / return 導回）都用 `Fisc__AllowedStoreOrigins` 白名單驗證 → 防 open redirect。
+> 純邏輯由 `FiscOptions.NormalizeOrigin` + `AllowedStoreOriginSet` 負責，測試見 `FiscOriginTests`。
 
 ## 後台（admin）線上刷卡
 
