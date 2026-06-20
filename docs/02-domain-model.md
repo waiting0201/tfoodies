@@ -88,7 +88,7 @@
 | `GlobalMyB2B` | 外部「MyB2B」電子發票整合錯誤/稽核紀錄 | globalmyb2bid | (獨立) |
 
 ### 隱藏 M:N junction（無實體類別，僅集合導覽）
-`Producttags`(Products↔Tags)、`Recipeproducts`(Recipes↔Products)、`Issueproducts`(Issues↔Products)、`Issuerecipes`(Issues↔Recipes)、`Memberproducts`(Members↔Products 收藏)。
+`Producttags`(Products↔Tags)、`Recipeproducts`(Recipes↔Products)、`Issueproducts`(Issues↔Products)、`Issuerecipes`(Issues↔Recipes)、`Knowledgeproducts`(Knowledges↔Products，新系統新增；建表腳本 `scripts/add-knowledgeproducts.sql`)、`Memberproducts`(Members↔Products 收藏)。
 
 ## 核心 FK 鏈：訂單→庫存→商品
 

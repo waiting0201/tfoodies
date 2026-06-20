@@ -474,9 +474,17 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;";
     {
         using var conn = await _db.CreateOpenConnectionAsync(ct);
 
-        var sql = @"
+        var sql = $@"
 SELECT knowledgeid, question, photo, answer, keyword, description, createdate, ispublish, shortener
 FROM Knowledges WHERE knowledgeid = @knowledgeId AND ispublish = 1;
+
+SELECT {ProductColumns}
+FROM Knowledgeproducts kp
+JOIN Products p ON p.productid = kp.productid
+JOIN Brands b ON b.brandid = p.brandid
+JOIN Producttypes pt ON pt.producttypeid = p.producttypeid
+WHERE kp.knowledgeid = @knowledgeId AND p.isdisabled = 0
+ORDER BY p.sort DESC;
 
 SELECT TOP 3 knowledgeid, question, photo FROM Knowledges
 WHERE ispublish = 1 AND knowledgeid <> @knowledgeId ORDER BY NEWID();";
@@ -486,11 +494,12 @@ WHERE ispublish = 1 AND knowledgeid <> @knowledgeId ORDER BY NEWID();";
         var row = (await multi.ReadAsync<KnowledgeDetailRow>()).FirstOrDefault();
         if (row is null) return null;
 
+        var products = (await multi.ReadAsync<ProductRow>()).Select(MapProduct).ToList();
         var others = (await multi.ReadAsync<KnowledgeRefRow>())
             .Select(r => new KnowledgeRef(r.knowledgeid, r.question, r.photo)).ToList();
 
         return new KnowledgeDetail(row.knowledgeid, row.question, row.photo, row.answer,
-            row.keyword, row.description, row.createdate, row.ispublish, row.shortener, others);
+            row.keyword, row.description, row.createdate, row.ispublish, row.shortener, products, others);
     }
 
     // ── Blogs (部落客分享) ───────────────────────────────────────────────────────────

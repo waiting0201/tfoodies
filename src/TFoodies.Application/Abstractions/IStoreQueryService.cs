@@ -130,6 +130,7 @@ public sealed record KnowledgeListItem(
 public sealed record KnowledgeDetail(
     Guid KnowledgeId, string Question, string Photo, string Answer,
     string? Keyword, string? Description, DateTime CreateDate, bool IsPublish, string? Shortener,
+    IReadOnlyList<ProductListItem> Products,
     IReadOnlyList<KnowledgeRef> Others);
 
 public sealed record KnowledgeRef(Guid KnowledgeId, string Question, string Photo);

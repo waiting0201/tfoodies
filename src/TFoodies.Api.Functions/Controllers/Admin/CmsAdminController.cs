@@ -720,7 +720,25 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY",
             new { issueId });
 
         if (row is null) return ctx.NotFound("找不到期刊。");
-        return ctx.Ok(row);
+
+        var productIds = await conn.QueryAsync<Guid>(
+            "SELECT productid FROM Issueproducts WHERE issueid=@issueId",
+            new { issueId });
+
+        var r = (IDictionary<string, object?>)row!;
+        return ctx.Ok(new
+        {
+            issueId     = r["issueId"],
+            title       = r["title"],
+            photo       = r["photo"],
+            intro       = r["intro"],
+            keyword     = r["keyword"],
+            description = r["description"],
+            sort        = r["sort"],
+            shortener   = r["shortener"],
+            ispublish   = r["ispublish"],
+            productIds,
+        });
     }
 
     // POST /admin/cms/issues
@@ -738,22 +756,35 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY",
         var now   = DateTime.UtcNow.AddHours(8);
 
         using var conn = await _db.CreateOpenConnectionAsync(ctx.Request.HttpContext.RequestAborted);
-        await conn.ExecuteAsync(@"
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            await conn.ExecuteAsync(@"
 INSERT INTO Issues (issueid, title, photo, intro, keyword, description, sort, createdate, ispublish, shortener)
 VALUES (@issueid, @title, @photo, @intro, @keyword, @description, @sort, @createdate, @ispublish, @shortener)",
-            new
-            {
-                issueid     = newId,
-                title       = body.Title,
-                photo       = body.Photo ?? string.Empty,
-                intro       = body.Intro ?? string.Empty,
-                keyword     = body.Keyword ?? string.Empty,
-                description = body.Description ?? string.Empty,
-                sort        = body.Sort,
-                createdate  = now,
-                ispublish   = body.IsPublish,
-                shortener   = body.Shortener ?? string.Empty,
-            });
+                new
+                {
+                    issueid     = newId,
+                    title       = body.Title,
+                    photo       = body.Photo ?? string.Empty,
+                    intro       = body.Intro ?? string.Empty,
+                    keyword     = body.Keyword ?? string.Empty,
+                    description = body.Description ?? string.Empty,
+                    sort        = body.Sort,
+                    createdate  = now,
+                    ispublish   = body.IsPublish,
+                    shortener   = body.Shortener ?? string.Empty,
+                }, transaction: tx);
+
+            await SaveIssueProductsAsync(conn, tx, newId, body.ProductIds);
+
+            tx.Commit();
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
 
         return ctx.Created(new { issueId = newId });
     }
@@ -773,24 +804,42 @@ VALUES (@issueid, @title, @photo, @intro, @keyword, @description, @sort, @create
         if (validation is not null) return ctx.BadRequest(validation);
 
         using var conn = await _db.CreateOpenConnectionAsync(ctx.Request.HttpContext.RequestAborted);
-        var rows = await conn.ExecuteAsync(@"
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            var rows = await conn.ExecuteAsync(@"
 UPDATE Issues SET title=@title, photo=@photo, intro=@intro, keyword=@keyword,
     description=@description, sort=@sort, shortener=@shortener, ispublish=@ispublish
 WHERE issueid=@issueid",
-            new
-            {
-                issueid     = issueId,
-                title       = body.Title,
-                photo       = body.Photo ?? string.Empty,
-                intro       = body.Intro ?? string.Empty,
-                keyword     = body.Keyword ?? string.Empty,
-                description = body.Description ?? string.Empty,
-                sort        = body.Sort,
-                shortener   = body.Shortener ?? string.Empty,
-                ispublish   = body.IsPublish,
-            });
+                new
+                {
+                    issueid     = issueId,
+                    title       = body.Title,
+                    photo       = body.Photo ?? string.Empty,
+                    intro       = body.Intro ?? string.Empty,
+                    keyword     = body.Keyword ?? string.Empty,
+                    description = body.Description ?? string.Empty,
+                    sort        = body.Sort,
+                    shortener   = body.Shortener ?? string.Empty,
+                    ispublish   = body.IsPublish,
+                }, transaction: tx);
 
-        if (rows == 0) return ctx.NotFound("找不到期刊。");
+            if (rows == 0)
+            {
+                tx.Rollback();
+                return ctx.NotFound("找不到期刊。");
+            }
+
+            await SaveIssueProductsAsync(conn, tx, issueId, body.ProductIds);
+
+            tx.Commit();
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+
         return ctx.Ok(new { message = "期刊已更新" });
     }
 
@@ -810,6 +859,29 @@ WHERE issueid=@issueid",
 
         if (rows == 0) return ctx.NotFound("找不到期刊。");
         return ctx.Ok(new { message = "期刊已下架" });
+    }
+
+    /// <summary>
+    /// Delete-then-insert 期刊關聯商品（Issueproducts）。必須在已開啟的 transaction 中呼叫。
+    /// </summary>
+    private static async Task SaveIssueProductsAsync(
+        System.Data.IDbConnection conn, System.Data.IDbTransaction tx,
+        Guid issueId, List<Guid>? productIds)
+    {
+        await conn.ExecuteAsync(
+            "DELETE FROM Issueproducts WHERE issueid=@issueId",
+            new { issueId }, transaction: tx);
+
+        if (productIds is { Count: > 0 })
+        {
+            foreach (var pid in productIds.Distinct())
+            {
+                await conn.ExecuteAsync(
+                    "INSERT INTO Issueproducts (issueid, productid) VALUES (@issueid, @productid)",
+                    new { issueid = issueId, productid = pid },
+                    transaction: tx);
+            }
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -1098,7 +1170,25 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY",
             new { knowledgeId });
 
         if (row is null) return ctx.NotFound("找不到 FAQ。");
-        return ctx.Ok(row);
+
+        var productIds = await conn.QueryAsync<Guid>(
+            "SELECT productid FROM Knowledgeproducts WHERE knowledgeid=@knowledgeId",
+            new { knowledgeId });
+
+        var r = (IDictionary<string, object?>)row!;
+        return ctx.Ok(new
+        {
+            knowledgeId = r["knowledgeId"],
+            question    = r["question"],
+            photo       = r["photo"],
+            answer      = r["answer"],
+            keyword     = r["keyword"],
+            description = r["description"],
+            sort        = r["sort"],
+            shortener   = r["shortener"],
+            ispublish   = r["ispublish"],
+            productIds,
+        });
     }
 
     // POST /admin/cms/knowledges
@@ -1116,22 +1206,35 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY",
         var now   = DateTime.UtcNow.AddHours(8);
 
         using var conn = await _db.CreateOpenConnectionAsync(ctx.Request.HttpContext.RequestAborted);
-        await conn.ExecuteAsync(@"
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            await conn.ExecuteAsync(@"
 INSERT INTO Knowledges (knowledgeid, question, photo, answer, keyword, description, sort, createdate, ispublish, shortener)
 VALUES (@knowledgeid, @question, @photo, @answer, @keyword, @description, @sort, @createdate, @ispublish, @shortener)",
-            new
-            {
-                knowledgeid = newId,
-                question    = body.Question,
-                photo       = body.Photo ?? string.Empty,
-                answer      = body.Answer,
-                keyword     = body.Keyword ?? string.Empty,
-                description = body.Description ?? string.Empty,
-                sort        = body.Sort,
-                createdate  = now,
-                ispublish   = body.IsPublish,
-                shortener   = body.Shortener ?? string.Empty,
-            });
+                new
+                {
+                    knowledgeid = newId,
+                    question    = body.Question,
+                    photo       = body.Photo ?? string.Empty,
+                    answer      = body.Answer,
+                    keyword     = body.Keyword ?? string.Empty,
+                    description = body.Description ?? string.Empty,
+                    sort        = body.Sort,
+                    createdate  = now,
+                    ispublish   = body.IsPublish,
+                    shortener   = body.Shortener ?? string.Empty,
+                }, transaction: tx);
+
+            await SaveKnowledgeProductsAsync(conn, tx, newId, body.ProductIds);
+
+            tx.Commit();
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
 
         return ctx.Created(new { knowledgeId = newId });
     }
@@ -1151,24 +1254,42 @@ VALUES (@knowledgeid, @question, @photo, @answer, @keyword, @description, @sort,
         if (validation is not null) return ctx.BadRequest(validation);
 
         using var conn = await _db.CreateOpenConnectionAsync(ctx.Request.HttpContext.RequestAborted);
-        var rows = await conn.ExecuteAsync(@"
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            var rows = await conn.ExecuteAsync(@"
 UPDATE Knowledges SET question=@question, photo=@photo, answer=@answer, keyword=@keyword,
     description=@description, sort=@sort, shortener=@shortener, ispublish=@ispublish
 WHERE knowledgeid=@knowledgeid",
-            new
-            {
-                knowledgeid = knowledgeId,
-                question    = body.Question,
-                photo       = body.Photo ?? string.Empty,
-                answer      = body.Answer,
-                keyword     = body.Keyword ?? string.Empty,
-                description = body.Description ?? string.Empty,
-                sort        = body.Sort,
-                shortener   = body.Shortener ?? string.Empty,
-                ispublish   = body.IsPublish,
-            });
+                new
+                {
+                    knowledgeid = knowledgeId,
+                    question    = body.Question,
+                    photo       = body.Photo ?? string.Empty,
+                    answer      = body.Answer,
+                    keyword     = body.Keyword ?? string.Empty,
+                    description = body.Description ?? string.Empty,
+                    sort        = body.Sort,
+                    shortener   = body.Shortener ?? string.Empty,
+                    ispublish   = body.IsPublish,
+                }, transaction: tx);
 
-        if (rows == 0) return ctx.NotFound("找不到 FAQ。");
+            if (rows == 0)
+            {
+                tx.Rollback();
+                return ctx.NotFound("找不到 FAQ。");
+            }
+
+            await SaveKnowledgeProductsAsync(conn, tx, knowledgeId, body.ProductIds);
+
+            tx.Commit();
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+
         return ctx.Ok(new { message = "FAQ 已更新" });
     }
 
@@ -1188,6 +1309,29 @@ WHERE knowledgeid=@knowledgeid",
 
         if (rows == 0) return ctx.NotFound("找不到 FAQ。");
         return ctx.Ok(new { message = "FAQ 已下架" });
+    }
+
+    /// <summary>
+    /// Delete-then-insert 小知識關聯商品（Knowledgeproducts）。必須在已開啟的 transaction 中呼叫。
+    /// </summary>
+    private static async Task SaveKnowledgeProductsAsync(
+        System.Data.IDbConnection conn, System.Data.IDbTransaction tx,
+        Guid knowledgeId, List<Guid>? productIds)
+    {
+        await conn.ExecuteAsync(
+            "DELETE FROM Knowledgeproducts WHERE knowledgeid=@knowledgeId",
+            new { knowledgeId }, transaction: tx);
+
+        if (productIds is { Count: > 0 })
+        {
+            foreach (var pid in productIds.Distinct())
+            {
+                await conn.ExecuteAsync(
+                    "INSERT INTO Knowledgeproducts (knowledgeid, productid) VALUES (@knowledgeid, @productid)",
+                    new { knowledgeid = knowledgeId, productid = pid },
+                    transaction: tx);
+            }
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -1392,7 +1536,7 @@ WHERE blogid=@blogid",
     private sealed record UpsertIssueRequest(
         string Title, string? Photo, string? Intro,
         string? Keyword, string? Description, int Sort, string? Shortener,
-        bool IsPublish);
+        bool IsPublish, List<Guid>? ProductIds);
 
     private sealed record UpsertEventRequest(
         string Title, string? Summary, string? Photo, string? Intro,
@@ -1402,7 +1546,7 @@ WHERE blogid=@blogid",
     private sealed record UpsertKnowledgeRequest(
         string Question, string Answer, int Sort,
         string? Photo, string? Keyword, string? Description,
-        string? Shortener, bool IsPublish);
+        string? Shortener, bool IsPublish, List<Guid>? ProductIds);
 
     private sealed record UpsertBlogRequest(
         string Title, string? Photo, string? Link, int Sort);

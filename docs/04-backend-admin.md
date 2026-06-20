@@ -37,7 +37,9 @@
 > ⚠️ 命名：**`HomeMs` = 前台內容(CMS)管理**（非分析儀表板；儀表板是 `Main/Index`）。
 
 ### HomeMs — 前台內容 CMS（`HomeMsController`）
-Banners(首頁輪播)、Recipes(食材/調味/步驟+關聯商品)、Issues(特集 連結食譜+商品)、News、Blogs、Events(+Eventphotos 圖庫)、Knowledges。統一 list/Sort/Add/Edit/Delete；圖檔上傳 Azure Blob；富文本以 HtmlAgilityPack 抽出 base64 圖→Blob、YouTube iframe→媒體表。全 `[CheckSession(IsAuth=true)]`。
+Banners(首頁輪播)、Recipes(食材/調味/步驟+關聯商品)、Issues(特集 連結食譜+商品)、News、Blogs、Events(+Eventphotos 圖庫)、Knowledges(問答+關聯商品)。統一 list/Sort/Add/Edit/Delete；圖檔上傳 Azure Blob；富文本以 HtmlAgilityPack 抽出 base64 圖→Blob、YouTube iframe→媒體表。全 `[CheckSession(IsAuth=true)]`。
+
+> **關聯商品（帶貨）**：新系統後台 Issue / Knowledge 編輯表單皆有「相關商品」挑選器（同 Recipe 做法），存入 `Issueproducts` / `Knowledgeproducts`（delete-insert，`SaveIssueProductsAsync` / `SaveKnowledgeProductsAsync` 於 transaction 中）。前台 `/Issue`、`/Knowledge` 詳細頁據此顯示「購買相關商品」區塊（含一鍵加入購物車）。`Knowledgeproducts` 為本次新增表（`scripts/add-knowledgeproducts.sql`，無 migration；本機與正式環境皆已套用）。
 
 ### ProductMs — 商品型錄（`ProductMsController`）
 Brands(+Brandphotos 圖庫)、Producttypes、Tags、Products(+Productphotos)。
