@@ -95,6 +95,8 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 | 補開／重新開立發票（開票失敗、當下未開、或作廢後重開）| `POST /admin/orders/{code}/invoice` → `IssueInvoice` | 直接呼叫 `IssueInvoiceAsync` |
 | 作廢發票（退貨／開錯）| `POST /admin/orders/{code}/invoice/void` → `VoidInvoice` | 呼叫 `VoidInvoiceAsync`（ezPay 作廢＋invoicestatus=2）|
 
+> ⚠️ **權限**：訂單詳情頁的「補開發票／作廢發票」兩端點以 **`OrderMs.Update`** 授權（與標記已付款/刷卡同頁同模組）。**不可用 `InvoiceMs`** ─ 電子發票並非 Lims RBAC 樹的獨立模組（`Lims` 表查無 `InvoiceMs`/`DiscountMs`，僅 itadmin/888 繞過），舊系統發票歸於訂單／會計流程。曾誤用 `InvoiceMs` 導致一般管理員按下補開發票顯示「無 InvoiceMs 模組的 Update 權限」。
+
 按鈕在訂單詳情頁依條件顯示（二/三聯發票）：線上刷卡（信用卡＋未付款）、補開發票（未開 status=0）、**重新開立發票**（已作廢 status=2）、**作廢發票**（已開 status=1）。
 
 ## 訂單詳情頁作廢 → 重新開立流程（對齊舊系統 `AjaxController/CancelInv`）
@@ -103,7 +105,7 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 已開發票(status=1)
  └─「作廢發票」按鈕 → POST /invoice/void（prompt 輸入原因，預設「退貨」）
        → VoidInvoiceAsync：僅 status=1 才作廢（冪等護欄）
-         ├─ ezPay invoice/void（InvoiceNo＋InvalidReason）
+         ├─ ezPay invoice_invalid（InvoiceNumber＋InvalidReason）
          └─ UPDATE Orders invoicestatus=2（不刪本地 Invoices，保留稽核）
    ▼ status=2（已作廢）
  └─「重新開立發票」按鈕 → POST /invoice → IssueInvoiceAsync
@@ -124,6 +126,16 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 - 開立：`IssueAsync` → AES 加密參數（[EzPayCodec](../src/TFoodies.Infrastructure/Invoicing/EzPay/EzPayCodec.cs)）POST 到 ezPay；成功回發票號。
 - 後台發票管理 `/admin/invoices`：列表、作廢（`VoidAsync`→invoicestatus=2）、折讓（`AllowanceAsync`→invoicestatus=3），讀本地 `Invoices`/`Invoicedetails`。
 - 時機：付款完成**當下自動即時開立**；失敗留「未開」，後台補開。
+
+> ⚠️ **ezPay 串接端點與 `Version` 必須精確比照手冊 EZP_INVI_1.2.2（與舊系統實證一致），否則 API 直接拒絕、整條開票靜默失敗（付款仍完成、發票留未開）**：
+>
+> | API | 端點（接於 `BaseUrl=…/Api`）| `Version` | 發票號參數 |
+> |---|---|---|---|
+> | 開立 | `invoice_issue`（**非** `invoice/issue`）| `1.5`（舊系統 1.4；**非** 1.0）| 回應讀 `InvoiceNumber` |
+> | 作廢 | `invoice_invalid`（**非** `invoice/void`）| `1.0` | 請求帶 `InvoiceNumber`（**非** `InvoiceNo`）|
+> | 折讓 | `allowance_issue`（**非** `invoice/allowance`）| `1.3`（**非** 1.0）| 請求帶 `InvoiceNo`；另須帶 `ItemTaxAmt`、`Status` |
+>
+> 另：B2B（三聯式）`BuyerName` 須帶**公司抬頭**（`Orders.companytitle`），非會員姓名。前台結帳後不自動開票，多半即上述端點/版本錯誤所致；可查 App Insights 中 `PaymentCompletionService` 的 Warning/Error。
 
 ## 冪等與失敗處理
 

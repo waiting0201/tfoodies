@@ -35,7 +35,7 @@ public sealed class EzPayInvoiceService : IInvoiceService
         InvoiceRequest request, IssueMode mode, CancellationToken ct = default)
     {
         var inner = BuildIssueParams(request, mode);
-        return await CallAsync("invoice/issue", inner, ct);
+        return await CallAsync("invoice_issue", inner, ct);   // EZP_INVI_1.2.2 §四-(一) 串接網址：/Api/invoice_issue
     }
 
     // ── AllowanceAsync ────────────────────────────────────────────────────────────
@@ -46,7 +46,7 @@ public sealed class EzPayInvoiceService : IInvoiceService
         var inner = new List<KeyValuePair<string, string>>
         {
             kv("RespondType",      "JSON"),
-            kv("Version",          "1.0"),
+            kv("Version",          "1.3"),   // 開立折讓固定帶 1.3（EZP_INVI_1.2.2 §六-(一)）
             kv("TimeStamp",        DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
             kv("InvoiceNo",        request.InvoiceNo),
             kv("MerchantOrderNo",  request.MerchantOrderNo),
@@ -55,11 +55,14 @@ public sealed class EzPayInvoiceService : IInvoiceService
             kv("ItemUnit",         string.Join("|", request.Items.Select(i => i.Unit))),
             kv("ItemPrice",        string.Join("|", request.Items.Select(i => i.Price.ToString()))),
             kv("ItemAmt",          string.Join("|", request.Items.Select(i => i.Amount.ToString()))),
+            // ItemTaxAmt 為必填；本系統 ItemPrice 帶含稅金額，依手冊此時稅額帶 0（申報時不抵扣該項營業稅額）。
+            kv("ItemTaxAmt",       string.Join("|", request.Items.Select(_ => "0"))),
             kv("TotalAmt",         request.TotalAmt.ToString()),
+            kv("Status",           "1"),     // 1=立即確認折讓（必填，EZP_INVI_1.2.2 §六-(一)）
         };
         if (!string.IsNullOrEmpty(request.BuyerEmail)) inner.Add(kv("BuyerEmail", request.BuyerEmail));
 
-        return await CallAsync("invoice/allowance", inner, ct);
+        return await CallAsync("allowance_issue", inner, ct);   // EZP_INVI_1.2.2 §六-(一) 串接網址：/Api/allowance_issue
     }
 
     // ── VoidAsync ─────────────────────────────────────────────────────────────────
@@ -69,14 +72,14 @@ public sealed class EzPayInvoiceService : IInvoiceService
     {
         var inner = new List<KeyValuePair<string, string>>
         {
-            kv("RespondType",  "JSON"),
-            kv("Version",      "1.0"),
-            kv("TimeStamp",    DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
-            kv("InvoiceNo",    invoiceNumber),
-            kv("InvalidReason",reason),
+            kv("RespondType",   "JSON"),
+            kv("Version",       "1.0"),            // 作廢發票固定帶 1.0（EZP_INVI_1.2.2 §五-(一)）
+            kv("TimeStamp",     DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
+            kv("InvoiceNumber", invoiceNumber),    // 作廢 API 參數名為 InvoiceNumber（非 InvoiceNo）
+            kv("InvalidReason", reason),
         };
 
-        return await CallAsync("invoice/void", inner, ct);
+        return await CallAsync("invoice_invalid", inner, ct);   // EZP_INVI_1.2.2 §五-(一) 串接網址：/Api/invoice_invalid
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -86,7 +89,7 @@ public sealed class EzPayInvoiceService : IInvoiceService
         var p = new List<KeyValuePair<string, string>>
         {
             kv("RespondType",    "JSON"),
-            kv("Version",        "1.0"),
+            kv("Version",        "1.5"),   // 開立發票固定帶 1.5（EZP_INVI_1.2.2 §四-(一)）；舊系統用 1.4，1.0 會被 ezPay 拒絕
             kv("TimeStamp",      DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
             kv("TransNum",       ""),
             kv("MerchantOrderNo",req.MerchantOrderNo),

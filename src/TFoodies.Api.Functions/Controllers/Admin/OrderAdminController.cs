@@ -612,9 +612,11 @@ VALUES (NEWID(), @orderdetailid, @warehousestockid, @qty, @createdate)",
     }
 
     // POST /admin/orders/{code}/invoice — 補開電子發票（開票失敗或當下未開的訂單）。
+    // 權限：此按鈕位於「訂單詳情頁」，與標記已付款/作廢等同屬訂單管理操作，故沿用 OrderMs.Update。
+    // （電子發票並非 Lims RBAC 樹的獨立模組；舊系統發票歸於訂單/會計流程，無 InvoiceMs 模組。）
     public async Task<IActionResult> IssueInvoice(RouteContext ctx)
     {
-        var guard = await AdminGuard.AuthorizeAsync(ctx, _perms, "InvoiceMs", AdminOperation.Update);
+        var guard = await AdminGuard.AuthorizeAsync(ctx, _perms, "OrderMs", AdminOperation.Update);
         if (guard.Result is not null) return guard.Result;
 
         var code = ctx.RequirePathParam("code");
@@ -629,7 +631,7 @@ VALUES (NEWID(), @orderdetailid, @warehousestockid, @qty, @createdate)",
     // 作廢後訂單發票狀態轉「已作廢(2)」，可再呼叫 IssueInvoice 以新號重新開立。
     public async Task<IActionResult> VoidInvoice(RouteContext ctx)
     {
-        var guard = await AdminGuard.AuthorizeAsync(ctx, _perms, "InvoiceMs", AdminOperation.Update);
+        var guard = await AdminGuard.AuthorizeAsync(ctx, _perms, "OrderMs", AdminOperation.Update);
         if (guard.Result is not null) return guard.Result;
 
         var code = ctx.RequirePathParam("code");

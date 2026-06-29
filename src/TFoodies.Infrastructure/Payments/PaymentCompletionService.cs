@@ -131,7 +131,7 @@ VALUES (@incomeId, @memberid, @incomeCode, @now, @amount, 0, @note, @now)",
         // 先把資料讀完並關閉 reader，之後才呼叫 ezPay（HTTP）與開交易，避免 reader 與交易衝突。
         using (var multi = await conn.QueryMultipleAsync(@"
 SELECT o.orderid, o.orderdate, o.memberid, o.invoicetype, o.invoicestatus,
-       o.companynumber, o.lovecode, o.note,
+       o.companytitle, o.companynumber, o.lovecode, o.note,
        o.total, o.freight, ISNULL(o.discount,0) AS discount,
        m.name AS memberName, m.email AS memberEmail
 FROM Orders o JOIN Members m ON m.memberid=o.memberid
@@ -161,10 +161,15 @@ JOIN Orders o2 ON o2.orderid=od.orderid WHERE o2.ordercode=@orderCode;",
         if (order.freight > 0)
             items.Add(new InvoiceItem("運費", 1, "次", order.freight, order.freight));
 
+        // B2B（三聯式）買受人名稱須帶公司抬頭；其餘（二聯/捐贈）帶會員姓名。
+        var buyerName = order.invoicetype == (int)InvoiceType.Triplicate && !string.IsNullOrWhiteSpace(order.companytitle)
+            ? order.companytitle!.Trim()
+            : order.memberName;
+
         var request = new InvoiceRequest(
             MerchantOrderNo: orderCode,
             Type: (InvoiceType)order.invoicetype,
-            BuyerName: order.memberName,
+            BuyerName: buyerName,
             TotalAmt: totalAmt,
             Items: items,
             BuyerUbn: order.companynumber,
@@ -379,7 +384,7 @@ VALUES (NEWID(), @invoiceId, @accountingId, @orderid, @price, @tax, @note)",
 
     private sealed record InvoiceOrderRow(
         Guid orderid, DateTime orderdate, Guid memberid, int invoicetype, int invoicestatus,
-        string? companynumber, string? lovecode, string? note,
+        string? companytitle, string? companynumber, string? lovecode, string? note,
         int total, int freight, int discount,
         string memberName, string? memberEmail);
 
