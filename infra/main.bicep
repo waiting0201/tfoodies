@@ -63,7 +63,7 @@ param smtpBcc1 string = 'angela@tfoodies.com'
 param jwtExpiryMinutes string = '60'
 param jwtRefreshExpiryDays string = '30'
 param orderFreightLimit string = '2000'
-param orderFreightAmount string = '120'
+param orderFreightAmount string = '180'
 param orderAtmExpiryDays string = '3'
 param orderAtmPrefix string = '1943'
 
