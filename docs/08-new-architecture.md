@@ -111,6 +111,8 @@ Invoicing/EzPay/
   EzPayInvoiceService.cs       ← IInvoiceService（HttpClient）
 Orders/
   OrderSettings.cs             ← 運費門檻/金額、ATM 前綴/效期（appsettings:Order）
+                                  運費=180、免運門檻=2000（前台 Cart/Checkout 顯示值一致；
+                                  部署值由 infra/main.bicep orderFreightAmount/Limit 預設帶入）
   DiscountService.cs           ← IDiscountService（istype 0=%, 1=固定；isonetime）
   OrderService.cs              ← IOrderService（PlaceOrderAsync/GetOrderAsync/…）
                                   ⚠ BuildAtmCode() public static（ATM 國泰演算法）
