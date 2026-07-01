@@ -253,6 +253,22 @@ param metaCapiToken string = ''
 @description('前台 Container App 自訂網域清單（每項 {domain, certName}；空陣列=不綁定）')
 param storeCustomDomains array = [
   {
+    domain: 'www.tfoodies.com'
+    certName: 'www.tfoodies.com-tfoodies-260617075834'
+  }
+  {
+    domain: 'tfoodies.com'
+    certName: 'tfoodies.com-tfoodies-260617075505'
+  }
+  {
+    domain: 'www.tfoodies.com.tw'
+    certName: 'www.tfoodies.com.tw-tfoodies-260617080248'
+  }
+  {
+    domain: 'tfoodies.com.tw'
+    certName: 'tfoodies.com.tw-tfoodies-260617080046'
+  }
+  {
     domain: 'tfoodies-store.4webdemo.com'
     certName: 'tfoodies-store.4webdemo.com-tfoodies-260611010259'
   }
