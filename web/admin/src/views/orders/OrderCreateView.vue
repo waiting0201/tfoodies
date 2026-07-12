@@ -227,7 +227,7 @@ const form = reactive({
   lovecode: '',       // 捐贈(2)：捐贈碼
   discount: 0,        // 人工折扣（元）
   remark: '',
-  shippingFee: 0,
+  shippingFee: 180,   // 預設運費（未滿免運門檻時套用）；承辦人可覆寫
 })
 
 // ── 合計計算 ──────────────────────────────────────────────────────
@@ -236,9 +236,12 @@ const itemSubtotal = computed(() =>
   orderItems.value.reduce((acc, i) => acc + (i.subtotal || 0), 0)
 )
 
-// 滿 2000 免運
+// 免運政策：滿門檻(2000)免運，未滿收運費（預設 180，承辦人可於運費欄覆寫）。
+// 與店面 OrderService（未滿門檻收 FreightAmount）一致，避免後台建單漏帶運費存成 0。
+const FREIGHT_THRESHOLD = 2000
+const DEFAULT_FREIGHT = 180
 const computedShippingFee = computed(() =>
-  itemSubtotal.value >= 2000 ? 0 : form.shippingFee
+  itemSubtotal.value >= FREIGHT_THRESHOLD ? 0 : (form.shippingFee || DEFAULT_FREIGHT)
 )
 
 const grandTotal = computed(() => itemSubtotal.value + computedShippingFee.value - form.discount)

@@ -451,7 +451,7 @@ onMounted(load)
             </tr>
             <tr class="odetail__subtotal-row">
               <td colspan="3" class="odetail__subtotal-label">運費</td>
-              <td>NT$ {{ order.shippingFee.toLocaleString() }}</td>
+              <td>NT$ {{ (order.shippingFee ?? 0).toLocaleString() }}</td>
             </tr>
             <tr class="odetail__total-row">
               <td colspan="3" class="odetail__total-label">總計</td>

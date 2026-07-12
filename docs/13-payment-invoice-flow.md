@@ -80,6 +80,9 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 
 建單表單（對齊舊系統 `OrderMs/AddOrders`）含：會員、**訂單日期**（必填，預設今天、可補登；`OrderDate` 無值才回退當天）、**出貨倉**（必填，`GET /admin/warehouses`）、**物流商**（必填，`GET /admin/logistics`）、收件人、**收件縣市/鄉鎮級聯**（必填，`GET /admin/zipcodes/cities`+`/areas`，帶出 `reciverzipcodeid`）、商品（autocomplete；每列可填**折數折扣**與**可覆寫小計**）、運費、訂單折扣、發票。明細 `discount` 存**折數**（如 8=八折），金額效果反映於 `subtotal`。
 
+> **運費／免運政策（後台建單）**：`computedShippingFee = 小計 ≥ 2000 ? 0 : (運費欄 || 180)`，與店面 `OrderService`（未滿門檻收 `FreightAmount`）一致。運費欄預設 **180**、承辦人可覆寫；未滿 2000 且未填時**自動帶 180**（修正前預設 0，會把未滿門檻的單存成 `freight=0`）。
+> **NULL 防護**：後台訂單相關 SELECT 對 `o.freight` 一律 `ISNULL(o.freight,0) AS freight`（與 `discount` 一致），避免舊資料 `freight=NULL` 造成詳情頁 `toLocaleString()` 例外使運費列消失；詳情頁前端亦以 `(shippingFee ?? 0)` 防護。
+
 新增成功後**導向該訂單詳情頁**（`/admin/orders/{orderCode}`），刷卡/開票走與其他訂單**完全相同**的詳情頁流程：
 
 - 信用卡(1)＋未付款 → 「線上刷卡」按鈕 → charge 流程 → `MarkPaidAsync` → Income＋電子發票

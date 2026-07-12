@@ -91,7 +91,7 @@ public sealed class OrderAdminController
         var items = await conn.QueryAsync<AdminOrderRow>($@"
 SELECT o.orderid, o.ordercode, o.orderdate,
        m.name AS memberName, m.mobile AS memberMobile,
-       o.total, o.freight, ISNULL(o.discount,0) AS discount,
+       o.total, ISNULL(o.freight,0) AS freight, ISNULL(o.discount,0) AS discount,
        o.paytype, o.paystatus, o.deliverstatus,
        o.codeatm, o.expirepaydate,
        o.recivername, o.reciveraddress, o.createdate
@@ -251,7 +251,7 @@ VALUES (@orderdetailid, @orderid, @productid, @qty, @price, @discount, @subtotal
 SELECT o.orderid, o.ordercode, o.orderdate,
        o.warehouseid, o.logisticid,
        m.memberid, m.name AS memberName, m.mobile AS memberMobile,
-       o.total, o.freight, ISNULL(o.discount,0) AS discount,
+       o.total, ISNULL(o.freight,0) AS freight, ISNULL(o.discount,0) AS discount,
        o.paytype, o.paystatus, o.deliverstatus, o.paydate, o.deliverdate,
        o.invoicetype, o.invoicestatus, o.invoicecode,
        o.companytitle, o.companynumber, o.lovecode,
@@ -815,7 +815,7 @@ ORDER BY s.expiredate ASC, ws.transdate ASC",
 
         var header = await conn.QuerySingleOrDefaultAsync<DeliverHeaderRow>(@"
 SELECT o.orderid, o.ordercode, o.orderdate, o.deliverdate, o.paydate, o.paytype,
-       o.invoicetype, o.invoicecode, o.freight, ISNULL(o.discount,0) AS discount, o.total, o.note,
+       o.invoicetype, o.invoicecode, ISNULL(o.freight,0) AS freight, ISNULL(o.discount,0) AS discount, o.total, o.note,
        o.reciveraddress, m.name AS memberName, m.mobile AS memberMobile, m.email AS memberEmail,
        z.city, z.area
 FROM Orders o
