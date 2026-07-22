@@ -144,6 +144,8 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 > `IssueInvoiceAsync` 另加**前置校驗**：`invoicetype=3` 但 `companynumber` 為空 → 直接回 `Error.Validation`（「此訂單為三聯式發票，但缺少統一編號…」），不再靜默降級成二聯。舊資料中有一批三聯式訂單 `companynumber` 為 NULL（多為舊系統誤標，抬頭亦缺），後台補開會被此校驗擋下，須先於「編輯訂單」補填統編或改回二聯式。後台詳情頁亦以 `triplicateMissingUbn` 提示並禁用「補開發票」鈕。
 >
 > 🐞 **BuyerUBN 參數名大小寫 bug（2026-07-22 修）**：ezPay 參數名**大小寫敏感**，統編欄位須為 `BuyerUBN`（全大寫，同舊系統 `AjaxController`）。新系統一度誤植為 `BuyerUbn`，ezPay 收不到統編、卻因 `Category=B2B` 有送而回「**B2B 類別的發票，買受人統編不可為空白**」（HTTP 422 `UNPROCESSABLE_ENTITY`）。症狀：即使訂單統編/抬頭齊全（如 `O20260722002` 統編 83150659）仍開不出 B2B，且新系統從未成功開過任何 B2B 發票（既有已開 B2B 皆舊系統開立）。修正僅改 `EzPayInvoiceService` 送出的 key 名；**須重新部署 tfoodies-api 才生效**。
+>
+> 🐞 **明細逐項小計校驗（2026-07-22 修）**：ezPay 逐項要求 `ItemAmt == ItemPrice × ItemCount`，否則回「**請檢查商品資訊第N項金額小計是否正確**」。管理員議價單的 `Orderdetails.subtotal` 可能不等於 `price×qty`（單價談過、未記 `discount` 旗標），原本直接把 `subtotal` 當 `ItemAmt` 送出被退。`PaymentCompletionService` 已比照舊系統 `AjaxController`：主項帶 `price×qty`，差額另拆一條負數調整明細，確保每項自洽且加總＝實付。⚠️ 訂單層折扣（折扣碼 `Orders.discount`）目前仍未拆成明細列，`Σ ItemAmt` 會比 `TotalAmt` 多出折扣額；舊系統多年如此、ezPay 容忍，惟若日後 ezPay 收緊需另補訂單層調整列。
 
 ## 冪等與失敗處理
 
