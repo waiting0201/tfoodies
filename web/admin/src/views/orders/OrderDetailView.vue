@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { apiFetch, apiDownload, ApiError } from '../../lib/apiClient'
 
@@ -76,6 +76,10 @@ function payStatusLabel(s: number) { return PAY_STATUS_LABELS[s] ?? `${s}` }
 function deliverLabel(s: number) { return DELIVER_LABELS[s] ?? `${s}` }
 function invoiceTypeLabel(t: number) { return INVOICE_TYPE_LABELS[t] ?? `類型${t}` }
 function invoiceStatusLabel(s: number) { return INVOICE_STATUS_LABELS[s] ?? `${s}` }
+
+// 三聯式(B2B)但缺統一編號：無法開立 B2B 發票，須先補填統編。
+const triplicateMissingUbn = computed(() =>
+  order.value?.invoiceType === 3 && !order.value?.companyNumber?.trim())
 
 async function load() {
   loading.value = true
@@ -359,6 +363,9 @@ onMounted(load)
                   <span class="odetail__label">統一編號</span>
                   <span class="odetail__value odetail__value--mono">{{ order.companyNumber || '—' }}</span>
                 </div>
+                <p v-if="triplicateMissingUbn" class="odetail__hint odetail__hint--warn">
+                  此訂單為三聯式發票但未填統一編號，無法開立 B2B 發票。請先於「編輯訂單」補填統編。
+                </p>
               </template>
               <!-- 愛心捐贈 -->
               <div class="odetail__field" v-if="order.invoiceType === 2">
@@ -406,7 +413,8 @@ onMounted(load)
             <button
               v-if="(order.invoiceType === 1 || order.invoiceType === 3) && (order.invoiceStatus === 0 || order.invoiceStatus === 2)"
               class="odetail__btn odetail__btn--accent"
-              :disabled="actionBusy"
+              :disabled="actionBusy || triplicateMissingUbn"
+              :title="triplicateMissingUbn ? '三聯式發票缺統一編號，請先補填統編' : ''"
               @click="handleIssueInvoice"
             >{{ order.invoiceStatus === 2 ? '重新開立發票' : '補開發票' }}</button>
             <button
@@ -724,6 +732,8 @@ onMounted(load)
 .odetail__btn--accent:hover:not(:disabled) { opacity: 0.85; }
 
 .odetail__error { color: #dc3545; margin-bottom: 0.75rem; }
+.odetail__hint { font-size: 0.8rem; margin: 0.25rem 0 0; grid-column: 1 / -1; }
+.odetail__hint--warn { color: #b8860b; }
 .odetail__muted { color: var(--tf-color-muted); }
 .odetail__btn--ghost { background: transparent; color: var(--tf-color-primary); border: 1px solid var(--tf-color-primary); }
 .odetail__btn--ghost:hover:not(:disabled) { background: rgba(38, 183, 188, 0.06); }

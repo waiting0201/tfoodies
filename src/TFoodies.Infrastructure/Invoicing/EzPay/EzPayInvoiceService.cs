@@ -94,7 +94,9 @@ public sealed class EzPayInvoiceService : IInvoiceService
             kv("TransNum",       ""),
             kv("MerchantOrderNo",req.MerchantOrderNo),
             kv("Status",         ((int)mode).ToString()),
-            kv("Category",       req.BuyerUbn != null ? "B2B" : "B2C"),
+            // Category 與下方 BuyerUbn 參數須一致：有統編才算 B2B，否則 B2C。
+            // （用 IsNullOrWhiteSpace 一致判斷，避免空字串/空白被判成 B2B 卻無 BuyerUbn 而被 ezPay 以「統編沒有」拒絕。）
+            kv("Category",       !string.IsNullOrWhiteSpace(req.BuyerUbn) ? "B2B" : "B2C"),
             kv("BuyerName",      req.BuyerName),
             kv("PrintFlag",      "Y"),
             kv("TaxType",        "1"),              // 應稅
@@ -110,7 +112,7 @@ public sealed class EzPayInvoiceService : IInvoiceService
         };
 
         if (!string.IsNullOrEmpty(req.BuyerEmail)) p.Add(kv("BuyerEmail", req.BuyerEmail));
-        if (!string.IsNullOrEmpty(req.BuyerUbn))   p.Add(kv("BuyerUbn",   req.BuyerUbn));
+        if (!string.IsNullOrWhiteSpace(req.BuyerUbn)) p.Add(kv("BuyerUbn", req.BuyerUbn.Trim()));
 
         // 載具 / 捐贈
         if (req.Type == InvoiceType.Donation && !string.IsNullOrEmpty(req.LoveCode))

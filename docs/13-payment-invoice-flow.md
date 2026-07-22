@@ -139,6 +139,9 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 > | 折讓 | `allowance_issue`（**非** `invoice/allowance`）| `1.3`（**非** 1.0）| 請求帶 `InvoiceNo`；另須帶 `ItemTaxAmt`、`Status` |
 >
 > 另：B2B（三聯式）`BuyerName` 須帶**公司抬頭**（`Orders.companytitle`），非會員姓名。前台結帳後不自動開票，多半即上述端點/版本錯誤所致；可查 App Insights 中 `PaymentCompletionService` 的 Warning/Error。
+>
+> ⚠️ **B2B 統編校驗（2026-07 修）**：ezPay `Category` 由**是否有統編**決定（`EzPayInvoiceService` 對 `BuyerUbn` 一律用 `IsNullOrWhiteSpace` 判斷，B2B 才帶 `BuyerUbn` 並 `Trim()`），避免空字串/空白被判成 B2B 卻無統編、被 ezPay 以「統編沒有」拒絕。
+> `IssueInvoiceAsync` 另加**前置校驗**：`invoicetype=3` 但 `companynumber` 為空 → 直接回 `Error.Validation`（「此訂單為三聯式發票，但缺少統一編號…」），不再靜默降級成二聯。舊資料中有一批三聯式訂單 `companynumber` 為 NULL（前台結帳未存到統編），後台補開會被此校驗擋下，須先於「編輯訂單」補填統編。後台詳情頁亦以 `triplicateMissingUbn` 提示並禁用「補開發票」鈕。
 
 ## 冪等與失敗處理
 

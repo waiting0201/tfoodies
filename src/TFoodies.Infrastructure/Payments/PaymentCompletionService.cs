@@ -161,6 +161,12 @@ JOIN Orders o2 ON o2.orderid=od.orderid WHERE o2.ordercode=@orderCode;",
         if (order.freight > 0)
             items.Add(new InvoiceItem("運費", 1, "次", order.freight, order.freight));
 
+        // 三聯式(B2B)必須帶統一編號。缺統編時提前擋下並回明確訊息，避免送出 Category=B2B 卻無 BuyerUbn
+        // 被 ezPay 以「統編沒有」拒絕，或靜默降級成二聯。後台需先於訂單編輯補填統編後再開立。
+        var buyerUbn = order.companynumber?.Trim();
+        if (order.invoicetype == (int)InvoiceType.Triplicate && string.IsNullOrEmpty(buyerUbn))
+            return Result.Failure(Error.Validation("此訂單為三聯式發票，但缺少統一編號，請先編輯訂單補填統編後再開立。"));
+
         // B2B（三聯式）買受人名稱須帶公司抬頭；其餘（二聯/捐贈）帶會員姓名。
         var buyerName = order.invoicetype == (int)InvoiceType.Triplicate && !string.IsNullOrWhiteSpace(order.companytitle)
             ? order.companytitle!.Trim()
@@ -172,7 +178,7 @@ JOIN Orders o2 ON o2.orderid=od.orderid WHERE o2.ordercode=@orderCode;",
             BuyerName: buyerName,
             TotalAmt: totalAmt,
             Items: items,
-            BuyerUbn: order.companynumber,
+            BuyerUbn: string.IsNullOrEmpty(buyerUbn) ? null : buyerUbn,
             BuyerEmail: order.memberEmail,
             LoveCode: order.lovecode);
 
