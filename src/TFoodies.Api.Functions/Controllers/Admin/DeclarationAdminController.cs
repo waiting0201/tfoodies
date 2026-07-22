@@ -51,7 +51,8 @@ ORDER BY d.declarationdate DESC, d.createdate DESC");
         using var conn = await _db.CreateOpenConnectionAsync(ctx.Request.HttpContext.RequestAborted);
         var rows = await conn.QueryAsync(@"
 SELECT o.orderid AS orderId, o.ordercode AS orderCode, o.orderdate AS orderDate,
-       m.name AS memberName, o.recivername AS receiverName, o.total
+       m.name AS memberName, o.recivername AS receiverName,
+       o.total, ISNULL(o.freight,0) AS freight, ISNULL(o.discount,0) AS discount
 FROM Orders o
 JOIN Members m ON m.memberid = o.memberid
 WHERE o.isdeclaration = 1

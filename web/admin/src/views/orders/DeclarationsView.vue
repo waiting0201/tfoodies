@@ -19,7 +19,9 @@ interface DeclarableOrder {
   orderDate: string
   memberName: string
   receiverName: string
-  total: number
+  total: number      // 商品小計（不含運費/折扣）
+  freight: number
+  discount: number
 }
 
 // ─── state ────────────────────────────────────────────────────────────────────
@@ -153,7 +155,7 @@ onMounted(() => {
               <td>{{ fmtDate(o.orderDate) }}</td>
               <td>{{ o.memberName || '—' }}</td>
               <td>{{ o.receiverName || '—' }}</td>
-              <td>{{ fmtMoney(o.total) }}</td>
+              <td>{{ fmtMoney(o.total + o.freight - o.discount) }}</td>
             </tr>
             <tr v-if="declarables.length === 0">
               <td colspan="5" class="empty-cell">目前沒有待報關訂單</td>
