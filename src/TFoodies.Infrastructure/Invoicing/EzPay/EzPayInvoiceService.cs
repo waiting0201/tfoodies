@@ -85,6 +85,11 @@ public sealed class EzPayInvoiceService : IInvoiceService
             // Category 與 BuyerUBN 須一致：有統編才算 B2B，否則 B2C（同開立 BuildIssueParams）。
             kv("Category",        !string.IsNullOrWhiteSpace(buyerUbn) ? "B2B" : "B2C"),
             kv("BuyerName",       buyerName),
+            // 稅額欄位比照開立（BuildIssueParams）：應稅 5%，Amt=稅前、TaxAmt=稅額、TotalAmt=含稅。
+            kv("TaxType",         "1"),
+            kv("TaxRate",         "5"),
+            kv("Amt",             TaxExcl(totalAmt).ToString()),
+            kv("TaxAmt",          TaxAmount(totalAmt).ToString()),
             kv("TotalAmt",        totalAmt.ToString()),
             kv("InvalidReason",   reason),
         };
