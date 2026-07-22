@@ -81,12 +81,17 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY", dp);
         using var conn = await _db.CreateOpenConnectionAsync(ctx.Request.HttpContext.RequestAborted);
 
         var invoice = await conn.QuerySingleOrDefaultAsync<InvoiceRow>(
-            "SELECT invoiceid, invoicecode FROM Invoices WHERE invoiceid = @invoiceId",
+            @"SELECT i.invoiceid, i.invoicecode, o.ordercode
+              FROM Invoices i LEFT JOIN Orders o ON o.invoicecode = i.invoicecode
+              WHERE i.invoiceid = @invoiceId",
             new { invoiceId });
         if (invoice is null) return ctx.NotFound("找不到發票");
+        if (string.IsNullOrWhiteSpace(invoice.ordercode))
+            return ctx.UnprocessableEntity("此發票查無對應訂單編號，無法作廢（ezPay 需帶 MerchantOrderNo）。");
 
         // VoidAsync exists on IInvoiceService — call it first, then mark status=2
-        var voidResult = await _invoices.VoidAsync(invoice.invoicecode, reason,
+        // ezPay 作廢須帶開立當時的 MerchantOrderNo（= 訂單編號），否則回「資料不齊全MerchantOrderNo」。
+        var voidResult = await _invoices.VoidAsync(invoice.invoicecode, invoice.ordercode!, reason,
             ctx.Request.HttpContext.RequestAborted);
 
         if (!voidResult.IsSuccess)
@@ -116,9 +121,13 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY", dp);
         using var conn = await _db.CreateOpenConnectionAsync(ctx.Request.HttpContext.RequestAborted);
 
         var invoice = await conn.QuerySingleOrDefaultAsync<InvoiceRow>(
-            "SELECT invoiceid, invoicecode FROM Invoices WHERE invoiceid = @invoiceId",
+            @"SELECT i.invoiceid, i.invoicecode, o.ordercode
+              FROM Invoices i LEFT JOIN Orders o ON o.invoicecode = i.invoicecode
+              WHERE i.invoiceid = @invoiceId",
             new { invoiceId });
         if (invoice is null) return ctx.NotFound("找不到發票");
+        if (string.IsNullOrWhiteSpace(invoice.ordercode))
+            return ctx.UnprocessableEntity("此發票查無對應訂單編號，無法折讓（ezPay 需帶 MerchantOrderNo）。");
 
         // Build a minimal AllowanceRequest — caller may pass partial amount
         int totalAmt = amount ?? await conn.ExecuteScalarAsync<int>(
@@ -127,9 +136,10 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY", dp);
               WHERE id2.invoiceid = @invoiceId",
             new { invoiceId });
 
+        // MerchantOrderNo 須為開立當時的訂單編號（Orders.ordercode），非發票號。
         var allowanceReq = new global::TFoodies.Application.Abstractions.AllowanceRequest(
             InvoiceNo: invoice.invoicecode,
-            MerchantOrderNo: invoice.invoicecode,
+            MerchantOrderNo: invoice.ordercode!,
             TotalAmt: totalAmt,
             Items: new[]
             {
@@ -159,7 +169,7 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY", dp);
 
     // ── Row / DTO types ───────────────────────────────────────────────────────────
 
-    private sealed record InvoiceRow(Guid invoiceid, string invoicecode);
+    private sealed record InvoiceRow(Guid invoiceid, string invoicecode, string? ordercode);
     private sealed record VoidRequest(string? Reason);
     private sealed record AllowanceRequest(int? Amount, string? Reason);
 }

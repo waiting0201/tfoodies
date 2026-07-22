@@ -270,7 +270,7 @@ VALUES (NEWID(), @invoiceId, @accountingId, @orderid, @price, @tax, @note)",
 
         // ezPay 加密/HTTP 例外（如未設定金鑰）轉為 Result.Failure，讓端點回乾淨訊息而非 500。
         Result<InvoiceResult> result;
-        try { result = await _invoices.VoidAsync(order.invoicecode!, reason, ct); }
+        try { result = await _invoices.VoidAsync(order.invoicecode!, orderCode, reason, ct); }
         catch (Exception ex) { return Result.Failure(new Error("ezpay", ex.Message)); }
 
         if (!result.IsSuccess) return Result.Failure(result.Error);

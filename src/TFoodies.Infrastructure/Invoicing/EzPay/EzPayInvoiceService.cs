@@ -68,15 +68,17 @@ public sealed class EzPayInvoiceService : IInvoiceService
     // ── VoidAsync ─────────────────────────────────────────────────────────────────
 
     public async Task<Result<InvoiceResult>> VoidAsync(
-        string invoiceNumber, string reason, CancellationToken ct = default)
+        string invoiceNumber, string merchantOrderNo, string reason, CancellationToken ct = default)
     {
         var inner = new List<KeyValuePair<string, string>>
         {
-            kv("RespondType",   "JSON"),
-            kv("Version",       "1.0"),            // 作廢發票固定帶 1.0（EZP_INVI_1.2.2 §五-(一)）
-            kv("TimeStamp",     DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
-            kv("InvoiceNumber", invoiceNumber),    // 作廢 API 參數名為 InvoiceNumber（非 InvoiceNo）
-            kv("InvalidReason", reason),
+            kv("RespondType",    "JSON"),
+            kv("Version",        "1.0"),            // 作廢發票固定帶 1.0（EZP_INVI_1.2.2 §五-(一)）
+            kv("TimeStamp",      DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
+            kv("InvoiceNumber",  invoiceNumber),    // 作廢 API 參數名為 InvoiceNumber（非 InvoiceNo）
+            // ezPay 作廢須同時帶開立當時的 MerchantOrderNo（= 訂單編號），否則回「資料不齊全MerchantOrderNo」。
+            kv("MerchantOrderNo", merchantOrderNo),
+            kv("InvalidReason",  reason),
         };
 
         return await CallAsync("invoice_invalid", inner, ct);   // EZP_INVI_1.2.2 §五-(一) 串接網址：/Api/invoice_invalid
