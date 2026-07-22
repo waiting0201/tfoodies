@@ -154,9 +154,19 @@ JOIN Orders o2 ON o2.orderid=od.orderid WHERE o2.ordercode=@orderCode;",
 
         var totalAmt = order.total + order.freight - order.discount;
 
-        var items = lines
-            .Select(l => new InvoiceItem(l.title, l.qty, "份", l.price, l.subtotal))
-            .ToList();
+        // ezPay 逐項校驗 ItemAmt == ItemPrice × ItemCount（否則回「請檢查商品資訊第N項金額小計」）。
+        // 但管理員議價單的 od.subtotal 可能不等於 price×qty（單價被談過、未記 discount 旗標）。
+        // 比照舊系統（AjaxController）：主項帶 price×qty，差額另拆一條調整明細，確保每項小計自洽、
+        // 且明細加總仍等於實付金額。
+        var items = new List<InvoiceItem>();
+        foreach (var l in lines)
+        {
+            var gross = l.price * l.qty;
+            items.Add(new InvoiceItem(l.title, l.qty, "份", l.price, gross));
+            var adjust = l.subtotal - gross;
+            if (adjust != 0)
+                items.Add(new InvoiceItem($"{l.title} 折扣調整", 1, "式", adjust, adjust));
+        }
 
         if (order.freight > 0)
             items.Add(new InvoiceItem("運費", 1, "次", order.freight, order.freight));
