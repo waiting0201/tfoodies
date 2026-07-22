@@ -13,7 +13,9 @@ interface OrderRow {
   orderId: string
   orderCode: string
   orderDate: string
-  total: number
+  total: number      // 商品小計（不含運費/折扣）
+  freight: number
+  discount: number
   payStatus: number
   deliverStatus: number
 }
@@ -83,7 +85,7 @@ const nf = new Intl.NumberFormat('zh-TW')
             >
               <td class="code ac">{{ order.orderCode }}</td>
               <td class="ac">{{ order.orderDate }}</td>
-              <td class="ar">NT$ {{ nf.format(order.total) }}</td>
+              <td class="ar">NT$ {{ nf.format(order.total + order.freight - order.discount) }}</td>
               <td class="ac"><span class="pill">{{ deliverStatusLabels[order.deliverStatus] ?? '—' }}</span></td>
               <td class="ac"><span class="pill">{{ payStatusLabels[order.payStatus] ?? '—' }}</span></td>
             </tr>

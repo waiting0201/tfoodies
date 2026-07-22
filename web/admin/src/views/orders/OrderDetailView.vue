@@ -467,6 +467,10 @@ onMounted(load)
             </tr>
           </tbody>
           <tfoot>
+            <tr class="odetail__subtotal-row">
+              <td colspan="4" class="odetail__subtotal-label">商品小計</td>
+              <td>NT$ {{ order.total.toLocaleString() }}</td>
+            </tr>
             <tr v-if="order.discount > 0" class="odetail__subtotal-row">
               <td colspan="4" class="odetail__subtotal-label">折扣</td>
               <td class="odetail__discount-amount">－NT$ {{ order.discount.toLocaleString() }}</td>
@@ -477,7 +481,7 @@ onMounted(load)
             </tr>
             <tr class="odetail__total-row">
               <td colspan="4" class="odetail__total-label">總計</td>
-              <td class="odetail__total-amount">NT$ {{ order.total.toLocaleString() }}</td>
+              <td class="odetail__total-amount">NT$ {{ (order.total + (order.shippingFee ?? 0) - order.discount).toLocaleString() }}</td>
             </tr>
           </tfoot>
         </table>

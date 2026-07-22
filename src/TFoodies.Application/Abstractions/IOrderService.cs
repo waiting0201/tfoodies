@@ -98,4 +98,4 @@ public sealed record OrderLineItem(
 
 public sealed record OrderListItem(
     Guid OrderId, string OrderCode, DateOnly OrderDate,
-    int Total, PayStatus PayStatus, DeliverStatus DeliverStatus);
+    int Total, int Freight, int Discount, PayStatus PayStatus, DeliverStatus DeliverStatus);

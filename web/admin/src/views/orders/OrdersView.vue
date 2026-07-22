@@ -300,7 +300,7 @@ onMounted(load)
                   <div>{{ o.receiverName }}</div>
                   <div class="orders__sub orders__sub--addr">{{ o.receiverAddress }}</div>
                 </td>
-                <td class="orders__amount">NT$ {{ o.total.toLocaleString() }}</td>
+                <td class="orders__amount">NT$ {{ (o.total + o.freight - o.discount).toLocaleString() }}</td>
                 <td>
                   <span :class="['orders__badge', `orders__badge--pay-${o.payStatus}`]">
                     {{ payLabel(o.payStatus) }}

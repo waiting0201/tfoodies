@@ -92,7 +92,10 @@ public sealed class OrderService : IOrderService
                 discountId = discResult.Value.DiscountId;
             }
 
-            var total = subtotal + freight - discountAmount;
+            // 應付總額（= 商品小計 + 運費 − 折扣）：供 ATM 虛擬帳號金額與回傳用。
+            // ⚠️ DB 的 Orders.total 欄位語意 = 純商品小計（對齊舊系統），運費/折扣不併入，
+            // 由各消費端（發票/FISC/入帳/會計）自行 total + freight − discount 還原應付。
+            var payable = subtotal + freight - discountAmount;
 
             // 6. 訂單號碼
             var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(8));
@@ -105,7 +108,7 @@ public sealed class OrderService : IOrderService
             {
                 var atmExpDate = today.AddDays(_settings.AtmExpiryDays);
                 var atmSeq = await NextAtmSeqAsync(conn, tx, atmExpDate);
-                atmCode = BuildAtmCode(_settings.AtmPrefix, atmExpDate, atmSeq, total);
+                atmCode = BuildAtmCode(_settings.AtmPrefix, atmExpDate, atmSeq, payable);
                 atmExpiry = atmExpDate;
             }
 
@@ -160,7 +163,7 @@ INSERT INTO Orders (
                     recivertime = req.ReceiverTime,
                     freight,
                     discount = discountAmount > 0 ? (int?)discountAmount : null,
-                    total,
+                    total = subtotal, // 商品小計（不含運費/折扣）— 見上方 payable 註解
                     paytype = (int)req.PayType,
                     paystatus = payStatus,
                     deliverstatus = (int)DeliverStatus.NotShipped,
@@ -218,7 +221,8 @@ VALUES (NEWID(), @orderdetailid, @warehousestockid, @qty, @createdate)",
                 _ => "other",
             };
 
-            return new PlaceOrderResult(orderCode, payTypeKey, atmCode, atmExpiry, total, freight, discountAmount);
+            // Total = 商品小計（消費端如訂單通知信自行 + freight − discount 還原應付）。
+            return new PlaceOrderResult(orderCode, payTypeKey, atmCode, atmExpiry, subtotal, freight, discountAmount);
         }
         catch
         {
@@ -290,7 +294,9 @@ WHERE o2.ordercode = @orderCode;",
         using var multi = await conn.QueryMultipleAsync(@"
 SELECT COUNT(1) FROM Orders WHERE memberid = @memberId;
 
-SELECT orderid, ordercode, orderdate, total, paystatus, deliverstatus
+SELECT orderid, ordercode, orderdate, total,
+       ISNULL(freight,0) AS freight, ISNULL(discount,0) AS discount,
+       paystatus, deliverstatus
 FROM Orders
 WHERE memberid = @memberId
 ORDER BY createdate DESC
@@ -300,7 +306,7 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;",
         var total = await multi.ReadSingleAsync<int>();
         var items = (await multi.ReadAsync<OrderListRow>())
             .Select(r => new OrderListItem(r.orderid, r.ordercode, r.orderdate,
-                r.total, (PayStatus)r.paystatus, (DeliverStatus)r.deliverstatus))
+                r.total, r.freight, r.discount, (PayStatus)r.paystatus, (DeliverStatus)r.deliverstatus))
             .ToList();
 
         return (items, total);
@@ -466,5 +472,5 @@ OUTPUT INSERTED.code;",
         string? capacity, int isgift);
     private sealed record OrderListRow(
         Guid orderid, string ordercode, DateOnly orderdate,
-        int total, int paystatus, int deliverstatus);
+        int total, int freight, int discount, int paystatus, int deliverstatus);
 }

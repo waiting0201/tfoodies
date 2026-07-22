@@ -291,7 +291,9 @@ async function handleSubmit() {
     remark: form.remark || null,
     freight: computedShippingFee.value,
     discount: form.discount || 0,
-    total: grandTotal.value,
+    // Orders.total 語意 = 純商品小計（不含運費/折扣），對齊舊系統；
+    // 應付總額由消費端（發票/FISC/入帳）自行 total + freight − discount 還原。
+    total: itemSubtotal.value,
     items: orderItems.value.map(i => ({
       productId: i.productId,
       qty: i.qty,

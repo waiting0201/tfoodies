@@ -295,7 +295,8 @@ async function handleSubmit() {
     loveCode:        form.invoiceType === 2 ? form.loveCode      || null : null,
     freight:         form.freight,
     discount:        form.discount,
-    total:           grandTotal.value,
+    // Orders.total 語意 = 純商品小計（不含運費/折扣），對齊舊系統。
+    total:           itemSubtotal.value,
     note:            form.note    || null,
     remark:          form.remark  || null,
     items: items.value.map(i => ({
