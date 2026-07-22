@@ -260,18 +260,30 @@ VALUES (NEWID(), @invoiceId, @accountingId, @orderid, @price, @tax, @note)",
     {
         using var conn = (SqlConnection)await _db.CreateOpenConnectionAsync(ct);
 
-        var order = await conn.QuerySingleOrDefaultAsync<VoidOrderRow>(
-            "SELECT orderid, invoicestatus, invoicecode FROM Orders WHERE ordercode=@orderCode",
+        var order = await conn.QuerySingleOrDefaultAsync<VoidOrderRow>(@"
+SELECT o.orderid, o.invoicestatus, o.invoicecode, o.invoicetype,
+       o.companytitle, o.companynumber, o.total, o.freight, ISNULL(o.discount,0) AS discount,
+       m.name AS memberName
+FROM Orders o JOIN Members m ON m.memberid=o.memberid
+WHERE o.ordercode=@orderCode",
             new { orderCode });
 
         if (order is null) return Result.Failure(Error.NotFound("訂單"));
         if (order.invoicestatus != (int)InvoiceStatus.Issued || string.IsNullOrWhiteSpace(order.invoicecode))
             return Result.Failure(Error.Validation("僅已開立的發票可作廢"));
 
-        // 作廢比照舊系統只需 InvoiceNumber + InvalidReason（RespondType=String，見 EzPayInvoiceService.VoidAsync）。
+        // ezPay 已收緊作廢驗證：須帶與「開立當時」一致的 MerchantOrderNo/BuyerName/Category/TotalAmt
+        // （B2B 帶公司抬頭＋統編，其餘帶會員姓名）。TotalAmt = 商品小計 + 運費 − 折扣（同開立）。
+        var buyerUbn = order.companynumber?.Trim();
+        var buyerName = order.invoicetype == (int)InvoiceType.Triplicate && !string.IsNullOrWhiteSpace(order.companytitle)
+            ? order.companytitle!.Trim()
+            : order.memberName;
+        var totalAmt = order.total + order.freight - order.discount;
+
         // ezPay 加密/HTTP 例外（如未設定金鑰）轉為 Result.Failure，讓端點回乾淨訊息而非 500。
         Result<InvoiceResult> result;
-        try { result = await _invoices.VoidAsync(order.invoicecode!, reason, ct); }
+        try { result = await _invoices.VoidAsync(order.invoicecode!, orderCode, buyerName,
+                  string.IsNullOrEmpty(buyerUbn) ? null : buyerUbn, totalAmt, reason, ct); }
         catch (Exception ex) { return Result.Failure(new Error("ezpay", ex.Message)); }
 
         if (!result.IsSuccess) return Result.Failure(result.Error);
@@ -407,5 +419,8 @@ VALUES (NEWID(), @invoiceId, @accountingId, @orderid, @price, @tax, @note)",
 
     private sealed record InvoiceLineRow(string title, int qty, int price, int subtotal);
 
-    private sealed record VoidOrderRow(Guid orderid, int invoicestatus, string? invoicecode);
+    private sealed record VoidOrderRow(
+        Guid orderid, int invoicestatus, string? invoicecode, int invoicetype,
+        string? companytitle, string? companynumber, int total, int freight, int discount,
+        string memberName);
 }

@@ -68,23 +68,30 @@ public sealed class EzPayInvoiceService : IInvoiceService
     // ── VoidAsync ─────────────────────────────────────────────────────────────────
 
     public async Task<Result<InvoiceResult>> VoidAsync(
-        string invoiceNumber, string reason, CancellationToken ct = default)
+        string invoiceNumber, string merchantOrderNo, string buyerName, string? buyerUbn,
+        int totalAmt, string reason, CancellationToken ct = default)
     {
-        // ⚠️ 比照舊系統 AjaxController/CancelInv：作廢只送 InvoiceNumber + InvalidReason（外加
-        //    RespondType/Version/TimeStamp），且 RespondType 用 "String"（非 JSON）。
-        //    實測此 ezPay 帳號在 RespondType=JSON 時會對 invoice_invalid 套用「開立」等級的嚴格驗證，
-        //    逐一索取 MerchantOrderNo/BuyerName/Category…；改回 String（舊系統多年可用的請求）即免。
+        // ⚠️ 此 ezPay 帳號已把 invoice_invalid 收緊為「開立(issue)等級」驗證（與 RespondType 無關，
+        //    String/JSON 皆然）：除 InvoiceNumber 外，須帶開立當時的 MerchantOrderNo（= 訂單編號）、
+        //    BuyerName、Category、TotalAmt（B2B 再帶 BuyerUBN），否則逐一回「資料不齊全XXX」。
+        //    舊系統 AjaxController/CancelInv 當年只送 InvoiceNumber+InvalidReason 可作廢，ezPay 近年收緊。
         var inner = new List<KeyValuePair<string, string>>
         {
-            kv("RespondType",   "String"),
-            kv("Version",       "1.0"),            // 作廢發票固定帶 1.0（EZP_INVI_1.2.2 §五-(一)）
-            kv("TimeStamp",     DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
-            kv("InvoiceNumber", invoiceNumber),    // 作廢 API 參數名為 InvoiceNumber（非 InvoiceNo）
-            kv("InvalidReason", reason),
+            kv("RespondType",     "JSON"),
+            kv("Version",         "1.0"),            // 作廢發票固定帶 1.0（EZP_INVI_1.2.2 §五-(一)）
+            kv("TimeStamp",       DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
+            kv("InvoiceNumber",   invoiceNumber),    // 作廢 API 參數名為 InvoiceNumber（非 InvoiceNo）
+            kv("MerchantOrderNo", merchantOrderNo),
+            // Category 與 BuyerUBN 須一致：有統編才算 B2B，否則 B2C（同開立 BuildIssueParams）。
+            kv("Category",        !string.IsNullOrWhiteSpace(buyerUbn) ? "B2B" : "B2C"),
+            kv("BuyerName",       buyerName),
+            kv("TotalAmt",        totalAmt.ToString()),
+            kv("InvalidReason",   reason),
         };
+        // B2B 統編大小寫敏感，須為 BuyerUBN（全大寫，同開立）。
+        if (!string.IsNullOrWhiteSpace(buyerUbn)) inner.Add(kv("BuyerUBN", buyerUbn.Trim()));
 
-        // RespondType=String → 回應為 query-string（非 JSON），以 jsonResponse:false 解析。
-        return await CallAsync("invoice_invalid", inner, ct, jsonResponse: false);   // EZP_INVI_1.2.2 §五-(一) 串接網址：/Api/invoice_invalid
+        return await CallAsync("invoice_invalid", inner, ct);   // EZP_INVI_1.2.2 §五-(一) 串接網址：/Api/invoice_invalid
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -141,8 +148,7 @@ public sealed class EzPayInvoiceService : IInvoiceService
     }
 
     private async Task<Result<InvoiceResult>> CallAsync(
-        string endpoint, IEnumerable<KeyValuePair<string, string>> inner, CancellationToken ct,
-        bool jsonResponse = true)
+        string endpoint, IEnumerable<KeyValuePair<string, string>> inner, CancellationToken ct)
     {
         var postData = _codec.BuildPostData(inner);
 
@@ -160,20 +166,6 @@ public sealed class EzPayInvoiceService : IInvoiceService
                 return new Error("EZPAY_HTTP", $"HTTP {(int)resp.StatusCode}");
 
             var raw = await resp.Content.ReadAsStringAsync(ct);
-
-            // RespondType=String（如作廢）→ 回應為 query-string（同舊系統 ParseQueryString）；
-            // 只需 Status/Message 判定成敗（作廢不需 Result 內容）。
-            if (!jsonResponse)
-            {
-                var q = ParseQueryString(raw);
-                var qStatus = q.GetValueOrDefault("Status", "");
-                var qMessage = q.GetValueOrDefault("Message", "");
-                if (qStatus != "SUCCESS")
-                    return new Error("EZPAY_DECLINED", string.IsNullOrEmpty(qMessage) ? raw : qMessage);
-                return new InvoiceResult(Success: true, Status: qStatus, Message: qMessage,
-                    InvoiceNumber: null, InvoiceTransNo: null, RandomNum: null, AllowanceNo: null, CheckCode: null);
-            }
-
             var doc = JsonDocument.Parse(raw).RootElement;
 
             var status = doc.GetProperty("Status").GetString() ?? "";
@@ -200,22 +192,6 @@ public sealed class EzPayInvoiceService : IInvoiceService
         {
             return new Error("EZPAY_ERROR", ex.Message);
         }
-    }
-
-    // ezPay RespondType=String 的回應是 application/x-www-form-urlencoded 的 query-string
-    // （如 Status=SUCCESS&Message=%E4%BD%9C%E5%BB%A2%E6%88%90%E5%8A%9F）。
-    private static Dictionary<string, string> ParseQueryString(string s)
-    {
-        var d = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var pair in s.Split('&', StringSplitOptions.RemoveEmptyEntries))
-        {
-            var idx = pair.IndexOf('=');
-            if (idx < 0) { d[Uri.UnescapeDataString(pair)] = ""; continue; }
-            var k = Uri.UnescapeDataString(pair[..idx]);
-            var v = Uri.UnescapeDataString(pair[(idx + 1)..].Replace('+', ' '));
-            d[k] = v;
-        }
-        return d;
     }
 
     // 台灣 5% VAT：含稅 price → 稅前金額（同舊系統 round(price/1.05)）
