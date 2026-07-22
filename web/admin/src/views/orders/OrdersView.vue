@@ -102,7 +102,7 @@ function goToOrder(code: string) {
   router.push(`/admin/orders/${code}`)
 }
 
-const PAY_LABELS: Record<number, string> = { 0: '未付款', 1: '已付款' }
+const PAY_LABELS: Record<number, string> = { 0: '未付款', 1: '已付款', 2: '退款', 3: '免付款', 4: '取消' }
 const DELIVER_LABELS: Record<number, string> = { 0: '未出貨', 1: '已出貨', 3: '已取消', 4: '待出貨' }
 
 function payLabel(s: number) { return PAY_LABELS[s] ?? `${s}` }
@@ -302,7 +302,7 @@ onMounted(load)
                 </td>
                 <td class="orders__amount">NT$ {{ o.total.toLocaleString() }}</td>
                 <td>
-                  <span :class="['orders__badge', o.payStatus === 1 ? 'orders__badge--paid' : 'orders__badge--unpaid']">
+                  <span :class="['orders__badge', `orders__badge--pay-${o.payStatus}`]">
                     {{ payLabel(o.payStatus) }}
                   </span>
                 </td>
@@ -574,8 +574,11 @@ onMounted(load)
   white-space: nowrap;
 }
 
-.orders__badge--paid     { background: #d4edda; color: #155724; }
-.orders__badge--unpaid   { background: #fff3cd; color: #856404; }
+.orders__badge--pay-0 { background: #fff3cd; color: #856404; } /* 未付款 */
+.orders__badge--pay-1 { background: #d4edda; color: #155724; } /* 已付款 */
+.orders__badge--pay-2 { background: #f8d7da; color: #721c24; } /* 退款 */
+.orders__badge--pay-3 { background: #e2e3e5; color: #383d41; } /* 免付款 */
+.orders__badge--pay-4 { background: #e2e3e5; color: #6c757d; } /* 取消 */
 .orders__badge--deliver-0 { background: #e2e3e5; color: #383d41; }
 .orders__badge--deliver-4 { background: #cce5ff; color: #004085; }
 .orders__badge--deliver-1 { background: #d4edda; color: #155724; }
