@@ -95,7 +95,17 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY", dp);
 
         // ezPay 已收緊作廢驗證：須帶開立當時的 MerchantOrderNo/BuyerName/Category/TotalAmt（B2B 再帶 BuyerUBN）。
         var (voidBuyerName, voidBuyerUbn) = InvoiceBuyer(invoice);
-        var voidResult = await _invoices.VoidAsync(invoice.invoicecode, invoice.ordercode!,
+        // MerchantOrderNo 須為「開立當時」用的號：取此發票在該訂單的開立序（依 createdate），
+        // 用與開立相同的規則還原（見 PaymentCompletionService.MerchantOrderNoFor）。
+        var ordinal = await conn.ExecuteScalarAsync<int>(
+            @"SELECT COUNT(DISTINCT i.invoiceid) FROM Invoices i
+              JOIN Invoicedetails d ON d.invoiceid = i.invoiceid
+              WHERE d.orderid = (SELECT TOP 1 d0.orderid FROM Invoicedetails d0 WHERE d0.invoiceid = @invoiceId)
+                AND i.createdate <= (SELECT createdate FROM Invoices WHERE invoiceid = @invoiceId)",
+            new { invoiceId });
+        var voidMerchantOrderNo = TFoodies.Infrastructure.Payments.PaymentCompletionService
+            .MerchantOrderNoFor(invoice.ordercode!, ordinal);
+        var voidResult = await _invoices.VoidAsync(invoice.invoicecode, voidMerchantOrderNo,
             voidBuyerName, voidBuyerUbn, invoice.total + invoice.freight - invoice.discount, reason,
             ctx.Request.HttpContext.RequestAborted);
 

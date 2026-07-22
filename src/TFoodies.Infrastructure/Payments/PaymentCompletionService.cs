@@ -122,6 +122,14 @@ VALUES (@incomeId, @memberid, @incomeCode, @now, @amount, 0, @note, @now)",
     // 舊系統銷貨收入會計科目（DB seed，沿用同一 Guid）。
     private static readonly Guid SalesAccountingId = new("f6cfd53f-13ca-4843-881f-141b579b4a5b");
 
+    /// <summary>
+    /// 依「該訂單第 ordinal 次開立發票」推導送 ezPay 的 MerchantOrderNo：
+    /// 首開(ordinal=1)用 orderCode；重開(ordinal≥2)用 orderCode+"R"+(ordinal-1)。
+    /// ezPay 不允許 MerchantOrderNo 重複（即使前一張已作廢），故重開須換號；作廢時以相同規則還原。
+    /// </summary>
+    public static string MerchantOrderNoFor(string orderCode, int ordinal)
+        => ordinal <= 1 ? orderCode : $"{orderCode}R{ordinal - 1}";
+
     public async Task<Result> IssueInvoiceAsync(string orderCode, Guid? incomeId = null, CancellationToken ct = default)
     {
         using var conn = (SqlConnection)await _db.CreateOpenConnectionAsync(ct);
@@ -182,8 +190,17 @@ JOIN Orders o2 ON o2.orderid=od.orderid WHERE o2.ordercode=@orderCode;",
             ? order.companytitle!.Trim()
             : order.memberName;
 
+        // 作廢後重開需唯一的 MerchantOrderNo（ezPay 不允許重複，即使前一張已作廢）。
+        // 首開用 orderCode；第 N 次開立(N≥2)用 orderCode+"R"+(N-1)。純英數後綴，避開 ezPay 特殊字元限制。
+        // 作廢時以「該發票在此訂單的開立序」用相同規則還原（見 MerchantOrderNoFor）。
+        var priorIssues = await conn.ExecuteScalarAsync<int>(
+            @"SELECT COUNT(DISTINCT i.invoiceid) FROM Invoices i
+              JOIN Invoicedetails d ON d.invoiceid = i.invoiceid WHERE d.orderid = @orderid",
+            new { orderid = order.orderid });
+        var merchantOrderNo = MerchantOrderNoFor(orderCode, priorIssues + 1);
+
         var request = new InvoiceRequest(
-            MerchantOrderNo: orderCode,
+            MerchantOrderNo: merchantOrderNo,
             Type: (InvoiceType)order.invoicetype,
             BuyerName: buyerName,
             TotalAmt: totalAmt,
@@ -280,9 +297,19 @@ WHERE o.ordercode=@orderCode",
             : order.memberName;
         var totalAmt = order.total + order.freight - order.discount;
 
+        // MerchantOrderNo 須為「開立當時」用的號。作廢的是目前有效發票(Orders.invoicecode)，
+        // 取它在此訂單的開立序（依 createdate），用同一規則還原（見 MerchantOrderNoFor）。
+        var ordinal = await conn.ExecuteScalarAsync<int>(
+            @"SELECT COUNT(DISTINCT i.invoiceid) FROM Invoices i
+              JOIN Invoicedetails d ON d.invoiceid = i.invoiceid
+              WHERE d.orderid = @orderid
+                AND i.createdate <= (SELECT MIN(i2.createdate) FROM Invoices i2 WHERE i2.invoicecode = @invoicecode)",
+            new { orderid = order.orderid, invoicecode = order.invoicecode });
+        var merchantOrderNo = MerchantOrderNoFor(orderCode, ordinal);
+
         // ezPay 加密/HTTP 例外（如未設定金鑰）轉為 Result.Failure，讓端點回乾淨訊息而非 500。
         Result<InvoiceResult> result;
-        try { result = await _invoices.VoidAsync(order.invoicecode!, orderCode, buyerName,
+        try { result = await _invoices.VoidAsync(order.invoicecode!, merchantOrderNo, buyerName,
                   string.IsNullOrEmpty(buyerUbn) ? null : buyerUbn, totalAmt, reason, ct); }
         catch (Exception ex) { return Result.Failure(new Error("ezpay", ex.Message)); }
 

@@ -120,6 +120,8 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 
 > **與舊系統差異**：舊系統作廢後設 `invoicestatus=0`＋`invoicecode=null`（重置為未開）；新系統設 `status=2`（明確「已作廢」終態，符合本檔發票管理小節規範），改由「放寬 `IssueInvoiceAsync` 允許從 status=2 重開」達成同等的「作廢→重開」能力。作廢原因由使用者輸入（舊系統硬寫「退貨」）。
 >
+> ⚠️ **重開的 `MerchantOrderNo` 不可重複（2026-07-23 修）**：ezPay 不允許同一 `MerchantOrderNo` 重複開立（**即使前一張已作廢**），故作廢後重開不能再用原 `orderCode`。新系統以「該訂單第 N 次開立」推導：**首開＝`orderCode`，第 N 次(N≥2)＝`orderCode`+`R`+(N-1)**（純英數後綴，避開 ezPay 特殊字元限制），規則見 `PaymentCompletionService.MerchantOrderNoFor`。開立時 N = 現有 `Invoices` 筆數＋1；**作廢時**須送「開立當時那個號」，故取該發票在此訂單的開立序（依 `Invoices.createdate`）用同規則還原—兩端一致（測試 `MerchantOrderNoTests`）。⚠️ 不改存於 `Invoices.note`（該欄是使用者可見/可編輯的發票備註），改用**開立序推導**、無需新欄位、與既有資料相容。
+>
 > ⚠️ **`/admin/invoices` 列表顯示限制**：發票狀態存於 `Orders.invoicestatus`（DB schema 唯讀，`Invoices` 表無 status 欄位）。同一訂單作廢後重開會在 `Invoices` 留兩筆（舊作廢號＋新號），但兩筆 join 同一 `Orders` 都顯示最新狀態，故**舊作廢發票號在列表會顯示為新狀態**而非「已作廢」。如需逐張發票精確狀態，須以 ezPay 後台為準。
 
 ## 電子發票（ezPay）管理
