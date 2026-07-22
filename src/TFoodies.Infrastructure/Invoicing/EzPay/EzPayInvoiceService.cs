@@ -112,7 +112,9 @@ public sealed class EzPayInvoiceService : IInvoiceService
         };
 
         if (!string.IsNullOrEmpty(req.BuyerEmail)) p.Add(kv("BuyerEmail", req.BuyerEmail));
-        if (!string.IsNullOrWhiteSpace(req.BuyerUbn)) p.Add(kv("BuyerUbn", req.BuyerUbn.Trim()));
+        // ⚠️ ezPay 參數名大小寫敏感，統編欄位為 BuyerUBN（全大寫，同舊系統 AjaxController）。
+        // 曾誤植為 BuyerUbn，導致 ezPay 收不到統編、卻因 Category=B2B 而回「買受人統編不可為空白」。
+        if (!string.IsNullOrWhiteSpace(req.BuyerUbn)) p.Add(kv("BuyerUBN", req.BuyerUbn.Trim()));
 
         // 載具 / 捐贈
         if (req.Type == InvoiceType.Donation && !string.IsNullOrEmpty(req.LoveCode))

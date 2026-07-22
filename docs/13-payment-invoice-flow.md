@@ -141,7 +141,9 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 > 另：B2B（三聯式）`BuyerName` 須帶**公司抬頭**（`Orders.companytitle`），非會員姓名。前台結帳後不自動開票，多半即上述端點/版本錯誤所致；可查 App Insights 中 `PaymentCompletionService` 的 Warning/Error。
 >
 > ⚠️ **B2B 統編校驗（2026-07 修）**：ezPay `Category` 由**是否有統編**決定（`EzPayInvoiceService` 對 `BuyerUbn` 一律用 `IsNullOrWhiteSpace` 判斷，B2B 才帶 `BuyerUbn` 並 `Trim()`），避免空字串/空白被判成 B2B 卻無統編、被 ezPay 以「統編沒有」拒絕。
-> `IssueInvoiceAsync` 另加**前置校驗**：`invoicetype=3` 但 `companynumber` 為空 → 直接回 `Error.Validation`（「此訂單為三聯式發票，但缺少統一編號…」），不再靜默降級成二聯。舊資料中有一批三聯式訂單 `companynumber` 為 NULL（前台結帳未存到統編），後台補開會被此校驗擋下，須先於「編輯訂單」補填統編。後台詳情頁亦以 `triplicateMissingUbn` 提示並禁用「補開發票」鈕。
+> `IssueInvoiceAsync` 另加**前置校驗**：`invoicetype=3` 但 `companynumber` 為空 → 直接回 `Error.Validation`（「此訂單為三聯式發票，但缺少統一編號…」），不再靜默降級成二聯。舊資料中有一批三聯式訂單 `companynumber` 為 NULL（多為舊系統誤標，抬頭亦缺），後台補開會被此校驗擋下，須先於「編輯訂單」補填統編或改回二聯式。後台詳情頁亦以 `triplicateMissingUbn` 提示並禁用「補開發票」鈕。
+>
+> 🐞 **BuyerUBN 參數名大小寫 bug（2026-07-22 修）**：ezPay 參數名**大小寫敏感**，統編欄位須為 `BuyerUBN`（全大寫，同舊系統 `AjaxController`）。新系統一度誤植為 `BuyerUbn`，ezPay 收不到統編、卻因 `Category=B2B` 有送而回「**B2B 類別的發票，買受人統編不可為空白**」（HTTP 422 `UNPROCESSABLE_ENTITY`）。症狀：即使訂單統編/抬頭齊全（如 `O20260722002` 統編 83150659）仍開不出 B2B，且新系統從未成功開過任何 B2B 發票（既有已開 B2B 皆舊系統開立）。修正僅改 `EzPayInvoiceService` 送出的 key 名；**須重新部署 tfoodies-api 才生效**。
 
 ## 冪等與失敗處理
 
