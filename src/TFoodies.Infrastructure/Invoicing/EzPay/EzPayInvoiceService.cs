@@ -78,9 +78,11 @@ public sealed class EzPayInvoiceService : IInvoiceService
             kv("TimeStamp",       DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
             kv("InvoiceNumber",   invoiceNumber),    // 作廢 API 參數名為 InvoiceNumber（非 InvoiceNo）
             // ⚠️ 此 ezPay 帳號的作廢驗證比手冊嚴，除 InvoiceNumber 外還須帶開立當時的
-            //    MerchantOrderNo（= 訂單編號）與 BuyerName（B2B 再帶 BuyerUBN），
-            //    否則逐一回「資料不齊全MerchantOrderNo / BuyerName」。
+            //    MerchantOrderNo（= 訂單編號）、BuyerName、Category（B2B 再帶 BuyerUBN），
+            //    否則逐一回「資料不齊全MerchantOrderNo / BuyerName / Category」。
             kv("MerchantOrderNo", merchantOrderNo),
+            // Category 與 BuyerUBN 須一致：有統編才算 B2B，否則 B2C（同開立 BuildIssueParams）。
+            kv("Category",        !string.IsNullOrWhiteSpace(buyerUbn) ? "B2B" : "B2C"),
             kv("BuyerName",       buyerName),
             kv("InvalidReason",   reason),
         };
