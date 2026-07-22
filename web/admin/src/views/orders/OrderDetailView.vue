@@ -11,6 +11,7 @@ interface OrderItem {
   photo: string | null
   qty: number
   unitPrice: number
+  discount: number | null   // 折數（如 8 = 八折）；null = 未折扣
   subtotal: number
   isGift: boolean
 }
@@ -218,6 +219,17 @@ function formatDate(s?: string | null) {
   return new Date(s).toLocaleString('zh-TW')
 }
 
+// 只顯示日期（不含時間），用於訂單日期。
+function formatDateOnly(s?: string | null) {
+  if (!s) return '—'
+  return new Date(s).toLocaleDateString('zh-TW')
+}
+
+// 折數(1–9) → 「8 折 (80%)」；未折扣顯示 —。
+function itemDiscountLabel(d: number | null): string {
+  return (d != null && d > 0 && d < 10) ? `${d} 折 (${d * 10}%)` : '—'
+}
+
 onMounted(load)
 </script>
 
@@ -251,7 +263,7 @@ onMounted(load)
               </div>
               <div class="odetail__field">
                 <span class="odetail__label">訂單日期</span>
-                <span class="odetail__value">{{ formatDate(order.orderDate) }}</span>
+                <span class="odetail__value">{{ formatDateOnly(order.orderDate) }}</span>
               </div>
               <div class="odetail__field">
                 <span class="odetail__label">建立時間</span>
@@ -438,6 +450,7 @@ onMounted(load)
               <th>商品名稱</th>
               <th>單價</th>
               <th>數量</th>
+              <th>折扣</th>
               <th>小計</th>
             </tr>
           </thead>
@@ -449,20 +462,21 @@ onMounted(load)
               </td>
               <td>NT$ {{ item.unitPrice.toLocaleString() }}</td>
               <td>{{ item.qty }}</td>
+              <td>{{ itemDiscountLabel(item.discount) }}</td>
               <td>NT$ {{ item.subtotal.toLocaleString() }}</td>
             </tr>
           </tbody>
           <tfoot>
             <tr v-if="order.discount > 0" class="odetail__subtotal-row">
-              <td colspan="3" class="odetail__subtotal-label">折扣</td>
+              <td colspan="4" class="odetail__subtotal-label">折扣</td>
               <td class="odetail__discount-amount">－NT$ {{ order.discount.toLocaleString() }}</td>
             </tr>
             <tr class="odetail__subtotal-row">
-              <td colspan="3" class="odetail__subtotal-label">運費</td>
+              <td colspan="4" class="odetail__subtotal-label">運費</td>
               <td>NT$ {{ (order.shippingFee ?? 0).toLocaleString() }}</td>
             </tr>
             <tr class="odetail__total-row">
-              <td colspan="3" class="odetail__total-label">總計</td>
+              <td colspan="4" class="odetail__total-label">總計</td>
               <td class="odetail__total-amount">NT$ {{ order.total.toLocaleString() }}</td>
             </tr>
           </tfoot>

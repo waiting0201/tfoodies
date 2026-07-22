@@ -243,6 +243,12 @@ function recalcItem(item: EditItem) {
     : item.unitPrice * item.qty
 }
 
+// 折數(1–9) → 付款百分比顯示標籤（8 折 = 80%）；非有效折數則不顯示。
+function discountPct(item: EditItem): string {
+  const d = item.discount
+  return (d != null && d > 0 && d < 10) ? `${d * 10}%` : ''
+}
+
 // ── 合計計算 ──────────────────────────────────────────────────────
 
 const itemSubtotal = computed(() =>
@@ -465,6 +471,7 @@ onMounted(() => { loadRefData(); load() })
                       class="oedit__qty-input"
                       @input="recalcItem(item)"
                     />
+                    <span v-if="discountPct(item)" class="oedit__discount-pct">= {{ discountPct(item) }}</span>
                   </span>
                   <span class="oedit__col-sub">
                     <input v-model.number="item.subtotal" type="number" min="0" class="oedit__qty-input oedit__sub-input" />
@@ -897,6 +904,8 @@ onMounted(() => { loadRefData(); load() })
 .oedit__col-qty .oedit__qty-input,
 .oedit__col-discount .oedit__qty-input,
 .oedit__col-sub .oedit__qty-input { width: 100%; }
+.oedit__col-discount { display: flex; flex-direction: column; gap: 0.15rem; }
+.oedit__discount-pct { font-size: 0.7rem; color: var(--tf-color-muted); text-align: center; }
 .oedit__sub-input { text-align: right; }
 .oedit__col-action { display: flex; justify-content: flex-end; }
 
