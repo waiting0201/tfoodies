@@ -81,22 +81,12 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY", dp);
         using var conn = await _db.CreateOpenConnectionAsync(ctx.Request.HttpContext.RequestAborted);
 
         var invoice = await conn.QuerySingleOrDefaultAsync<InvoiceRow>(
-            @"SELECT i.invoiceid, i.invoicecode, o.ordercode, o.invoicetype,
-                     o.companytitle, o.companynumber, m.name AS membername
-              FROM Invoices i
-              LEFT JOIN Orders o ON o.invoicecode = i.invoicecode
-              LEFT JOIN Members m ON m.memberid = o.memberid
-              WHERE i.invoiceid = @invoiceId",
+            "SELECT invoiceid, invoicecode FROM Invoices WHERE invoiceid = @invoiceId",
             new { invoiceId });
         if (invoice is null) return ctx.NotFound("找不到發票");
-        if (string.IsNullOrWhiteSpace(invoice.ordercode))
-            return ctx.UnprocessableEntity("此發票查無對應訂單編號，無法作廢（ezPay 需帶 MerchantOrderNo）。");
 
-        // ezPay 作廢須帶開立當時的 MerchantOrderNo（= 訂單編號）與 BuyerName（B2B 再帶 BuyerUBN），
-        // 否則逐一回「資料不齊全MerchantOrderNo / BuyerName」。
-        var (voidBuyerName, voidBuyerUbn) = InvoiceBuyer(invoice);
-        var voidResult = await _invoices.VoidAsync(invoice.invoicecode, invoice.ordercode!,
-            voidBuyerName, voidBuyerUbn, reason,
+        // 作廢比照舊系統只需 InvoiceNumber + InvalidReason（RespondType=String，見 EzPayInvoiceService.VoidAsync）。
+        var voidResult = await _invoices.VoidAsync(invoice.invoicecode, reason,
             ctx.Request.HttpContext.RequestAborted);
 
         if (!voidResult.IsSuccess)
@@ -126,11 +116,8 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY", dp);
         using var conn = await _db.CreateOpenConnectionAsync(ctx.Request.HttpContext.RequestAborted);
 
         var invoice = await conn.QuerySingleOrDefaultAsync<InvoiceRow>(
-            @"SELECT i.invoiceid, i.invoicecode, o.ordercode, o.invoicetype,
-                     o.companytitle, o.companynumber, m.name AS membername
-              FROM Invoices i
-              LEFT JOIN Orders o ON o.invoicecode = i.invoicecode
-              LEFT JOIN Members m ON m.memberid = o.memberid
+            @"SELECT i.invoiceid, i.invoicecode, o.ordercode
+              FROM Invoices i LEFT JOIN Orders o ON o.invoicecode = i.invoicecode
               WHERE i.invoiceid = @invoiceId",
             new { invoiceId });
         if (invoice is null) return ctx.NotFound("找不到發票");
@@ -177,19 +164,8 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY", dp);
 
     // ── Row / DTO types ───────────────────────────────────────────────────────────
 
-    private sealed record InvoiceRow(
-        Guid invoiceid, string invoicecode, string? ordercode, int invoicetype,
-        string? companytitle, string? companynumber, string? membername);
-
-    // 作廢/折讓須帶與開立當時一致的買受人：B2B（三聯式）帶公司抬頭＋統編，其餘帶會員姓名。
-    private static (string buyerName, string? buyerUbn) InvoiceBuyer(InvoiceRow inv)
-    {
-        var ubn = inv.companynumber?.Trim();
-        var name = inv.invoicetype == (int)InvoiceType.Triplicate && !string.IsNullOrWhiteSpace(inv.companytitle)
-            ? inv.companytitle!.Trim()
-            : (inv.membername ?? string.Empty);
-        return (name, string.IsNullOrEmpty(ubn) ? null : ubn);
-    }
+    // 折讓需帶 ordercode 當 MerchantOrderNo（作廢走 String 模式不需要，ordercode 留 null 即可）。
+    private sealed record InvoiceRow(Guid invoiceid, string invoicecode, string? ordercode = null);
     private sealed record VoidRequest(string? Reason);
     private sealed record AllowanceRequest(int? Amount, string? Reason);
 }

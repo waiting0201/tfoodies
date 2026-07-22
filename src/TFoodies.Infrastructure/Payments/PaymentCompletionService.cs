@@ -260,27 +260,18 @@ VALUES (NEWID(), @invoiceId, @accountingId, @orderid, @price, @tax, @note)",
     {
         using var conn = (SqlConnection)await _db.CreateOpenConnectionAsync(ct);
 
-        var order = await conn.QuerySingleOrDefaultAsync<VoidOrderRow>(@"
-SELECT o.orderid, o.invoicestatus, o.invoicecode, o.invoicetype,
-       o.companytitle, o.companynumber, m.name AS memberName
-FROM Orders o JOIN Members m ON m.memberid=o.memberid
-WHERE o.ordercode=@orderCode",
+        var order = await conn.QuerySingleOrDefaultAsync<VoidOrderRow>(
+            "SELECT orderid, invoicestatus, invoicecode FROM Orders WHERE ordercode=@orderCode",
             new { orderCode });
 
         if (order is null) return Result.Failure(Error.NotFound("訂單"));
         if (order.invoicestatus != (int)InvoiceStatus.Issued || string.IsNullOrWhiteSpace(order.invoicecode))
             return Result.Failure(Error.Validation("僅已開立的發票可作廢"));
 
-        // 作廢須帶與「開立當時」一致的買受人資料（B2B 帶公司抬頭＋統編，其餘帶會員姓名）。
-        var buyerUbn = order.companynumber?.Trim();
-        var buyerName = order.invoicetype == (int)InvoiceType.Triplicate && !string.IsNullOrWhiteSpace(order.companytitle)
-            ? order.companytitle!.Trim()
-            : order.memberName;
-
+        // 作廢比照舊系統只需 InvoiceNumber + InvalidReason（RespondType=String，見 EzPayInvoiceService.VoidAsync）。
         // ezPay 加密/HTTP 例外（如未設定金鑰）轉為 Result.Failure，讓端點回乾淨訊息而非 500。
         Result<InvoiceResult> result;
-        try { result = await _invoices.VoidAsync(order.invoicecode!, orderCode, buyerName,
-                  string.IsNullOrEmpty(buyerUbn) ? null : buyerUbn, reason, ct); }
+        try { result = await _invoices.VoidAsync(order.invoicecode!, reason, ct); }
         catch (Exception ex) { return Result.Failure(new Error("ezpay", ex.Message)); }
 
         if (!result.IsSuccess) return Result.Failure(result.Error);
@@ -416,7 +407,5 @@ WHERE o.ordercode=@orderCode",
 
     private sealed record InvoiceLineRow(string title, int qty, int price, int subtotal);
 
-    private sealed record VoidOrderRow(
-        Guid orderid, int invoicestatus, string? invoicecode, int invoicetype,
-        string? companytitle, string? companynumber, string memberName);
+    private sealed record VoidOrderRow(Guid orderid, int invoicestatus, string? invoicecode);
 }

@@ -16,7 +16,7 @@ public interface IInvoiceService
     Task<Result<InvoiceResult>> AllowanceAsync(AllowanceRequest request, CancellationToken ct = default);
 
     /// <summary>作廢發票 (full void / wrong issue).</summary>
-    Task<Result<InvoiceResult>> VoidAsync(string invoiceNumber, string merchantOrderNo, string buyerName, string? buyerUbn, string reason, CancellationToken ct = default);
+    Task<Result<InvoiceResult>> VoidAsync(string invoiceNumber, string reason, CancellationToken ct = default);
 }
 
 /// <summary>ezPay Status: 1 即時開立 / 0 等待觸發 / 3 預約自動.</summary>
