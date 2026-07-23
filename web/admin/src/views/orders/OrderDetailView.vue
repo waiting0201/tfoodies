@@ -60,6 +60,7 @@ const loading = ref(false)
 const error = ref('')
 const actionBusy = ref(false)
 const actionError = ref('')
+const actionSuccess = ref('')
 
 const showShipModal = ref(false)
 const shipTracking = ref('')
@@ -184,9 +185,13 @@ async function handleCharge() {
 async function handleIssueInvoice() {
   actionBusy.value = true
   actionError.value = ''
+  actionSuccess.value = ''
   try {
     await apiFetch(`/admin/orders/${code}/invoice`, { method: 'POST' })
     await load()
+    actionSuccess.value = order.value?.invoiceCode
+      ? `已開立電子發票，發票號碼 ${order.value.invoiceCode}。`
+      : '已開立電子發票。'
   } catch (e) {
     actionError.value = (e as ApiError).problem?.detail ?? (e as Error).message ?? '開立發票失敗'
   } finally {
@@ -197,16 +202,19 @@ async function handleIssueInvoice() {
 // 作廢電子發票（退貨/開錯）。作廢後狀態轉「已作廢」，可再按「重新開立發票」以新號重開。
 async function handleVoidInvoice() {
   if (!order.value) return
-  const reason = prompt(`作廢發票 ${order.value.invoiceCode}？\n請輸入作廢原因：`, '退貨')
+  const voidedCode = order.value.invoiceCode
+  const reason = prompt(`作廢發票 ${voidedCode}？\n請輸入作廢原因：`, '退貨')
   if (reason === null) return
   actionBusy.value = true
   actionError.value = ''
+  actionSuccess.value = ''
   try {
     await apiFetch(`/admin/orders/${code}/invoice/void`, {
       method: 'POST',
       body: JSON.stringify({ reason: reason.trim() || '退貨' }),
     })
     await load()
+    actionSuccess.value = `發票 ${voidedCode} 已作廢，發票號碼已清除。如需重新開立，請按「重新開立發票」。`
   } catch (e) {
     actionError.value = (e as ApiError).problem?.detail ?? (e as Error).message ?? '作廢發票失敗'
   } finally {
@@ -387,8 +395,9 @@ onMounted(load)
             </div>
           </div>
 
-          <!-- Action error -->
+          <!-- Action error / success -->
           <p v-if="actionError" class="odetail__error">{{ actionError }}</p>
+          <p v-if="actionSuccess" class="odetail__success">{{ actionSuccess }}</p>
 
           <!-- Action buttons -->
           <div class="odetail__actions">
@@ -750,6 +759,7 @@ onMounted(load)
 .odetail__btn--accent:hover:not(:disabled) { opacity: 0.85; }
 
 .odetail__error { color: #dc3545; margin-bottom: 0.75rem; }
+.odetail__success { color: #157347; background: #d1e7dd; border: 1px solid #a3cfbb; border-radius: 6px; padding: 0.6rem 0.9rem; margin-bottom: 0.75rem; font-size: 0.9rem; }
 .odetail__hint { font-size: 0.8rem; margin: 0.25rem 0 0; grid-column: 1 / -1; }
 .odetail__hint--warn { color: #b8860b; }
 .odetail__muted { color: var(--tf-color-muted); }

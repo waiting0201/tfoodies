@@ -296,8 +296,10 @@ VALUES (NEWID(), @invoiceId, @accountingId, @orderid, @price, @tax, @note)",
             return Result.Failure(new Error("ezpay", result.Value?.Message ?? "ezPay 作廢失敗"));
 
         // 冪等護欄：只有仍為「已開」時才標記作廢，避免重複觸發。
+        // 一併清除 Orders.invoicecode（比照舊系統 CancelInv）：作廢後、重新開立前，訂單不再掛已作廢的發票號；
+        // 稽核仍保留在 Invoices 表。重新開立時 IssueInvoiceAsync 會寫入新號。
         await conn.ExecuteAsync(
-            "UPDATE Orders SET invoicestatus=2 WHERE ordercode=@orderCode AND invoicestatus=1",
+            "UPDATE Orders SET invoicestatus=2, invoicecode=NULL WHERE ordercode=@orderCode AND invoicestatus=1",
             new { orderCode });
 
         return Result.Success();

@@ -39,7 +39,9 @@ public sealed class InvoiceAdminController
         var pageSize = Math.Clamp(int.TryParse(q["pageSize"], out var sz) ? sz : 20, 1, 100);
         var offset = (page - 1) * pageSize;
 
-        var where = status.HasValue ? "o.invoicestatus = @status" : "1=1";
+        // 作廢會清除 Orders.invoicecode，使已作廢/已換號的發票 join 不到訂單；此時視為「作廢(2)」。
+        // 故狀態以 COALESCE(o.invoicestatus, 2) 呈現與篩選（join 得到＝當前狀態；join 不到＝作廢）。
+        var where = status.HasValue ? "COALESCE(o.invoicestatus, 2) = @status" : "1=1";
 
         using var conn = await _db.CreateOpenConnectionAsync(ctx.Request.HttpContext.RequestAborted);
 
@@ -56,7 +58,8 @@ WHERE {where}", countParams);
         dp.Add("pageSize", pageSize);
 
         var items = await conn.QueryAsync($@"
-SELECT i.invoiceid, i.invoicecode, i.createdate AS invoiceDate, m.name AS memberName, o.invoicestatus
+SELECT i.invoiceid, i.invoicecode, i.createdate AS invoiceDate, m.name AS memberName,
+       COALESCE(o.invoicestatus, 2) AS invoicestatus
 FROM Invoices i
 JOIN Members m ON m.memberid = i.memberid
 LEFT JOIN Orders o ON o.invoicecode = i.invoicecode
@@ -94,8 +97,9 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY", dp);
             return ctx.UnprocessableEntity($"作廢發票失敗：{voidResult.Error.Message}");
         }
 
+        // 作廢後清除 Orders.invoicecode（比照舊系統）：重新開立前訂單不再掛已作廢的號，稽核留在 Invoices。
         await conn.ExecuteAsync(
-            "UPDATE Orders SET invoicestatus = 2 WHERE invoicecode = @code",
+            "UPDATE Orders SET invoicestatus = 2, invoicecode = NULL WHERE invoicecode = @code",
             new { code = invoice.invoicecode });
 
         return ctx.Ok(new { invoiceCode = invoice.invoicecode, invoiceStatus = 2 });

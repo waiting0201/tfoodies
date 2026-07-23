@@ -109,8 +109,9 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
  └─「作廢發票」按鈕 → POST /invoice/void（prompt 輸入原因，預設「退貨」）
        → VoidInvoiceAsync：僅 status=1 才作廢（冪等護欄）
          ├─ ezPay invoice_invalid（InvoiceNumber＋InvalidReason）
-         └─ UPDATE Orders invoicestatus=2（不刪本地 Invoices，保留稽核）
-   ▼ status=2（已作廢）
+         └─ UPDATE Orders invoicestatus=2, invoicecode=NULL（清除訂單上的發票號；本地 Invoices 保留稽核）
+   ▼ status=2（已作廢，訂單發票號已清空）→ 前端顯示成功訊息
+ └─（重開前）訂單詳情「發票號碼」顯示「—」
  └─「重新開立發票」按鈕 → POST /invoice → IssueInvoiceAsync
        → 前置放寬：允許 status∈{0,2}；冪等護欄 WHERE invoicestatus IN (0,2)
          → ezPay 重開取得**新發票號** → UPDATE Orders invoicestatus=1, invoicecode=新號
@@ -118,11 +119,13 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
    ▼ status=1（已開，新號）
 ```
 
-> **與舊系統差異**：舊系統作廢後設 `invoicestatus=0`＋`invoicecode=null`（重置為未開）；新系統設 `status=2`（明確「已作廢」終態，符合本檔發票管理小節規範），改由「放寬 `IssueInvoiceAsync` 允許從 status=2 重開」達成同等的「作廢→重開」能力。作廢原因由使用者輸入（舊系統硬寫「退貨」）。
+> **與舊系統差異**：舊系統作廢後設 `invoicestatus=0`＋`invoicecode=null`（重置為未開）；新系統設 `status=2`（明確「已作廢」終態）**並同樣清除 `invoicecode`（2026-07-23）**，改由「放寬 `IssueInvoiceAsync` 允許從 status=2 重開」達成「作廢→重開」。作廢成功前端顯示綠色成功訊息（`actionSuccess`），詳情「發票號碼」在重開前顯示「—」。作廢原因由使用者輸入（舊系統硬寫「退貨」）。
+>
+> **`/admin/invoices` 列表狀態（2026-07-23 改善）**：因作廢會清 `Orders.invoicecode`，已作廢/已換號的 `Invoices` 列會 join 不到訂單；列表改以 `COALESCE(o.invoicestatus, 2)` 呈現與篩選（join 得到＝當前狀態；join 不到＝作廢(2)），修正了先前「舊作廢號顯示為新狀態」的 quirk。
 >
 > ⚠️ **重開的 `MerchantOrderNo` 不可重複（2026-07-23 修）**：ezPay 不允許同一 `MerchantOrderNo` 重複開立（**即使前一張已作廢**），故作廢後重開不能再用原 `orderCode`。新系統以「該訂單第 N 次開立」推導：**首開＝`orderCode`，第 N 次(N≥2)＝`orderCode`+`R`+(N-1)**（純英數後綴，避開 ezPay 特殊字元限制），規則見 `PaymentCompletionService.MerchantOrderNoFor`。開立時 N = 現有 `Invoices` 筆數＋1；**作廢時**須送「開立當時那個號」，故取該發票在此訂單的開立序（依 `Invoices.createdate`）用同規則還原—兩端一致（測試 `MerchantOrderNoTests`）。⚠️ 不改存於 `Invoices.note`（該欄是使用者可見/可編輯的發票備註），改用**開立序推導**、無需新欄位、與既有資料相容。
 >
-> ⚠️ **`/admin/invoices` 列表顯示限制**：發票狀態存於 `Orders.invoicestatus`（DB schema 唯讀，`Invoices` 表無 status 欄位）。同一訂單作廢後重開會在 `Invoices` 留兩筆（舊作廢號＋新號），但兩筆 join 同一 `Orders` 都顯示最新狀態，故**舊作廢發票號在列表會顯示為新狀態**而非「已作廢」。如需逐張發票精確狀態，須以 ezPay 後台為準。
+> ℹ️ **`/admin/invoices` 列表狀態**：發票狀態存於 `Orders.invoicestatus`（DB schema 唯讀，`Invoices` 表無 status 欄位），列表以 `invoicecode` join 訂單取得。自 2026-07-23 作廢會清 `Orders.invoicecode`，故同一訂單作廢後重開留下的兩筆（舊作廢號＋新號）中，**舊號 join 不到訂單 → `COALESCE` 顯示為「作廢(2)」，新號 join 得到 → 顯示當前狀態**，兩筆狀態各自正確（先前 quirk 已解）。如需逐張發票最精確狀態，仍以 ezPay 後台為準。
 
 ## 電子發票（ezPay）管理
 
