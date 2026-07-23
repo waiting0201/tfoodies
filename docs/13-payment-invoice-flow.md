@@ -132,6 +132,8 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 - 後台發票管理 `/admin/invoices`：列表、作廢（`VoidAsync`→invoicestatus=2）、折讓（`AllowanceAsync`→invoicestatus=3），讀本地 `Invoices`/`Invoicedetails`。
 - 時機：付款完成**當下自動即時開立**；失敗留「未開」，後台補開。
 
+> 🐞 **`EzPay__BaseUrl` 只能是 base（`https://inv.ezpay.com.tw/API`），不可含端點（2026-07-23 修）**：`CallAsync` 以 `BaseUrl + "/" + endpoint` 組網址。曾把 `EzPay__BaseUrl` 誤設為 `https://inv.ezpay.com.tw/API/invoice_issue`（開立完整端點），使**每個呼叫都變成 `.../API/invoice_issue/<endpoint>`，被 ezPay 依 `/invoice_issue` 路由到「開立」端點**——症狀是**作廢/折讓一直被當成開立驗證**，逐一索取 `MerchantOrderNo/BuyerName/Category/TaxType/PrintFlag/Item…`（先前為此逐項補欄位其實都在治錯路由的症狀）。修正：**設定改回 base**（`vars.EzPay__BaseUrl` 或 Function App app setting = `https://inv.ezpay.com.tw/API`）；並加程式防呆 `EzPayInvoiceService.NormalizeBaseUrl`（BaseUrl 誤含端點名時自動剝除，測試 `EzPayBaseUrlTests`），即使設定沒改也會導到正確端點。
+>
 > ⚠️ **ezPay 串接端點與 `Version` 必須精確比照手冊 EZP_INVI_1.2.2（與舊系統實證一致），否則 API 直接拒絕、整條開票靜默失敗（付款仍完成、發票留未開）**：
 >
 > | API | 端點（接於 `BaseUrl=…/Api`）| `Version` | 發票號參數 |

@@ -173,7 +173,7 @@ public sealed class EzPayInvoiceService : IInvoiceService
 
         try
         {
-            var url = $"{_opts.BaseUrl.TrimEnd('/')}/{endpoint}";
+            var url = $"{NormalizeBaseUrl(_opts.BaseUrl)}/{endpoint}";
             var resp = await _http.PostAsync(url, form, ct);
             if (!resp.IsSuccessStatusCode)
                 return new Error("EZPAY_HTTP", $"HTTP {(int)resp.StatusCode}");
@@ -205,6 +205,23 @@ public sealed class EzPayInvoiceService : IInvoiceService
         {
             return new Error("EZPAY_ERROR", ex.Message);
         }
+    }
+
+    // ezPay 各 API 共用 base（如 https://inv.ezpay.com.tw/API），端點名由 CallAsync 附加。
+    // ⚠️ 防呆：若設定的 BaseUrl 誤含端點名（曾把 EzPay__BaseUrl 設成 .../API/invoice_issue，導致
+    //    所有呼叫—含作廢—都被 ezPay 依 /invoice_issue 路由到「開立」端點），自動剝除末段端點名，
+    //    確保 issue/invalid/allowance 各自打到正確端點。
+    private static readonly string[] KnownEndpoints = { "invoice_issue", "invoice_invalid", "allowance_issue" };
+    public static string NormalizeBaseUrl(string baseUrl)
+    {
+        var b = baseUrl.TrimEnd('/');
+        foreach (var ep in KnownEndpoints)
+            if (b.EndsWith("/" + ep, StringComparison.OrdinalIgnoreCase))
+            {
+                b = b[..^(ep.Length + 1)];
+                break;
+            }
+        return b;
     }
 
     // 台灣 5% VAT：含稅 price → 稅前金額（同舊系統 round(price/1.05)）
