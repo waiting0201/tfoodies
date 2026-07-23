@@ -68,43 +68,21 @@ public sealed class EzPayInvoiceService : IInvoiceService
     // ── VoidAsync ─────────────────────────────────────────────────────────────────
 
     public async Task<Result<InvoiceResult>> VoidAsync(
-        string invoiceNumber, string merchantOrderNo, string buyerName, string? buyerUbn,
-        int totalAmt, string reason, CancellationToken ct = default)
+        string invoiceNumber, string reason, CancellationToken ct = default)
     {
-        // ⚠️ 此 ezPay 帳號已把 invoice_invalid 收緊為「開立(issue)等級」驗證（與 RespondType 無關，
-        //    String/JSON 皆然）：除 InvoiceNumber 外，須帶開立當時的 MerchantOrderNo（= 訂單編號）、
-        //    BuyerName、Category、TotalAmt（B2B 再帶 BuyerUBN），否則逐一回「資料不齊全XXX」。
-        //    舊系統 AjaxController/CancelInv 當年只送 InvoiceNumber+InvalidReason 可作廢，ezPay 近年收緊。
+        // 對齊舊系統 AjaxController/CancelInv：作廢只需 InvoiceNumber + InvalidReason
+        //（外加 RespondType/Version/TimeStamp）。此前曾誤把 BaseUrl 設成 /invoice_issue，使作廢被
+        // 路由到「開立」端點而逐一索取 issue 欄位；BaseUrl 修正＋NormalizeBaseUrl 後不再需要那些欄位。
         var inner = new List<KeyValuePair<string, string>>
         {
-            kv("RespondType",     "JSON"),
-            kv("Version",         "1.0"),            // 作廢發票固定帶 1.0（EZP_INVI_1.2.2 §五-(一)）
-            kv("TimeStamp",       DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
-            kv("InvoiceNumber",   invoiceNumber),    // 作廢 API 參數名為 InvoiceNumber（非 InvoiceNo）
-            kv("MerchantOrderNo", merchantOrderNo),
-            // Category 與 BuyerUBN 須一致：有統編才算 B2B，否則 B2C（同開立 BuildIssueParams）。
-            kv("Category",        !string.IsNullOrWhiteSpace(buyerUbn) ? "B2B" : "B2C"),
-            kv("BuyerName",       buyerName),
-            kv("PrintFlag",       "Y"),
-            // 稅額欄位比照開立（BuildIssueParams）：應稅 5%，Amt=稅前、TaxAmt=稅額、TotalAmt=含稅。
-            kv("TaxType",         "1"),
-            kv("TaxRate",         "5"),
-            kv("Amt",             TaxExcl(totalAmt).ToString()),
-            kv("TaxAmt",          TaxAmount(totalAmt).ToString()),
-            kv("TotalAmt",        totalAmt.ToString()),
-            // 商品明細：作廢不需逐項吻合，帶一條彙總列即可（同折讓 allowance）。逐項小計自洽：
-            // ItemAmt = ItemPrice × ItemCount，且 ΣItemAmt = TotalAmt。
-            kv("ItemName",        "商品一批"),
-            kv("ItemCount",       "1"),
-            kv("ItemUnit",        "式"),
-            kv("ItemPrice",       totalAmt.ToString()),
-            kv("ItemAmt",         totalAmt.ToString()),
-            kv("InvalidReason",   reason),
+            kv("RespondType",   "JSON"),
+            kv("Version",       "1.0"),            // 作廢發票固定帶 1.0（EZP_INVI_1.2.2 §五-(一)）
+            kv("TimeStamp",     DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
+            kv("InvoiceNumber", invoiceNumber),    // 作廢 API 參數名為 InvoiceNumber（非 InvoiceNo）
+            kv("InvalidReason", reason),
         };
-        // B2B 統編大小寫敏感，須為 BuyerUBN（全大寫，同開立）。
-        if (!string.IsNullOrWhiteSpace(buyerUbn)) inner.Add(kv("BuyerUBN", buyerUbn.Trim()));
 
-        return await CallAsync("invoice_invalid", inner, ct);   // EZP_INVI_1.2.2 §五-(一) 串接網址：/Api/invoice_invalid
+        return await CallAsync("invoice_invalid", inner, ct);   // EZP_INVI_1.2.2 §五-(一) 串接網址：/API/invoice_invalid
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────────

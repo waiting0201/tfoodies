@@ -139,7 +139,7 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 > | API | 端點（接於 `BaseUrl=…/Api`）| `Version` | 發票號參數 |
 > |---|---|---|---|
 > | 開立 | `invoice_issue`（**非** `invoice/issue`）| `1.5`（舊系統 1.4；**非** 1.0）| 回應讀 `InvoiceNumber` |
-> | 作廢 | `invoice_invalid`（**非** `invoice/void`）| `1.0` | 須帶 `InvoiceNumber`（**非** `InvoiceNo`）＋ `MerchantOrderNo`＋`BuyerName`＋`Category`＋`TotalAmt`（B2B 再帶 `BuyerUBN`）＋`InvalidReason` |
+> | 作廢 | `invoice_invalid`（**非** `invoice/void`）| `1.0` | 只需 `InvoiceNumber`（**非** `InvoiceNo`）＋ `InvalidReason`（同舊系統；ezPay 以發票號識別）|
 > | 折讓 | `allowance_issue`（**非** `invoice/allowance`）| `1.3`（**非** 1.0）| 請求帶 `InvoiceNo` **＋ `MerchantOrderNo`（= 訂單編號，非發票號）**；另須帶 `ItemTaxAmt`、`Status` |
 >
 > 另：B2B（三聯式）`BuyerName` 須帶**公司抬頭**（`Orders.companytitle`），非會員姓名。前台結帳後不自動開票，多半即上述端點/版本錯誤所致；可查 App Insights 中 `PaymentCompletionService` 的 Warning/Error。
@@ -151,7 +151,7 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 >
 > 🐞 **明細逐項小計校驗（2026-07-22 修）**：ezPay 逐項要求 `ItemAmt == ItemPrice × ItemCount`，否則回「**請檢查商品資訊第N項金額小計是否正確**」。管理員議價單的 `Orderdetails.subtotal` 可能不等於 `price×qty`（單價談過、未記 `discount` 旗標），原本直接把 `subtotal` 當 `ItemAmt` 送出被退。`PaymentCompletionService` 已比照舊系統 `AjaxController`：主項帶 `price×qty`，差額另拆一條負數調整明細，確保每項自洽且加總＝實付。⚠️ 訂單層折扣（折扣碼 `Orders.discount`）目前仍未拆成明細列，`Σ ItemAmt` 會比 `TotalAmt` 多出折扣額；舊系統多年如此、ezPay 容忍，惟若日後 ezPay 收緊需另補訂單層調整列。
 >
-> 🐞 **作廢須帶開立等級完整欄位（2026-07-22 修）**：此 ezPay 帳號已把 `invoice_invalid` 收緊為「**開立(issue)等級**」驗證（**與 `RespondType` 無關**，String/JSON 皆然—實測 String 模式仍回「資料不齊全MerchantOrderNo」）。除 `InvoiceNumber` 外，須帶開立當時的 **`MerchantOrderNo`（= `Orders.ordercode`）、`BuyerName`（B2B=公司抬頭、其餘=會員姓名）、`Category`、`TotalAmt`（= 商品小計＋運費−折扣），B2B 再帶 `BuyerUBN`（全大寫）**，否則逐一回「**資料不齊全XXX**」。修正：`IInvoiceService.VoidAsync(invoiceNumber, merchantOrderNo, buyerName, buyerUbn?, totalAmt, reason)`，兩呼叫端（訂單詳情頁 `PaymentCompletionService.VoidInvoiceAsync`、發票管理 `InvoiceAdminController`）皆 join `Orders`/`Members` 帶入（與開立同邏輯）。折讓（`allowance_issue`）的 `MerchantOrderNo` 亦須為 `Orders.ordercode`（非發票號）—同批修正。⚠️ 舊系統 `AjaxController/CancelInv` 當年只送 `InvoiceNumber`＋`InvalidReason` 可作廢，ezPay 近年收緊；曾試 `RespondType=String` 對齊舊系統但仍被擋，證實與模式無關。**須重新部署 tfoodies-api 才生效。**
+> 🐞 **作廢一直被當「開立」驗證 → 病根是 BaseUrl 誤含端點（2026-07-23 釐清）**：症狀是作廢逐一索取 `MerchantOrderNo/BuyerName/Category/TaxType/PrintFlag/Item…`，一度誤判為「ezPay 收緊作廢驗證」而逐項補齊、甚至試 `RespondType=String`（皆無效）。**真因**：`EzPay__BaseUrl` 被設成 `.../API/invoice_issue`，使作廢網址變 `.../invoice_issue/invoice_invalid` 被路由到**開立**端點（見上方 BaseUrl 🐞）。設定改回 base ＋ `NormalizeBaseUrl` 後，作廢正確打到 `invoice_invalid`，**請求已還原為最小集 `InvoiceNumber`＋`InvalidReason`**（同舊系統），`VoidAsync(invoiceNumber, reason)`。折讓（`allowance_issue`，走正確端點）的 `MerchantOrderNo` 須為 `Orders.ordercode`（非發票號）—此為獨立既有 bug，保留修正。
 >
 > 🐞 **`Orders.total` 語意雙重扣折扣（2026-07-22 修）**：`Orders.total` 的**權威語意 = 純商品小計**（`Σ Orderdetails.subtotal`，**不含**運費、**不含**訂單層折扣），對齊舊系統（`Cart.TotalPrice()`＋`order.total = ca.TotalPrice()`）；所有消費端一律 `應付 = total + freight − discount` 還原（發票 `TotalAmt`、FISC `purchAmt`、Income 金額、會計報表、Excel）。新系統一度在**寫入端**（store `OrderService`、admin 建單/編輯前端）把「最終金額 `subtotal+freight−discount`」直接寫進 `total`，導致消費端再減一次 → **運費多加、折扣多扣**（B2B 折扣單最明顯：折扣被扣兩次，發票 `TotalAmt = subtotal + 2×freight − 2×discount`）。因多數單免運（freight=0）、無折扣碼而長期未爆。**修正**：寫入端改回存商品小計；顯示端（admin 清單/詳情總計、store 會員清單）改算 `total + freight − discount`；消費端不動；歷史資料以冪等腳本 [`scripts/fix-orders-total-semantics.sql`](../scripts/fix-orders-total-semantics.sql)（`total ← Σ Orderdetails.subtotal`，舊單 no-op）校正。store 會員清單為此在 `GetMemberOrdersAsync`／`OrderListItem` 補帶 `freight`/`discount`。
 
