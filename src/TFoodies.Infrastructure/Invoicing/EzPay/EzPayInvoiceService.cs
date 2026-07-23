@@ -139,6 +139,10 @@ public sealed class EzPayInvoiceService : IInvoiceService
         if (req.ScheduledDate.HasValue)
             p.Add(kv("InvoiceDate", req.ScheduledDate.Value.ToString("yyyy-MM-dd")));
 
+        // 備註（ezPay Comment 上限 100 字）：如訂單有折扣，帶入折扣說明。
+        if (!string.IsNullOrWhiteSpace(req.Comment))
+            p.Add(kv("Comment", req.Comment!.Trim().Length > 100 ? req.Comment.Trim()[..100] : req.Comment.Trim()));
+
         return p;
     }
 

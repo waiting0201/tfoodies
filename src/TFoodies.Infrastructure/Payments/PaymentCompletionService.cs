@@ -199,6 +199,9 @@ JOIN Orders o2 ON o2.orderid=od.orderid WHERE o2.ordercode=@orderCode;",
             new { orderid = order.orderid });
         var merchantOrderNo = MerchantOrderNoFor(orderCode, priorIssues + 1);
 
+        // 訂單有折扣（折扣碼/人工折扣）時，於發票備註註明，讓 ezPay 發票顯示折扣資訊。
+        var comment = order.discount > 0 ? $"訂單折扣 NT${order.discount:N0}" : null;
+
         var request = new InvoiceRequest(
             MerchantOrderNo: merchantOrderNo,
             Type: (InvoiceType)order.invoicetype,
@@ -207,7 +210,8 @@ JOIN Orders o2 ON o2.orderid=od.orderid WHERE o2.ordercode=@orderCode;",
             Items: items,
             BuyerUbn: string.IsNullOrEmpty(buyerUbn) ? null : buyerUbn,
             BuyerEmail: order.memberEmail,
-            LoveCode: order.lovecode);
+            LoveCode: order.lovecode,
+            Comment: comment);
 
         // ezPay 加密/HTTP 例外（如未設定金鑰）轉為 Result.Failure，讓後台補開端點回乾淨訊息而非 500。
         Result<InvoiceResult> result;

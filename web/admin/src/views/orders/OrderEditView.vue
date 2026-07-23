@@ -235,18 +235,9 @@ function removeItem(index: number) {
   items.value.splice(index, 1)
 }
 
-// 依數量與折數重算小計（折數須 1–9，否則視為不折扣）。手動覆寫 subtotal 後不會被動更新。
+// 依單價與數量重算小計（改為直接編輯單價議價，不再用折數）。手動覆寫小計後仍可再改。
 function recalcItem(item: EditItem) {
-  const d = item.discount
-  item.subtotal = (d != null && d > 0 && d < 10)
-    ? Math.round(item.unitPrice * item.qty * d / 10)
-    : item.unitPrice * item.qty
-}
-
-// 折數(1–9) → 付款百分比顯示標籤（8 折 = 80%）；非有效折數則不顯示。
-function discountPct(item: EditItem): string {
-  const d = item.discount
-  return (d != null && d > 0 && d < 10) ? `${d * 10}%` : ''
+  item.subtotal = item.unitPrice * item.qty
 }
 
 // ── 合計計算 ──────────────────────────────────────────────────────
@@ -304,7 +295,7 @@ async function handleSubmit() {
       productId:     i.productId,
       qty:           i.qty,
       price:         i.unitPrice,
-      discount:      (i.discount != null && i.discount > 0 && i.discount < 10) ? i.discount : null,
+      discount:      null, // 改為直接編輯單價議價，不再送折數
       subtotal:      i.subtotal,
       isGift:        i.isGift,
     })),
@@ -445,7 +436,6 @@ onMounted(() => { loadRefData(); load() })
                   <span class="oedit__col-name">商品名稱</span>
                   <span class="oedit__col-price">單價</span>
                   <span class="oedit__col-qty">數量</span>
-                  <span class="oedit__col-discount">折扣</span>
                   <span class="oedit__col-sub">小計</span>
                   <span class="oedit__col-action"></span>
                 </div>
@@ -457,22 +447,11 @@ onMounted(() => { loadRefData(); load() })
                     <span class="oedit__item-name">{{ item.productName }}</span>
                     <span class="oedit__item-num">{{ item.productNum }}</span>
                   </span>
-                  <span class="oedit__col-price">NT$ {{ item.unitPrice.toLocaleString() }}</span>
+                  <span class="oedit__col-price">
+                    <input v-model.number="item.unitPrice" type="number" min="0" class="oedit__qty-input" @input="recalcItem(item)" />
+                  </span>
                   <span class="oedit__col-qty">
                     <input v-model.number="item.qty" type="number" min="1" class="oedit__qty-input" @input="recalcItem(item)" />
-                  </span>
-                  <span class="oedit__col-discount">
-                    <input
-                      v-model.number="item.discount"
-                      type="number"
-                      min="1"
-                      max="9"
-                      placeholder="—"
-                      title="折數（如 8 = 八折），空白為不折扣"
-                      class="oedit__qty-input"
-                      @input="recalcItem(item)"
-                    />
-                    <span v-if="discountPct(item)" class="oedit__discount-pct">= {{ discountPct(item) }}</span>
                   </span>
                   <span class="oedit__col-sub">
                     <input v-model.number="item.subtotal" type="number" min="0" class="oedit__qty-input oedit__sub-input" />
@@ -880,7 +859,7 @@ onMounted(() => { loadRefData(); load() })
 .oedit__items-header,
 .oedit__item-row {
   display: grid;
-  grid-template-columns: 2.5rem 1fr 6rem 4.5rem 4.5rem 7rem 4rem;
+  grid-template-columns: 2.5rem 1fr 6rem 4.5rem 7rem 4rem;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
@@ -902,11 +881,9 @@ onMounted(() => { loadRefData(); load() })
 .oedit__col-thumb { display: flex; align-items: center; justify-content: center; }
 .oedit__col-name  { display: flex; flex-direction: column; gap: 0.15rem; }
 .oedit__col-price { white-space: nowrap; }
+.oedit__col-price .oedit__qty-input,
 .oedit__col-qty .oedit__qty-input,
-.oedit__col-discount .oedit__qty-input,
 .oedit__col-sub .oedit__qty-input { width: 100%; }
-.oedit__col-discount { display: flex; flex-direction: column; gap: 0.15rem; }
-.oedit__discount-pct { font-size: 0.7rem; color: var(--tf-color-muted); text-align: center; }
 .oedit__sub-input { text-align: right; }
 .oedit__col-action { display: flex; justify-content: flex-end; }
 

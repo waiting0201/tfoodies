@@ -39,7 +39,8 @@ public sealed record InvoiceRequest(
     string? CarrierType = null,  // 0 手機條碼 / 1 自然人憑證 / 2 ezPay載具
     string? CarrierNum = null,
     string? LoveCode = null,     // 捐贈碼
-    DateOnly? ScheduledDate = null);
+    DateOnly? ScheduledDate = null,
+    string? Comment = null);     // 備註（ezPay Comment，上限 100 字）
 
 public sealed record InvoiceItem(string Name, int Count, string Unit, int Price, int Amount);
 

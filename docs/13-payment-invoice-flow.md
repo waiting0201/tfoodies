@@ -20,6 +20,7 @@ MarkPaidAsync(orderCode, lastPan4, txnRef, payDate?)
 IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 ├─ 跳過條件：invoicetype == None（免開）或 invoicestatus == Issued(1)（已開）
 │    └─ 可開立：status ∈ {未開(0), 已作廢(2)}；status=2 即「作廢後重新開立」取得新號
+├─ 若訂單有折扣(Orders.discount>0) → 帶 ezPay 發票備註 Comment「訂單折扣 NT$X」
 ├─ 呼叫 ezPay IInvoiceService.IssueAsync(Immediate) → 取得發票號
 └─ 交易內（UPDATE Orders ... WHERE invoicestatus=0 護欄）：
      UPDATE Orders(invoicestatus=已開, invoicecode=ezPay 發票號)
