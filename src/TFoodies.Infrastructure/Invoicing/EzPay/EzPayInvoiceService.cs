@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TFoodies.Application.Abstractions;
 using TFoodies.Domain.Common;
@@ -21,12 +22,15 @@ public sealed class EzPayInvoiceService : IInvoiceService
     private readonly EzPayOptions _opts;
     private readonly EzPayCodec _codec;
     private readonly HttpClient _http;
+    private readonly ILogger<EzPayInvoiceService> _logger;
 
-    public EzPayInvoiceService(IOptions<EzPayOptions> opts, EzPayCodec codec, HttpClient http)
+    public EzPayInvoiceService(IOptions<EzPayOptions> opts, EzPayCodec codec, HttpClient http,
+        ILogger<EzPayInvoiceService> logger)
     {
         _opts = opts.Value;
         _codec = codec;
         _http = http;
+        _logger = logger;
     }
 
     // ── IssueAsync ────────────────────────────────────────────────────────────────
@@ -149,18 +153,25 @@ public sealed class EzPayInvoiceService : IInvoiceService
             kv("PostData_",   postData),
         });
 
+        var url = $"{NormalizeBaseUrl(_opts.BaseUrl)}/{endpoint}";
         try
         {
-            var url = $"{NormalizeBaseUrl(_opts.BaseUrl)}/{endpoint}";
+            // 記錄實際打的完整 URL（不含機密 PostData），供 App Insights 判斷有無接對端點。
+            _logger.LogInformation("ezPay 呼叫 {Endpoint} → {Url}", endpoint, url);
+
             var resp = await _http.PostAsync(url, form, ct);
             if (!resp.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("ezPay {Endpoint} HTTP {StatusCode}（{Url}）", endpoint, (int)resp.StatusCode, url);
                 return new Error("EZPAY_HTTP", $"HTTP {(int)resp.StatusCode}");
+            }
 
             var raw = await resp.Content.ReadAsStringAsync(ct);
             var doc = JsonDocument.Parse(raw).RootElement;
 
             var status = doc.GetProperty("Status").GetString() ?? "";
             var message = doc.GetProperty("Message").GetString() ?? "";
+            _logger.LogInformation("ezPay {Endpoint} 回應 Status={Status} Message={Message}", endpoint, status, message);
 
             if (status != "SUCCESS")
                 return new Error("EZPAY_DECLINED", message);
@@ -181,6 +192,7 @@ public sealed class EzPayInvoiceService : IInvoiceService
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "ezPay {Endpoint} 呼叫例外（{Url}）", endpoint, url);
             return new Error("EZPAY_ERROR", ex.Message);
         }
     }
