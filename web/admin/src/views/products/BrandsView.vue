@@ -150,7 +150,24 @@ load()
 .font-semibold { font-weight: 600; }
 .text-muted { color: var(--tf-color-muted); font-size: 0.85rem; }
 .action-cell { white-space: nowrap; text-align: right; display: flex; gap: 0.35rem; justify-content: flex-end; }
-.thumb { width: 48px; height: 38px; object-fit: cover; border-radius: 3px; display: block; }
+/* 去背 logo 在白底列上會看不到：改用淺灰棋盤格底 + contain（不裁切） */
+.thumb {
+  width: 48px;
+  height: 38px;
+  object-fit: contain;
+  border-radius: 3px;
+  display: block;
+  padding: 2px;
+  border: 1px solid var(--tf-color-border);
+  background-color: #e5e7eb;
+  background-image:
+    linear-gradient(45deg, #cbd1d9 25%, transparent 25%),
+    linear-gradient(-45deg, #cbd1d9 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #cbd1d9 75%),
+    linear-gradient(-45deg, transparent 75%, #cbd1d9 75%);
+  background-size: 10px 10px;
+  background-position: 0 0, 0 5px, 5px -5px, -5px 0;
+}
 
 .badge { display: inline-block; padding: 0.2em 0.5em; border-radius: 3px; font-size: 0.75rem; font-weight: 600; }
 .badge--active { background: #dcfce7; color: #166534; }

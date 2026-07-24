@@ -207,7 +207,19 @@ onMounted(async () => {
 .empty-cell { text-align:center; color:var(--tf-color-muted); padding:2.5rem; }
 .action-cell { white-space:nowrap; text-align:right; display:flex; gap:0.35rem; justify-content:flex-end; }
 .url-cell { font-size:0.8rem; color:var(--tf-color-muted); word-break:break-all; }
-.thumb-lg { width:72px; height:52px; object-fit:cover; border-radius:3px; display:block; }
+/* 去背圖在白底列上看不到：淺灰棋盤格底 + contain（不裁切） */
+.thumb-lg {
+  width:72px; height:52px; object-fit:contain; border-radius:3px; display:block; padding:3px;
+  border:1px solid var(--tf-color-border);
+  background-color:#e5e7eb;
+  background-image:
+    linear-gradient(45deg, #cbd1d9 25%, transparent 25%),
+    linear-gradient(-45deg, #cbd1d9 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #cbd1d9 75%),
+    linear-gradient(-45deg, transparent 75%, #cbd1d9 75%);
+  background-size:12px 12px;
+  background-position:0 0, 0 6px, 6px -6px, -6px 0;
+}
 .input--sort { width:72px; }
 
 .form-field { display:flex; flex-direction:column; gap:0.3rem; min-width:120px; }
@@ -236,5 +248,16 @@ onMounted(async () => {
 .upload-btn.btn--loading { opacity:0.6; pointer-events:none; }
 .file-input { position:absolute; inset:0; opacity:0; cursor:pointer; font-size:0; }
 .upload-error { color:#c0392b; font-size:0.8rem; }
-.photo-preview { max-width:180px; max-height:100px; object-fit:cover; border-radius:4px; border:1px solid var(--tf-color-border); display:block; margin-top:0.5rem; }
+.photo-preview {
+  max-width:180px; max-height:100px; object-fit:contain; border-radius:4px;
+  border:1px solid var(--tf-color-border); display:block; margin-top:0.5rem; padding:4px;
+  background-color:#e5e7eb;
+  background-image:
+    linear-gradient(45deg, #cbd1d9 25%, transparent 25%),
+    linear-gradient(-45deg, #cbd1d9 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #cbd1d9 75%),
+    linear-gradient(-45deg, transparent 75%, #cbd1d9 75%);
+  background-size:12px 12px;
+  background-position:0 0, 0 6px, 6px -6px, -6px 0;
+}
 </style>

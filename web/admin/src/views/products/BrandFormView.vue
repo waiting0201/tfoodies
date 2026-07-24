@@ -336,7 +336,23 @@ async function save() {
 .img-field { display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-start; }
 .upload-btn { position: relative; overflow: hidden; cursor: pointer; }
 .file-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0; }
-.preview { max-width: 200px; max-height: 110px; object-fit: cover; border-radius: 4px; border: 1px solid var(--tf-color-border); }
+/* 去背圖在白底看不到：改用淺灰棋盤格底 + contain（完整顯示不裁切） */
+.preview {
+  max-width: 200px;
+  max-height: 110px;
+  object-fit: contain;
+  border-radius: 4px;
+  border: 1px solid var(--tf-color-border);
+  padding: 4px;
+  background-color: #e5e7eb;
+  background-image:
+    linear-gradient(45deg, #cbd1d9 25%, transparent 25%),
+    linear-gradient(-45deg, #cbd1d9 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #cbd1d9 75%),
+    linear-gradient(-45deg, transparent 75%, #cbd1d9 75%);
+  background-size: 12px 12px;
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+}
 
 .form-actions { display: flex; justify-content: flex-end; gap: 0.75rem; }
 .form-msg { padding: 0.6rem 0.9rem; border-radius: 4px; font-size: 0.875rem; margin-bottom: 1rem; }
