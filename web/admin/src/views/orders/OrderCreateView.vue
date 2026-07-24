@@ -128,10 +128,9 @@ interface OrderItem {
   productName: string
   productNum: string
   photo: string | null
-  unitPrice: number
+  unitPrice: number        // 單價可編輯（議價），預設帶入商品定價
   qty: number
-  discount: number | null  // 折數（如 8 = 八折）；空 = 不折扣。對齊舊系統
-  subtotal: number         // 折後小計，預設由 qty×單價×折數 算出，可手動覆寫
+  subtotal: number         // 小計，預設由 單價×數量 算出，可手動覆寫
 }
 
 const productKeyword = ref('')
@@ -179,7 +178,6 @@ function addProduct(p: ProductResult) {
       photo: p.photo,
       unitPrice: p.price,
       qty: 1,
-      discount: null,
       subtotal: p.price,
     })
   }
@@ -191,13 +189,9 @@ function removeItem(index: number) {
   orderItems.value.splice(index, 1)
 }
 
-// 依數量與折數重算小計（折數須 1–9，否則視為不折扣）。手動覆寫 subtotal 後不會被動更新，
-// 直到使用者再改數量或折數才重算。對齊舊系統 AddOrders 的 recountSubTotal。
+// 依單價與數量重算小計（改為直接編輯單價議價，不再用折數）。手動覆寫小計後仍可再改。
 function recalcItem(item: OrderItem) {
-  const d = item.discount
-  item.subtotal = (d != null && d > 0 && d < 10)
-    ? Math.round(item.unitPrice * item.qty * d / 10)
-    : item.unitPrice * item.qty
+  item.subtotal = item.unitPrice * item.qty
 }
 
 // ── 表單主資料 ────────────────────────────────────────────────────
@@ -298,7 +292,7 @@ async function handleSubmit() {
       productId: i.productId,
       qty: i.qty,
       price: i.unitPrice,
-      discount: (i.discount != null && i.discount > 0 && i.discount < 10) ? i.discount : null,
+      discount: null, // 改為直接編輯單價議價，不再送折數
       subtotal: i.subtotal,
       isGift: false,
     })),
@@ -481,7 +475,6 @@ async function handleSubmit() {
                 <span class="ocreate__col-name">商品名稱</span>
                 <span class="ocreate__col-price">單價</span>
                 <span class="ocreate__col-qty">數量</span>
-                <span class="ocreate__col-discount">折扣</span>
                 <span class="ocreate__col-sub">小計</span>
                 <span class="ocreate__col-action"></span>
               </div>
@@ -493,24 +486,20 @@ async function handleSubmit() {
                   <span class="ocreate__item-name">{{ item.productName }}</span>
                   <span class="ocreate__item-num">{{ item.productNum }}</span>
                 </span>
-                <span class="ocreate__col-price">NT$ {{ item.unitPrice.toLocaleString() }}</span>
+                <span class="ocreate__col-price">
+                  <input
+                    v-model.number="item.unitPrice"
+                    type="number"
+                    min="0"
+                    class="ocreate__qty-input"
+                    @input="recalcItem(item)"
+                  />
+                </span>
                 <span class="ocreate__col-qty">
                   <input
                     v-model.number="item.qty"
                     type="number"
                     min="1"
-                    class="ocreate__qty-input"
-                    @input="recalcItem(item)"
-                  />
-                </span>
-                <span class="ocreate__col-discount">
-                  <input
-                    v-model.number="item.discount"
-                    type="number"
-                    min="1"
-                    max="9"
-                    placeholder="—"
-                    title="折數（如 8 = 八折），空白為不折扣"
                     class="ocreate__qty-input"
                     @input="recalcItem(item)"
                   />
@@ -912,7 +901,7 @@ async function handleSubmit() {
 .ocreate__items-header,
 .ocreate__item-row {
   display: grid;
-  grid-template-columns: 2.5rem 1fr 6rem 4.5rem 4.5rem 7rem 4rem;
+  grid-template-columns: 2.5rem 1fr 6rem 4.5rem 7rem 4rem;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
@@ -935,11 +924,8 @@ async function handleSubmit() {
 .ocreate__col-thumb { display: flex; align-items: center; justify-content: center; }
 .ocreate__col-name { display: flex; flex-direction: column; gap: 0.15rem; }
 .ocreate__col-price { white-space: nowrap; }
-.ocreate__col-qty,
-.ocreate__col-discount,
-.ocreate__col-sub { }
+.ocreate__col-price .ocreate__qty-input,
 .ocreate__col-qty .ocreate__qty-input,
-.ocreate__col-discount .ocreate__qty-input,
 .ocreate__col-sub .ocreate__qty-input { width: 100%; }
 .ocreate__sub-input { text-align: right; }
 .ocreate__col-action { display: flex; justify-content: flex-end; }
