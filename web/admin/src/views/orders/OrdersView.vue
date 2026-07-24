@@ -113,11 +113,6 @@ function formatDate(s: string | null | undefined) {
   return new Date(s).toLocaleDateString('zh-TW')
 }
 
-function formatDateTime(s: string | null | undefined) {
-  if (!s) return '—'
-  return new Date(s).toLocaleString('zh-TW')
-}
-
 async function patchOrder(code: string, action: string, body?: object) {
   actionBusy.value = code
   error.value = ''
@@ -279,7 +274,6 @@ onMounted(load)
                 <th>總額</th>
                 <th>付款</th>
                 <th>出貨狀態</th>
-                <th>ATM 到期</th>
                 <th>操作</th>
               </tr>
             </thead>
@@ -311,42 +305,37 @@ onMounted(load)
                     {{ deliverLabel(o.deliverStatus) }}
                   </span>
                 </td>
-                <td class="orders__atm">
-                  <template v-if="o.atmExpiry">
-                    <div class="orders__atm-code">{{ o.atmCode ?? '—' }}</div>
-                    <div class="orders__sub">{{ formatDateTime(o.atmExpiry) }}</div>
-                  </template>
-                  <template v-else>—</template>
-                </td>
                 <td class="orders__actions">
-                  <button
-                    v-if="o.deliverStatus === 0"
-                    class="orders__btn orders__btn--sm orders__btn--secondary"
-                    :disabled="actionBusy === o.code"
-                    @click="handlePending(o.code)"
-                  >待出貨</button>
-                  <button
-                    v-if="o.deliverStatus === 4"
-                    class="orders__btn orders__btn--sm orders__btn--primary"
-                    :disabled="actionBusy === o.code"
-                    @click="handleShip(o.code)"
-                  >出貨</button>
-                  <button
-                    v-if="o.deliverStatus !== 3 && o.deliverStatus !== 1"
-                    class="orders__btn orders__btn--sm orders__btn--danger"
-                    :disabled="actionBusy === o.code"
-                    @click="handleCancel(o.code)"
-                  >取消</button>
-                  <button
-                    v-if="o.payStatus === 0"
-                    class="orders__btn orders__btn--sm orders__btn--accent"
-                    :disabled="actionBusy === o.code"
-                    @click="handlePay(o.code)"
-                  >標記付款</button>
+                  <div class="orders__actions-inner">
+                    <button
+                      v-if="o.deliverStatus === 0"
+                      class="orders__btn orders__btn--sm orders__btn--secondary"
+                      :disabled="actionBusy === o.code"
+                      @click="handlePending(o.code)"
+                    >待出貨</button>
+                    <button
+                      v-if="o.deliverStatus === 4"
+                      class="orders__btn orders__btn--sm orders__btn--primary"
+                      :disabled="actionBusy === o.code"
+                      @click="handleShip(o.code)"
+                    >出貨</button>
+                    <button
+                      v-if="o.deliverStatus !== 3 && o.deliverStatus !== 1"
+                      class="orders__btn orders__btn--sm orders__btn--danger"
+                      :disabled="actionBusy === o.code"
+                      @click="handleCancel(o.code)"
+                    >取消</button>
+                    <button
+                      v-if="o.payStatus === 0"
+                      class="orders__btn orders__btn--sm orders__btn--accent"
+                      :disabled="actionBusy === o.code"
+                      @click="handlePay(o.code)"
+                    >標記付款</button>
+                  </div>
                 </td>
               </tr>
               <tr v-if="data.items.length === 0">
-                <td :colspan="filters.deliverStatus === 4 ? 10 : 9" class="orders__empty">無訂單資料</td>
+                <td :colspan="filters.deliverStatus === 4 ? 9 : 8" class="orders__empty">無訂單資料</td>
               </tr>
             </tbody>
           </table>
@@ -546,17 +535,15 @@ onMounted(load)
   text-overflow: ellipsis;
 }
 
-/* ATM cell */
-.orders__atm-code {
-  font-family: monospace;
-  font-size: 0.82rem;
+.orders__actions {
+  min-width: 5rem;
+  vertical-align: middle;
 }
 
-.orders__actions {
+.orders__actions-inner {
   display: flex;
   gap: 0.35rem;
   flex-wrap: wrap;
-  min-width: 5rem;
 }
 
 .orders__empty {
