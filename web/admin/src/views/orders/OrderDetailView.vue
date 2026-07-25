@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { apiFetch, apiDownload, ApiError } from '../../lib/apiClient'
+import { PAY_TYPE, payTypeLabel as payTypeLabelOf } from '../../lib/payType'
 
 interface OrderItem {
   id: string
@@ -67,13 +68,13 @@ const shipTracking = ref('')
 const shipError = ref('')
 
 // 對齊後端 Domain.Enums（PayType/PayStatus/InvoiceType/InvoiceStatus）。
-const PAY_TYPE_LABELS: Record<number, string> = { 1: '信用卡', 2: '貨到付款', 3: 'ATM轉帳', 4: '免付款', 5: '現金', 6: '電匯', 7: '支票' }
+// 付款方式標籤集中於 lib/payType.ts。
 const PAY_STATUS_LABELS: Record<number, string> = { 0: '未付款', 1: '已付款', 2: '退款', 3: '免付款', 4: '取消' }
 const DELIVER_LABELS: Record<number, string> = { 0: '未出貨', 1: '已出貨', 3: '已取消', 4: '待出貨' }
 const INVOICE_TYPE_LABELS: Record<number, string> = { 1: '二聯式', 2: '愛心捐贈', 3: '三聯式', 4: '免開', 5: 'POS機' }
 const INVOICE_STATUS_LABELS: Record<number, string> = { 0: '未開立', 1: '已開立', 2: '作廢', 3: '折讓' }
 
-function payTypeLabel(t: number) { return PAY_TYPE_LABELS[t] ?? `類型${t}` }
+function payTypeLabel(t: number) { return payTypeLabelOf(t) }
 function payStatusLabel(s: number) { return PAY_STATUS_LABELS[s] ?? `${s}` }
 function deliverLabel(s: number) { return DELIVER_LABELS[s] ?? `${s}` }
 function invoiceTypeLabel(t: number) { return INVOICE_TYPE_LABELS[t] ?? `類型${t}` }
@@ -426,11 +427,16 @@ onMounted(load)
               @click="handlePay"
             >標記已付款</button>
             <button
-              v-if="order.payType === 1 && order.payStatus === 0"
+              v-if="order.payType === PAY_TYPE.CREDIT_CARD && order.payStatus === 0"
               class="odetail__btn odetail__btn--primary"
               :disabled="actionBusy"
               @click="handleCharge"
             >線上刷卡</button>
+            <!-- LINE Pay 需顧客本人於手機授權，後台代客付款不適用；改以收款連結請客人自行付款。 -->
+            <span
+              v-if="order.payType === PAY_TYPE.LINE_PAY && order.payStatus === 0"
+              class="odetail__hint"
+            >LINE Pay 需由顧客本人授權，請改用「收款連結」或確認入帳後按「標記已付款」。</span>
             <button
               v-if="(order.invoiceType === 1 || order.invoiceType === 3) && (order.invoiceStatus === 0 || order.invoiceStatus === 2)"
               class="odetail__btn odetail__btn--accent"
@@ -757,6 +763,8 @@ onMounted(load)
 
 .odetail__btn--accent { background: var(--tf-color-accent); color: #fff; }
 .odetail__btn--accent:hover:not(:disabled) { opacity: 0.85; }
+
+.odetail__hint { align-self: center; color: var(--tf-color-text-muted, #6c757d); font-size: 0.85rem; }
 
 .odetail__error { color: #dc3545; margin-bottom: 0.75rem; }
 .odetail__success { color: #157347; background: #d1e7dd; border: 1px solid #a3cfbb; border-radius: 6px; padding: 0.6rem 0.9rem; margin-bottom: 0.75rem; font-size: 0.9rem; }

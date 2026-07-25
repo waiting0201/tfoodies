@@ -265,6 +265,14 @@ public class RouteTable
         Register<PaymentController>("POST", "store/payment/return-admin",                                 (c, ctx) => c.ReturnAdmin(ctx));
         Register<PaymentController>("POST", "store/payment/notify",                                       (c, ctx) => c.Notify(ctx));
 
+        // ── LINE Pay（公開；回跳為 LINE Pay 主動 GET 導向，故為 GET 而非 POST）────
+        Register<LinePayController>("GET",  "store/payment/methods",                                      (c, ctx) => c.Methods(ctx));
+        Register<LinePayController>("POST", "store/payment/linepay/create",                               (c, ctx) => c.CreatePayment(ctx));
+        Register<LinePayController>("GET",  "store/payment/linepay/confirm",                              (c, ctx) => c.Confirm(ctx));
+        Register<LinePayController>("GET",  "store/payment/linepay/cancel",                               (c, ctx) => Task.FromResult(c.Cancel(ctx)));
+        Register<LinePayController>("GET",  "store/payment/linepay/confirm-paylink",                      (c, ctx) => c.ConfirmPaylink(ctx));
+        Register<LinePayController>("GET",  "store/payment/linepay/cancel-paylink",                       (c, ctx) => Task.FromResult(c.CancelPaylink(ctx)));
+
         // ── Payment Links（後台產生刷卡收款連結；客人端公開，回呼與訂單同族命名）────
         Register<PaymentLinkController>("POST", "store/payment/return-paylink",                           (c, ctx) => c.Return(ctx));
         Register<PaymentLinkController>("POST", @"store/paylinks/(?<token>[^/]+)/checkout$",              (c, ctx) => c.Checkout(ctx));

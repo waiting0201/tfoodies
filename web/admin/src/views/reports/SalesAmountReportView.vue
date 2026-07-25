@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { apiFetch } from '../../lib/apiClient'
+import { PAY_TYPE_LONG_LABELS } from '../../lib/payType'
 
 // ─── types ────────────────────────────────────────────────────────────────────
 interface AmountOrder {
@@ -26,10 +27,7 @@ const ORDER_TYPE_CLASS: Record<number, string> = {
   1: 'badge--otype-online', 2: 'badge--otype-offline', 3: 'badge--otype-self',
   4: 'badge--otype-pre', 5: 'badge--otype-pr',
 }
-const PAY_TYPE_LABEL: Record<number, string> = {
-  1: '信用卡線上刷卡', 2: '宅配貨到付款', 3: 'ATM轉帳付款',
-  4: '免付款', 5: '現金支付', 6: '電匯', 7: '支票',
-}
+const PAY_TYPE_LABEL = PAY_TYPE_LONG_LABELS
 const PAY_STATUS_LABEL: Record<number, string> = { 0: '未付款', 1: '已付款', 2: '退款', 3: '免付款', 4: '取消' }
 const PAY_STATUS_CLASS: Record<number, string> = {
   0: 'badge--unpaid', 1: 'badge--paid', 2: 'badge--returned', 3: 'badge--queue', 4: 'badge--canceled',

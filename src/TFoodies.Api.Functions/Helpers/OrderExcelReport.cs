@@ -26,6 +26,7 @@ public static class OrderExcelReport
         PayType.Cash => "現金支付",
         PayType.WireTransfer => "電匯",
         PayType.Check => "支票",
+        PayType.LinePay => "LINE Pay",
         _ => "-",
     };
 

@@ -73,6 +73,7 @@ builder.Services.AddScoped<PurchaseAdminController>();
 builder.Services.AddScoped<AccountingAdminController>();
 builder.Services.AddScoped<StatementAdminController>();
 builder.Services.AddScoped<PaymentController>();
+builder.Services.AddScoped<LinePayController>();
 builder.Services.AddScoped<PaymentLinkController>();
 builder.Services.AddScoped<PaymentLinkAdminController>();
 builder.Services.AddScoped<AdminAuthController>();

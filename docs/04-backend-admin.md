@@ -114,7 +114,7 @@ Brands(+Brandphotos 圖庫)、Producttypes、Tags、Products(+Productphotos)。
 | SettingMsController | SettingMs | Admins, Questiontypes, Questions, Discounts | 系統設定/權限/FAQ/折價券 |
 | AjaxController | — | (JSON) | 驗證/查詢/發票/狀態變更 |
 
-### 🆕 刷卡收款連結（新系統新增，舊系統無此模組）
+### 🆕 收款連結（新系統新增，舊系統無此模組）
 
 | 項目 | 內容 |
 |---|---|
@@ -125,8 +125,11 @@ Brands(+Brandphotos 圖庫)、Producttypes、Tags、Products(+Productphotos)。
 | 畫面 | 列表為主 + 右側滑出面板建立（送出成功後面板**原地切換成功態**不關閉，把連結與複製鈕直接呈現，因複製是本頁最高頻動作）。狀態 tabs 五個：全部/未付款/已逾期/已付款/已作廢 |
 | 篩選 | 「已逾期」是 `status=0` 的衍生狀態非獨立值，故列表 API 收 `status` + `isExpired` 兩參數，在 SQL 端切分（在記憶體過濾會讓 total 與分頁對不起來） |
 | 手動標記已付款 | FISC 未回呼（客人關瀏覽器）時的補救；`txnref` 記為「後台手動標記已付款（AdminID n）」 |
+| **付款方式** | 建立時指定（`payMethod`：1=信用卡 / 8=LINE Pay），客人不能改，列表另有一欄顯示。選 LINE Pay 但 `LinePay__Enabled=false` → 400。欄位為 `dbo.Paymentlinks.paymethod`（[scripts/add-paymentlink-paymethod.sql](../scripts/add-paymentlink-paymethod.sql)，DEFAULT 1 故既有連結不受影響） |
 
-流程、資料表與「為何不寫 Incomes/不開發票」見 [docs/13](13-payment-invoice-flow.md#刷卡收款連結paymentlinks--不走訂單的臨時收款)。
+流程、資料表與「為何不寫 Incomes/不開發票」見 [docs/13](13-payment-invoice-flow.md#收款連結paymentlinks--不走訂單的臨時收款)。
+
+> 💡 **訂單詳情頁的「線上刷卡」只對 `payType=1` 出現**：LINE Pay 需顧客本人在手機上授權，後台代客付款模式（`/admin/orders/{code}/charge`）不適用。LINE Pay 未付款訂單改顯示提示，引導改用收款連結或「標記已付款」。後台建單/編輯的付款方式下拉也不含 LINE Pay（`web/admin/src/lib/payType.ts` 的 `ORDER_PAY_TYPE_OPTIONS`）。
 
 ## 跨切面慣例
 - **權限 key** = `CheckSession` 剝除規則後的動作基底名；圖庫/明細頁映射回父功能。

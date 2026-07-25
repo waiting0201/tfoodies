@@ -47,10 +47,8 @@ interface OrderDetail {
   remark?: string
 }
 
-// 對齊 Domain/Enums/Enums.cs。
-const payTypeLabels: Record<number, string> = {
-  1: '信用卡', 2: '貨到付款', 3: 'ATM 轉帳', 4: '免付款', 5: '現金', 6: '電匯', 7: '支票',
-}
+// 付款方式標籤集中於 app/utils/payType.ts（對齊 Domain/Enums/Enums.cs）。
+const payTypeLabels = PAY_TYPE_LABELS
 const payStatusLabels: Record<number, string> = {
   0: '未付款', 1: '已付款', 2: '退款', 3: '免付款', 4: '取消',
 }
@@ -60,7 +58,7 @@ const deliverStatusLabels: Record<number, string> = {
 
 // 列舉值（對齊舊系統判斷未付款 + ATM 才顯示匯款資訊）。
 const PAY_STATUS_UNPAID = 0
-const PAY_TYPE_ATM = 3
+const PAY_TYPE_ATM = PAY_TYPE.ATM_TRANSFER
 
 const { data, pending, error } = await useFetch<OrderDetail>(
   () => `${config.public.apiBase}/member/orders/${code.value}`,

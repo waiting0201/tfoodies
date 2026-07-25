@@ -3,6 +3,7 @@ import { ref, computed, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiFetch, ApiError } from '../../lib/apiClient'
 import { toBlobUrl } from '../../lib/blobUrl'
+import { ORDER_PAY_TYPE_OPTIONS } from '../../lib/payType'
 
 const router = useRouter()
 
@@ -557,11 +558,7 @@ async function handleSubmit() {
               <div class="form-field form-field--full">
                 <label class="label" for="payType">付款方式</label>
                 <select id="payType" v-model="form.payType" class="select">
-                  <option :value="1">信用卡線上刷卡</option>
-                  <option :value="2">宅配貨到付款</option>
-                  <option :value="3">ATM轉帳付款</option>
-                  <option :value="5">現金支付</option>
-                  <option :value="6">電匯</option>
+                  <option v-for="o in ORDER_PAY_TYPE_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
                 </select>
               </div>
             </div>

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TFoodies.Application.Abstractions;
 using TFoodies.Domain.Common;
+using TFoodies.Domain.Enums;
 using TFoodies.Infrastructure.Payments.Fisc;
 
 namespace TFoodies.Infrastructure.Payments;
@@ -30,14 +31,16 @@ public sealed class PaymentLinkService : IPaymentLinkService
     private readonly IDbConnectionFactory _db;
     private readonly ICodeNumberService _codes;
     private readonly IEmailService _email;
+    private readonly ILinePayClient _linePay;
     private readonly FiscOptions _fisc;
     private readonly ILogger<PaymentLinkService> _logger;
 
     public PaymentLinkService(
         IDbConnectionFactory db, ICodeNumberService codes, IEmailService email,
-        IOptions<FiscOptions> fisc, ILogger<PaymentLinkService> logger)
+        ILinePayClient linePay, IOptions<FiscOptions> fisc, ILogger<PaymentLinkService> logger)
     {
-        _db = db; _codes = codes; _email = email; _fisc = fisc.Value; _logger = logger;
+        _db = db; _codes = codes; _email = email; _linePay = linePay;
+        _fisc = fisc.Value; _logger = logger;
     }
 
     private static DateTime Now => DateTime.UtcNow.AddHours(8);   // 台北時間，與訂單流程一致
@@ -45,7 +48,8 @@ public sealed class PaymentLinkService : IPaymentLinkService
     // ── 建立 ──────────────────────────────────────────────────────────────────────
 
     public async Task<PaymentLinkCreated> CreateAsync(
-        string title, string? note, int amount, int? validDays, int adminId, CancellationToken ct = default)
+        string title, string? note, int amount, int? validDays, int payMethod, int adminId,
+        CancellationToken ct = default)
     {
         var now = Now;
         var id = Guid.NewGuid();
@@ -61,9 +65,9 @@ public sealed class PaymentLinkService : IPaymentLinkService
 
             await conn.ExecuteAsync(@"
 INSERT INTO Paymentlinks (paymentlinkid, paymentlinkcode, token, title, note, amount, status,
-                          expiredate, createadminid, createdate)
-VALUES (@id, @code, @token, @title, @note, @amount, 0, @expire, @adminId, @now)",
-                new { id, code, token, title, note, amount, expire, adminId, now }, tx);
+                          paymethod, expiredate, createadminid, createdate)
+VALUES (@id, @code, @token, @title, @note, @amount, 0, @payMethod, @expire, @adminId, @now)",
+                new { id, code, token, title, note, amount, payMethod, expire, adminId, now }, tx);
 
             tx.Commit();
             return new PaymentLinkCreated(id, code, token, BuildUrl(token));
@@ -97,7 +101,7 @@ VALUES (@id, @code, @token, @title, @note, @amount, 0, @expire, @adminId, @now)"
 SELECT COUNT(*) FROM Paymentlinks p {where};
 
 SELECT p.paymentlinkid, p.paymentlinkcode, p.token, p.title, p.note, p.amount, p.status,
-       p.customername, p.customermobile, p.customeraddress, p.lastpan4,
+       p.paymethod, p.customername, p.customermobile, p.customeraddress, p.lastpan4,
        p.paydate, p.expiredate, p.createdate,
        z.city, z.area, z.zipcode
 FROM Paymentlinks p
@@ -117,7 +121,7 @@ OFFSET @skip ROWS FETCH NEXT @take ROWS ONLY;";
         var items = rows.Select(r => new PaymentLinkRow(
             r.paymentlinkid, r.paymentlinkcode, r.token, BuildUrl(r.token),
             r.title, r.note, r.amount, r.status,
-            IsExpired(r.status, r.expiredate, now),
+            IsExpired(r.status, r.expiredate, now), r.paymethod,
             r.customername, r.customermobile, FullAddress(r.zipcode, r.city, r.area, r.customeraddress),
             r.lastpan4, r.paydate, r.expiredate, r.createdate)).ToList();
 
@@ -127,6 +131,14 @@ OFFSET @skip ROWS FETCH NEXT @take ROWS ONLY;";
     // 只有「未付款」才談得上過期；已付/已作廢的狀態本身就是終局。
     private static bool IsExpired(int status, DateTime? expire, DateTime now)
         => status == Unpaid && expire is not null && expire <= now;
+
+    /// <summary>付款方式標籤（值對齊 Domain PayType；收款連結目前僅開放信用卡與 LINE Pay）。</summary>
+    private static string PayMethodLabel(int payMethod) => (PayType)payMethod switch
+    {
+        PayType.CreditCard => "信用卡線上刷卡",
+        PayType.LinePay => "LINE Pay",
+        _ => $"付款方式 {payMethod}",
+    };
 
     private static string? FullAddress(string? zipcode, string? city, string? area, string? address)
     {
@@ -141,13 +153,13 @@ OFFSET @skip ROWS FETCH NEXT @take ROWS ONLY;";
     {
         using var conn = (SqlConnection)await _db.CreateOpenConnectionAsync(ct);
         var row = await conn.QuerySingleOrDefaultAsync<PublicRow>(new CommandDefinition(
-            "SELECT paymentlinkcode, title, amount, status, expiredate FROM Paymentlinks WHERE token=@token",
+            "SELECT paymentlinkcode, title, amount, status, paymethod, expiredate FROM Paymentlinks WHERE token=@token",
             new { token }, cancellationToken: ct));
 
         if (row is null) return null;
         return new PaymentLinkPublic(
             row.paymentlinkcode, row.title, row.amount, row.status,
-            IsExpired(row.status, row.expiredate, Now));
+            IsExpired(row.status, row.expiredate, Now), row.paymethod);
     }
 
     public async Task<Result<PaymentLinkCharge>> StartCheckoutAsync(
@@ -156,7 +168,7 @@ OFFSET @skip ROWS FETCH NEXT @take ROWS ONLY;";
         using var conn = (SqlConnection)await _db.CreateOpenConnectionAsync(ct);
 
         var row = await conn.QuerySingleOrDefaultAsync<CheckoutRow>(new CommandDefinition(
-            "SELECT paymentlinkid, paymentlinkcode, amount, status, expiredate FROM Paymentlinks WHERE token=@token",
+            "SELECT paymentlinkid, paymentlinkcode, amount, status, paymethod, expiredate FROM Paymentlinks WHERE token=@token",
             new { token }, cancellationToken: ct));
 
         if (row is null) return Error.NotFound("收款連結");
@@ -182,15 +194,29 @@ WHERE paymentlinkid=@id AND status=0",
                 now = Now, id = row.paymentlinkid,
             }, cancellationToken: ct));
 
-        // 多網域服務：把客人所在網域帶進 AuthResURL 的 query，授權返回時據以同網域導回。
+        // 多網域服務：把客人所在網域帶進回呼網址的 query，授權返回時據以同網域導回。
         // 只在通過白名單時才帶（見 FiscRedirect）；未帶則 return 端退回設定的 StoreOrigin。
-        var authResUrl = string.IsNullOrEmpty(returnOrigin)
-            ? _fisc.PayLinkAuthResUrl
-            : $"{_fisc.PayLinkAuthResUrl}?origin={Uri.EscapeDataString(returnOrigin)}";
+        static string WithOrigin(string url, string? origin) =>
+            string.IsNullOrEmpty(origin) ? url : $"{url}?origin={Uri.EscapeDataString(origin)}";
 
-        // purchAmt 取自 DB，前端完全不傳金額。
+        // 金額一律取自 DB，前端完全不傳金額。
+        if (row.paymethod == (int)PayType.LinePay)
+        {
+            var reserve = await _linePay.RequestAsync(new LinePayReserveRequest(
+                row.paymentlinkcode,
+                row.amount,
+                $"食在呼 TFoodies {row.paymentlinkcode}",
+                WithOrigin(_fisc.LinePayPaylinkConfirmUrl, returnOrigin),
+                WithOrigin(_fisc.LinePayPaylinkCancelUrl, returnOrigin)), ct);
+
+            return reserve.IsSuccess
+                ? PaymentLinkCharge.Redirect(reserve.Value.PaymentUrlWeb)
+                : Result.Failure<PaymentLinkCharge>(reserve.Error);
+        }
+
+        var authResUrl = WithOrigin(_fisc.PayLinkAuthResUrl, returnOrigin);
         var fields = FiscWebpos.BuildFields(row.paymentlinkcode, row.amount, _fisc, authResUrl);
-        return new PaymentLinkCharge(_fisc.ActionUrl, fields);
+        return PaymentLinkCharge.Form(_fisc.ActionUrl, fields);
     }
 
     // ── 付款完成 ──────────────────────────────────────────────────────────────────
@@ -212,6 +238,30 @@ WHERE paymentlinkcode=@code AND status=0",
 
         await SendPaidNoticeAsync(conn, code, ct);
         return true;
+    }
+
+    public async Task<Result> CompleteLinePayAsync(
+        string code, string transactionId, CancellationToken ct = default)
+    {
+        using var conn = (SqlConnection)await _db.CreateOpenConnectionAsync(ct);
+
+        var row = await conn.QuerySingleOrDefaultAsync<CheckoutRow>(new CommandDefinition(
+            "SELECT paymentlinkid, paymentlinkcode, amount, status, paymethod, expiredate FROM Paymentlinks WHERE paymentlinkcode=@code",
+            new { code }, cancellationToken: ct));
+
+        if (row is null) return Result.Failure(Error.NotFound("收款連結"));
+
+        // 已付款：confirm 回跳被重放（使用者重整/重複點擊）。LINE Pay 端也會回 1172，
+        // 但這裡先短路，連 API 都不必打。
+        if (row.status == Paid) return Result.Success();
+        if (row.status != Unpaid) return Result.Failure(Error.Conflict("此收款連結已失效。"));
+
+        // 請款金額取自 DB，不採信回跳參數。
+        var confirm = await _linePay.ConfirmAsync(transactionId, row.amount, ct);
+        if (confirm.IsFailure) return Result.Failure(confirm.Error);
+
+        await MarkPaidAsync(code, lastPan4: null, txnRef: $"LINEPay transactionId:{transactionId}", ct);
+        return Result.Success();
     }
 
     public async Task<Result> MarkPaidManuallyAsync(Guid id, int adminId, CancellationToken ct = default)
@@ -255,7 +305,7 @@ WHERE paymentlinkid=@id AND status=0",
     private async Task SendPaidNoticeAsync(SqlConnection conn, string code, CancellationToken ct)
     {
         var row = await conn.QuerySingleOrDefaultAsync<NoticeRow>(new CommandDefinition(@"
-SELECT p.paymentlinkcode, p.title, p.note, p.amount, p.customername, p.customermobile,
+SELECT p.paymentlinkcode, p.title, p.note, p.amount, p.paymethod, p.customername, p.customermobile,
        p.customeraddress, p.lastpan4, p.paydate, p.createadminid,
        z.city, z.area, z.zipcode, a.Username AS adminName
 FROM Paymentlinks p
@@ -339,6 +389,7 @@ WHERE p.paymentlinkcode = @code",
                   <td style=""padding:7px 0; font-size:16px; font-weight:700; color:#2c3e3e;"">實收金額</td>
                   <td align=""right"" style=""padding:7px 0; font-size:20px; font-weight:700; color:#156467;"">NT$ {r.amount:N0}</td>
                 </tr>
+                {Row("付款方式", PayMethodLabel(r.paymethod))}
                 {Row("收款項目", E(r.title))}
                 {Row("內部備註", E(r.note))}
                 {Row("付款人姓名", E(r.customername))}
@@ -355,7 +406,7 @@ WHERE p.paymentlinkcode = @code",
               <table role=""presentation"" cellspacing=""0"" cellpadding=""0"" border=""0"" width=""100%"" style=""background-color:#fff7e8; border:1px solid #f5dcae; border-radius:10px;"">
                 <tr>
                   <td style=""padding:14px 20px; font-size:13px; line-height:1.7; color:#8a6a2b;"">
-                    本筆為刷卡收款連結，<strong>不會自動開立電子發票，也未寫入訂單與會計收入</strong>，請人工完成入帳與發票作業。
+                    本筆為收款連結，<strong>不會自動開立電子發票，也未寫入訂單與會計收入</strong>，請人工完成入帳與發票作業。
                   </td>
                 </tr>
               </table>
@@ -385,18 +436,19 @@ WHERE p.paymentlinkcode = @code",
 
     private sealed record LinkRow(
         Guid paymentlinkid, string paymentlinkcode, string token, string title, string? note,
-        int amount, int status, string? customername, string? customermobile, string? customeraddress,
+        int amount, int status, int paymethod,
+        string? customername, string? customermobile, string? customeraddress,
         string? lastpan4, DateTime? paydate, DateTime? expiredate, DateTime createdate,
         string? city, string? area, string? zipcode);
 
     private sealed record PublicRow(
-        string paymentlinkcode, string title, int amount, int status, DateTime? expiredate);
+        string paymentlinkcode, string title, int amount, int status, int paymethod, DateTime? expiredate);
 
     private sealed record CheckoutRow(
-        Guid paymentlinkid, string paymentlinkcode, int amount, int status, DateTime? expiredate);
+        Guid paymentlinkid, string paymentlinkcode, int amount, int status, int paymethod, DateTime? expiredate);
 
     private sealed record NoticeRow(
-        string paymentlinkcode, string title, string? note, int amount,
+        string paymentlinkcode, string title, string? note, int amount, int paymethod,
         string? customername, string? customermobile, string? customeraddress,
         string? lastpan4, DateTime? paydate, int createadminid,
         string? city, string? area, string? zipcode, string? adminName);

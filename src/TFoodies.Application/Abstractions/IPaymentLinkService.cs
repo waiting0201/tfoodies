@@ -11,9 +11,14 @@ namespace TFoodies.Application.Abstractions;
 /// </summary>
 public interface IPaymentLinkService
 {
-    /// <summary>後台建立收款連結。單號與連結網址由後端產生。</summary>
+    /// <summary>
+    /// 後台建立收款連結。單號與連結網址由後端產生。
+    /// <paramref name="payMethod"/> 為 <see cref="Domain.Enums.PayType"/> 編碼，
+    /// 目前僅支援 1（信用卡 FISC）與 8（LINE Pay）。
+    /// </summary>
     Task<PaymentLinkCreated> CreateAsync(
-        string title, string? note, int amount, int? validDays, int adminId, CancellationToken ct = default);
+        string title, string? note, int amount, int? validDays, int payMethod, int adminId,
+        CancellationToken ct = default);
 
     /// <summary>
     /// 後台列表（依建立時間新到舊）。<paramref name="status"/> 為 null 表示不篩選；
@@ -30,8 +35,9 @@ public interface IPaymentLinkService
     Task<PaymentLinkPublic?> GetByTokenAsync(string token, CancellationToken ct = default);
 
     /// <summary>
-    /// 客人送出收件資料 → 寫入該筆連結 → 回傳 FISC 刷卡 form 欄位。
-    /// 金額一律取自 DB，前端不傳金額。狀態非「未付款」或已逾期則失敗。
+    /// 客人送出收件資料 → 寫入該筆連結 → 依該連結的付款方式回傳「FISC 刷卡 form 欄位」
+    /// 或「LINE Pay 付款頁網址」。金額一律取自 DB，前端不傳金額。
+    /// 狀態非「未付款」或已逾期則失敗。
     /// </summary>
     Task<Result<PaymentLinkCharge>> StartCheckoutAsync(
         string token, PaymentLinkCustomer customer, string? returnOrigin, CancellationToken ct = default);
@@ -41,6 +47,12 @@ public interface IPaymentLinkService
     /// 回傳 true 表示「本次首度轉為已付款」（return 與 notify 雙觸發時只會寄一封信）。
     /// </summary>
     Task<bool> MarkPaidAsync(string code, string? lastPan4, string txnRef, CancellationToken ct = default);
+
+    /// <summary>
+    /// LINE Pay 付款完成回跳：以收款單號取回 DB 金額 → 向 LINE Pay 請款確認 → 冪等標記已付款。
+    /// 金額不由回跳參數決定，一律取自 DB。
+    /// </summary>
+    Task<Result> CompleteLinePayAsync(string code, string transactionId, CancellationToken ct = default);
 
     /// <summary>後台手動標記已付款（FISC 未回呼而實際已入帳時的補救）。</summary>
     Task<Result> MarkPaidManuallyAsync(Guid id, int adminId, CancellationToken ct = default);
@@ -55,11 +67,27 @@ public sealed record PaymentLinkCreated(Guid Id, string Code, string Token, stri
 /// <summary>客人於付款頁填寫的收件資料。</summary>
 public sealed record PaymentLinkCustomer(string Name, string Mobile, int ZipcodeId, string Address);
 
-/// <summary>客人端可見的連結資訊（公開欄位）。</summary>
-public sealed record PaymentLinkPublic(string Code, string Title, int Amount, int Status, bool IsExpired);
+/// <summary>客人端可見的連結資訊（公開欄位）。<paramref name="PayMethod"/> 供付款頁顯示付款方式。</summary>
+public sealed record PaymentLinkPublic(
+    string Code, string Title, int Amount, int Status, bool IsExpired, int PayMethod);
 
-/// <summary>刷卡 form：前端建隱藏欄位 auto-submit 至 <paramref name="ActionUrl"/>。</summary>
-public sealed record PaymentLinkCharge(string ActionUrl, IReadOnlyDictionary<string, string> Fields);
+/// <summary>
+/// 發起付款的指示，兩種形態擇一（由 <paramref name="PayMethod"/> 決定）：
+///   1 信用卡 — 前端建隱藏欄位 auto-submit 至 <paramref name="ActionUrl"/>
+///   8 LINE Pay — 前端整頁導向 <paramref name="RedirectUrl"/>
+/// </summary>
+public sealed record PaymentLinkCharge(
+    int PayMethod,
+    string? ActionUrl,
+    IReadOnlyDictionary<string, string>? Fields,
+    string? RedirectUrl)
+{
+    public static PaymentLinkCharge Form(string actionUrl, IReadOnlyDictionary<string, string> fields)
+        => new((int)Domain.Enums.PayType.CreditCard, actionUrl, fields, null);
+
+    public static PaymentLinkCharge Redirect(string url)
+        => new((int)Domain.Enums.PayType.LinePay, null, null, url);
+}
 
 /// <summary>後台列表列。</summary>
 public sealed record PaymentLinkRow(
@@ -72,6 +100,7 @@ public sealed record PaymentLinkRow(
     int Amount,
     int Status,
     bool IsExpired,
+    int PayMethod,
     string? CustomerName,
     string? CustomerMobile,
     string? CustomerAddress,

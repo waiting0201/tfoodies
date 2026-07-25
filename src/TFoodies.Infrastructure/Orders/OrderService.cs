@@ -215,6 +215,7 @@ VALUES (NEWID(), @orderdetailid, @warehousestockid, @qty, @createdate)",
             var payTypeKey = req.PayType switch
             {
                 PayType.CreditCard => "credit",
+                PayType.LinePay => "linepay",
                 PayType.AtmTransfer => "atmcode",
                 PayType.CashOnDelivery => "delivery",
                 PayType.NoPayment => "nopay",

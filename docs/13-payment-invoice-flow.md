@@ -1,10 +1,10 @@
-# 13 · 前後台刷卡 + 電子發票串接流程
+# 13 · 前後台刷卡 / LINE Pay + 電子發票串接流程
 
-> 信用卡（財金 FISC FOCAS_WEBPOS）與電子發票（ezPay）的端到端流程。設定參數見 [docs/12](12-payment-invoice-config.md)。
+> 信用卡（財金 FISC FOCAS_WEBPOS）、LINE Pay（Online API v3 直連）與電子發票（ezPay）的端到端流程。設定參數見 [docs/12](12-payment-invoice-config.md)。
 
 ## 共用核心：`PaymentCompletionService`
 
-三條付款路徑（前台刷卡返回 / 後台刷卡返回 / 後台標記已付款）最終都呼叫同一個 `MarkPaidAsync`，確保入帳、開票、寄信一致且**冪等**。
+四條付款路徑（前台刷卡返回 / 後台刷卡返回 / LINE Pay 請款確認 / 後台標記已付款）最終都呼叫同一個 `MarkPaidAsync`，確保入帳、開票、寄信一致且**冪等**。
 
 檔案：[PaymentCompletionService.cs](../src/TFoodies.Infrastructure/Payments/PaymentCompletionService.cs)、介面 [IPaymentCompletionService.cs](../src/TFoodies.Application/Abstractions/IPaymentCompletionService.cs)
 
@@ -56,6 +56,42 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 > 導回「使用者結帳的同一個網域」，避免跨域把人甩到主網域、且 `purchase` 追蹤 sessionStorage 跨域漏單。
 > 兩端（create 附帶 / return 導回）都用 `Fisc__AllowedStoreOrigins` 白名單驗證 → 防 open redirect。
 > 純邏輯由 `FiscOptions.NormalizeOrigin` + `AllowedStoreOriginSet` 負責，測試見 `FiscOriginTests`。
+
+## 前台（store）顧客 LINE Pay
+
+檔案：[Checkout/index.vue](../web/store/app/pages/Checkout/index.vue)、[LinePayController.cs](../src/TFoodies.Api.Functions/Controllers/LinePayController.cs)、[LinePayClient.cs](../src/TFoodies.Infrastructure/Payments/LinePay/LinePayClient.cs)
+
+```
+結帳頁（選 LINE Pay payType=8）
+ 0. 頁面載入時 GET /store/payment/methods → 可用付款方式清單（LinePay__Enabled=false 就不會出現）
+ 1. POST /store/orders                    → 建未付款訂單，回 orderCode
+        ⚠️ 後端以 StorePaymentMethods.IsAllowed 白名單驗證 payType（未啟用時連 8 都不收）
+ 2. POST /store/payment/linepay/create    → 驗證(LINE Pay + 未付款 + Enabled)
+        應付 = total + freight − discount（後端權威，前端不傳金額）
+        POST {BaseUrl}/v4/payments/request（HMAC 簽章）
+          redirectUrls.confirmUrl = API/store/payment/linepay/confirm?origin=<當前網域>
+          redirectUrls.cancelUrl  = API/store/payment/linepay/cancel?origin=<當前網域>
+        → 回 { paymentUrl, transactionId }
+ 3. 前端 window.location.href = paymentUrl（整頁導向）
+   ▼ LINE Pay 付款頁（顧客於 LINE 授權，此時尚未扣款）
+ 4a. 導回 confirmUrl（LINE Pay 主動 GET，query 帶 transactionId 與 orderId）
+        訂單已付款 → 直接視為成功（回跳重放，連 API 都不打）
+        否則 POST /v4/payments/{transactionId}/confirm { amount 由 DB 重算, currency:TWD }
+          returnCode 0000 成功；1172「已完成」亦視同成功
+        → MarkPaidAsync(orderCode, lastPan4: null, txnRef: "LINEPay transactionId:{id}")
+        → 302 導回 {origin}/Order/Success?code=&paid=1
+ 4b. 顧客於 LINE Pay 取消 → cancelUrl → 302 …?paid=0（訂單維持未付款，未扣款）
+```
+
+> 💡 **沒有 notify 補償路徑，是刻意的**：LINE Pay 為 reserve → confirm 兩段式，**未 confirm 就不會扣款**
+> （逾時自動失效）。顧客中途關瀏覽器最壞情況是訂單停在未付款、顧客未被扣款，風險遠低於財金的直接授權。
+>
+> 💡 **交易序號沒有新欄位**：`Orders` 無第三方交易 ID 欄位（schema 凍結），沿用財金的作法寫進
+> `Incomes.note`（`LINEPay transactionId:…`，對照財金的 `FISC authCode:… xid:…`）。因此本次**零 schema 變更**
+> ——唯一的 DDL 是收款連結的 `paymethod` 欄位（見下）。
+>
+> 💡 **package 只送一筆**：`request` 的 package/product 各一筆、金額 = 應付總額，不拆運費/折扣
+> （對齊財金只送 `purchAmt`），避開 `Orders.total` 語意為純商品小計的坑。
 
 ## 後台（admin）線上刷卡
 
@@ -159,27 +195,36 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 >
 > 🐞 **`Orders.total` 語意雙重扣折扣（2026-07-22 修）**：`Orders.total` 的**權威語意 = 純商品小計**（`Σ Orderdetails.subtotal`，**不含**運費、**不含**訂單層折扣），對齊舊系統（`Cart.TotalPrice()`＋`order.total = ca.TotalPrice()`）；所有消費端一律 `應付 = total + freight − discount` 還原（發票 `TotalAmt`、FISC `purchAmt`、Income 金額、會計報表、Excel）。新系統一度在**寫入端**（store `OrderService`、admin 建單/編輯前端）把「最終金額 `subtotal+freight−discount`」直接寫進 `total`，導致消費端再減一次 → **運費多加、折扣多扣**（B2B 折扣單最明顯：折扣被扣兩次，發票 `TotalAmt = subtotal + 2×freight − 2×discount`）。因多數單免運（freight=0）、無折扣碼而長期未爆。**修正**：寫入端改回存商品小計；顯示端（admin 清單/詳情總計、store 會員清單）改算 `total + freight − discount`；消費端不動；歷史資料以冪等腳本 [`scripts/fix-orders-total-semantics.sql`](../scripts/fix-orders-total-semantics.sql)（`total ← Σ Orderdetails.subtotal`，舊單 no-op）校正。store 會員清單為此在 `GetMemberOrdersAsync`／`OrderListItem` 補帶 `freight`/`discount`。
 
-## 刷卡收款連結（Paymentlinks）— 不走訂單的臨時收款
+## 收款連結（Paymentlinks）— 不走訂單的臨時收款
 
-後台填一個金額就產生一次性刷卡連結（客訂、補款、活動費用等不走商城流程的收款），客人開連結填收件資料後直接刷卡。**與訂單刷卡共用 FISC 欄位產生器與回傳解析，但不共用 `PaymentCompletionService`。**
+後台填一個金額就產生一次性付款連結（客訂、補款、活動費用等不走商城流程的收款），客人開連結填收件資料後直接付款。**付款方式由後台建立時指定**（`paymethod`：1=信用卡走 FISC、8=LINE Pay），客人不能改。**與訂單付款共用 FISC 欄位產生器 / LINE Pay client 與回傳解析，但不共用 `PaymentCompletionService`。**
 
 ### 流程
 
 ```
 後台 /admin/paymentlinks（OrderMs 權限）
-  └ POST /admin/paymentlinks {title, note, amount, validDays}
-      ├ CodeKind.PaymentLink → PL+yyyyMMdd+3碼（=FISC lidm，13 字元）
+  └ POST /admin/paymentlinks {title, note, amount, validDays, payMethod}
+      ├ payMethod 白名單 1|8；選 8 但 LinePay__Enabled=false → 400
+      ├ CodeKind.PaymentLink → PL+yyyyMMdd+3碼（=FISC lidm / LINE Pay orderId，13 字元）
       ├ token = RandomNumberGenerator 16 bytes → 32 字元 hex（128-bit）
       └ 201 {id, code, token, url}   url = {StoreOrigin}/Pay/{token}
                     ↓ 後台人員複製連結傳給客人（LINE / email）
 客人開 /Pay/{token}（免登入，layouts/pay.vue 極簡外殼）
-  ├ GET  /store/paylinks/{token}          → 只回 {code,title,amount,status,isExpired}
-  └ POST /store/paylinks/{token}/checkout → 寫入客人資料 + 回 FISC form 欄位
-                    ↓ 前端 auto-submit（purchAmt 取自 DB，前端不傳金額）
-FISC 刷卡頁 → POST /store/payment/return-paylink（PayLinkAuthResUrl）
+  ├ GET  /store/paylinks/{token}          → 只回 {code,title,amount,status,isExpired,payMethod}
+  └ POST /store/paylinks/{token}/checkout → 寫入客人資料 + 依 payMethod 回：
+        payMethod=1 → {payMethod, actionUrl, fields}  前端 auto-submit 至 FISC
+        payMethod=8 → {payMethod, redirectUrl}        前端整頁導向 LINE Pay
+                    ↓ 金額一律取自 DB，前端不傳金額
+[信用卡] FISC 刷卡頁 → POST /store/payment/return-paylink（PayLinkAuthResUrl）
   ├ FiscWebposParser.ParseForm（與訂單同一份成功判定）
   ├ PaymentLinkService.MarkPaidAsync（冪等）→ 寄通知信給 angela@tfoodies.com
   └ 302 → {origin 或 StoreOrigin}/Pay/Result?code=PL...&paid=1|0
+
+[LINE Pay] LINE Pay 付款頁 → GET /store/payment/linepay/confirm-paylink
+  ├ CompleteLinePayAsync：狀態已付款 → 直接成功；否則以 DB 金額 confirm
+  ├ MarkPaidAsync（同一份冪等 UPDATE）→ txnref = "LINEPay transactionId:{id}"
+  └ 302 → {origin 或 StoreOrigin}/Pay/Result?code=PL...&paid=1|0
+     取消 → /store/payment/linepay/cancel-paylink → …?paid=0
 ```
 
 主動通知：財金的 notify URL 在特店端只登錄一組，訂單與收款連結都會打到 `/store/payment/notify`，由 `PaymentController.Notify` 依 **lidm `PL` 前綴**分派（訂單標記不到才轉收款連結）。
@@ -198,20 +243,22 @@ FISC 刷卡頁 → POST /store/payment/return-paylink（PayLinkAuthResUrl）
 | 金額 | `total + freight − discount` | `amount`（管理員填多少收多少，不加運費、不套折扣） |
 | 會員 | 必須有 | 無 |
 | 完成處理 | `PaymentCompletionService`（Incomes + 發票 + 寄信） | `PaymentLinkService`（只有冪等標記 + 寄信） |
-| 回呼 | `/store/payment/return`(-admin) | `/store/payment/return-paylink` |
+| 回呼 | `/store/payment/return`(-admin)、`/store/payment/linepay/confirm` | `/store/payment/return-paylink`、`/store/payment/linepay/confirm-paylink` |
 | 結果頁 | `/Order/Success` | `/Pay/Result` |
+| 付款方式 | 顧客於結帳頁自選 | 後台建立時指定（`paymethod`），客人不能改 |
 
 ### 相關檔案
 
 - [IPaymentLinkService.cs](../src/TFoodies.Application/Abstractions/IPaymentLinkService.cs) · [PaymentLinkService.cs](../src/TFoodies.Infrastructure/Payments/PaymentLinkService.cs)
 - [PaymentLinkController.cs](../src/TFoodies.Api.Functions/Controllers/PaymentLinkController.cs)（客人端，`store/` 前綴故免 JWT）· [PaymentLinkAdminController.cs](../src/TFoodies.Api.Functions/Controllers/Admin/PaymentLinkAdminController.cs)
-- 共用元件：[FiscWebposParser.cs](../src/TFoodies.Api.Functions/Helpers/FiscWebposParser.cs)（授權結果解析）· [FiscRedirect.cs](../src/TFoodies.Api.Functions/Helpers/FiscRedirect.cs)（回跳白名單，防 open redirect）
-- 建表：[scripts/add-paymentlinks.sql](../scripts/add-paymentlinks.sql)（冪等）
+- 共用元件：[FiscWebposParser.cs](../src/TFoodies.Api.Functions/Helpers/FiscWebposParser.cs)（授權結果解析）· [FiscRedirect.cs](../src/TFoodies.Api.Functions/Helpers/FiscRedirect.cs)（回跳白名單，防 open redirect）· [LinePayClient.cs](../src/TFoodies.Infrastructure/Payments/LinePay/LinePayClient.cs)
+- 建表：[scripts/add-paymentlinks.sql](../scripts/add-paymentlinks.sql)（冪等）· [scripts/add-paymentlink-paymethod.sql](../scripts/add-paymentlink-paymethod.sql)（追加 `paymethod`，DEFAULT 1 故既有連結行為不變）
 - 前端：[web/admin/src/views/paymentlinks/PaymentLinksView.vue](../web/admin/src/views/paymentlinks/PaymentLinksView.vue) · [web/store/app/pages/Pay/[token].vue](../web/store/app/pages/Pay/) · `layouts/pay.vue`
 
 ## 冪等與失敗處理
 
 - `MarkPaidAsync`：已付款回 false → return＋notify 雙觸發不重複入帳/開票/寄信。
+- LINE Pay confirm 回跳被重放（使用者重整/上一頁）：先查訂單/連結狀態，已付款直接視為成功不再打 API；真的打到 LINE Pay 時 `returnCode 1172`（交易已完成）亦視同成功。三道防線都不會造成重複入帳。
 - `PaymentLinkService.MarkPaidAsync`：`UPDATE ... WHERE paymentlinkcode=@code AND status=0`，`rows==0` 即不寄信（同上，雙觸發只寄一封）。
 - `SmtpEmailService` 對 Bcc 與收件人相同者跳過：營運信箱本就在 Bcc 名單，收款連結通知信正是寄給他，不去重會重複投遞。
 - `IssueInvoiceAsync`：`UPDATE ... WHERE invoicestatus=0` 護欄，避免重複建發票。

@@ -7,6 +7,7 @@ using TFoodies.Infrastructure.CodeNumbers;
 using TFoodies.Infrastructure.Invoicing.EzPay;
 using TFoodies.Infrastructure.Payments;
 using TFoodies.Infrastructure.Payments.Fisc;
+using TFoodies.Infrastructure.Payments.LinePay;
 using TFoodies.Infrastructure.Persistence;
 using TFoodies.Infrastructure.Permissions;
 using TFoodies.Infrastructure.Inventory;
@@ -77,7 +78,12 @@ public static class DependencyInjection
         services.Configure<FiscOptions>(configuration.GetSection(FiscOptions.SectionName));
         services.AddScoped<IPaymentCompletionService, PaymentCompletionService>();
 
-        // 刷卡收款連結（後台產生連結給客人付款）。不綁會員、不寫 Orders/Incomes、不自動開票，
+        // LINE Pay Online API v3（直連）。與 WEBPOS 不同，需後端 HttpClient + HMAC 簽章；
+        // 回跳網址沿用 Fisc 區段的站台設定（見 FiscOptions 註解），不另立同義設定鍵。
+        services.Configure<LinePayOptions>(configuration.GetSection(LinePayOptions.SectionName));
+        services.AddHttpClient<ILinePayClient, LinePayClient>();
+
+        // 收款連結（後台產生連結給客人付款）。不綁會員、不寫 Orders/Incomes、不自動開票，
         // 因此不共用 PaymentCompletionService，只做冪等標記 + 通知信。
         services.AddScoped<IPaymentLinkService, PaymentLinkService>();
 

@@ -86,7 +86,8 @@
   - 地址欄位重用 `useZipcodes()` 與 `Checkout` 的縣市→區 cascade；手機另有 sticky 底部確認列（金額全程可見）。跳轉刷卡前以全頁覆蓋層 + 按鈕 disabled 兩道防線擋重複點擊。
   - **不觸發 `purchase` 追蹤**（收款連結不是電商交易，計入會污染 GA4/Meta 營收）。`/Pay/**` 已加入 `nuxt.config.ts` 的 `sitemap.exclude` 與 `robots.disallow`，頁面另帶 `noindex,nofollow`。
   - Result 頁 query 只有 `code` 沒有 `token`，失敗態的「返回重新付款」改讀付款頁在 mounted 時寄存於 `sessionStorage` 的 token（`history.back()` 會退回銀行刷卡頁並觸發表單重送警告）；讀不到則不顯示按鈕、改給客服聯絡方式。
-  - 後端與流程詳見 [docs/13](13-payment-invoice-flow.md#刷卡收款連結paymentlinks--不走訂單的臨時收款)。
+  - 後端與流程詳見 [docs/13](13-payment-invoice-flow.md#收款連結paymentlinks--不走訂單的臨時收款)。
+- 🆕 **結帳付款方式（新 store）**：選項不再寫死在 `pages/Checkout/index.vue`，改由 `GET /store/payment/methods` 提供（後端 `Helpers/StorePaymentMethods.cs` 為單一真相，同時驅動下單時的白名單驗證——舊做法完全不驗 `payType`，任何 int 都能寫進 `Orders.paytype`）。目前開放：信用卡(1)、**LINE Pay(8)**、貨到付款(2)；LINE Pay 由設定鍵 `LinePay__Enabled` 控制，關閉時前台不顯示且後端拒收。API 讀不到時退回「信用卡＋貨到付款」的 fallback，避免整頁不能結帳。送出後分支：信用卡→動態 form auto-submit 至 FISC；LINE Pay→整頁導向 `paymentUrl`；其餘→ `/Order/Success`。⚠️ 兩種離站付款都**必須先成功取得付款資訊才清空購物車**，否則失敗時空購物車 `v-if` 會整塊取代表單（含錯誤訊息）。付款方式標籤集中於 `app/utils/payType.ts`。流程見 [docs/13](13-payment-invoice-flow.md)。
 - **會員/帳戶**：結帳隱式註冊；登入 `Login`→`Ajax/Login`(reCAPTCHA+記住我)；忘記密碼 `Forget`→`Ajax/PasswordSend`。會員中心 `MemberMs/*`。Session key：`IsLogin`、`MemberID`、`Username`。
 - **預購/團購**：`GroupMs/Index` → `Ajax/PostPreorder` → `Preorders`（明細未實作）。
 - **驗證碼**：reCAPTCHA v3（Login/PostOrder/PasswordSend）；GDI 圖形(`Captcha/VerificationCode`)（補貨通知/預購）。

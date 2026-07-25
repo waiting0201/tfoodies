@@ -1,16 +1,24 @@
 <script setup lang="ts">
-// 刷卡收款連結 — 客人付款頁。後台人員產生連結後透過 LINE/email 傳給客人，
-// 客人直接開啟（免登入、無購物車脈絡）：確認金額 → 填收件資料 → 跳轉銀行刷卡頁。
+// 收款連結 — 客人付款頁。後台人員產生連結後透過 LINE/email 傳給客人，
+// 客人直接開啟（免登入、無購物車脈絡）：確認金額 → 填收件資料 → 跳轉付款頁。
+// 付款方式由後台建立連結時指定（payMethod：1=信用卡走 FISC form POST、8=LINE Pay 整頁導向）。
 definePageMeta({ layout: 'pay' })
 
-interface PayLink { code: string; title: string; amount: number; status: number; isExpired: boolean }
+interface PayLink {
+  code: string
+  title: string
+  amount: number
+  status: number
+  isExpired: boolean
+  payMethod: number
+}
 
 const route = useRoute()
 const config = useRuntimeConfig()
 const token = computed(() => String(route.params.token ?? ''))
 
 useHead({
-  title: '線上刷卡付款',
+  title: '線上付款',
   meta: [{ name: 'robots', content: 'noindex,nofollow' }],
 })
 
@@ -37,6 +45,11 @@ onMounted(async () => {
 
 const isPaid = computed(() => link.value?.status === 1)
 const canPay = computed(() => !!link.value && link.value.status === 0 && !link.value.isExpired)
+
+// 依連結指定的付款方式調整文案（客人不能自選，故只有「要去哪裡付」的差別）。
+const payTargetName = computed(() =>
+  link.value?.payMethod === PAY_TYPE.LINE_PAY ? 'LINE Pay 付款頁面' : '銀行刷卡頁面',
+)
 
 const ntd = (n: number) => 'NT$ ' + new Intl.NumberFormat('zh-TW').format(Math.trunc(n))
 
@@ -71,7 +84,12 @@ async function submit() {
 
   submitting.value = true
   try {
-    const init = await $fetch<{ actionUrl: string; fields: Record<string, string> }>(
+    const init = await $fetch<{
+      payMethod: number
+      actionUrl: string | null
+      fields: Record<string, string> | null
+      redirectUrl: string | null
+    }>(
       `${config.public.apiBase}/store/paylinks/${token.value}/checkout`,
       {
         method: 'POST',
@@ -85,13 +103,21 @@ async function submit() {
       },
     )
 
-    // 整頁跳轉到銀行刷卡頁。覆蓋層在 submit() 前就打開，擋住跳轉空窗期的重複點擊。
+    // 覆蓋層在跳轉前就打開，擋住跳轉空窗期的重複點擊。
     redirecting.value = true
+
+    // LINE Pay：整頁導向 LINE Pay 付款頁。
+    if (init.payMethod === PAY_TYPE.LINE_PAY && init.redirectUrl) {
+      window.location.href = init.redirectUrl
+      return
+    }
+
+    // 信用卡：動態建表單 auto-submit 至銀行刷卡頁。
     const f = document.createElement('form')
     f.method = 'post'
-    f.action = init.actionUrl
+    f.action = init.actionUrl ?? ''
     f.acceptCharset = 'UTF-8'
-    for (const [k, v] of Object.entries(init.fields)) {
+    for (const [k, v] of Object.entries(init.fields ?? {})) {
       const input = document.createElement('input')
       input.type = 'hidden'
       input.name = k
@@ -102,7 +128,7 @@ async function submit() {
     f.submit()
     // 不重置 submitting：頁面即將離開，重置只會讓按鈕在跳轉前一瞬間又可按。
   } catch (e: any) {
-    submitError.value = e?.data?.error?.message ?? '無法進入刷卡頁，請稍後再試或聯繫客服。'
+    submitError.value = e?.data?.error?.message ?? '無法進入付款頁，請稍後再試或聯繫客服。'
     submitting.value = false
   }
 }
@@ -206,7 +232,7 @@ async function submit() {
       <button class="pay-form__cta" type="submit" :disabled="submitting">
         {{ submitting ? '處理中…' : `確認付款 ${ntd(link!.amount)} →` }}
       </button>
-      <p class="pay-form__hint">點擊後將導向銀行刷卡頁面完成付款</p>
+      <p class="pay-form__hint">點擊後將導向{{ payTargetName }}完成付款</p>
     </form>
 
     <!-- 手機 sticky 確認列：捲到哪都看得到金額與 CTA（呼應外送 App 的下單列） -->
@@ -224,7 +250,7 @@ async function submit() {
   <!-- 跳轉刷卡前的全頁覆蓋層：與按鈕 disabled 形成兩道防線，避免重複建單 -->
   <div v-if="redirecting" class="pay-redirecting">
     <div class="pay-redirecting__spinner" aria-hidden="true" />
-    <p class="pay-redirecting__text">正在前往銀行刷卡頁面…</p>
+    <p class="pay-redirecting__text">正在前往{{ payTargetName }}…</p>
     <p class="pay-redirecting__sub">請勿關閉或重新整理此頁面</p>
   </div>
 </template>

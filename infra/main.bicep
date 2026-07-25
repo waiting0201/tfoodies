@@ -82,6 +82,15 @@ param Fisc__ApiBaseUrl string = 'https://tfoodies-api.azurewebsites.net/api'
 // 為 Fisc__AdminSuccessUrl 的導出來源（非直接 appSetting），故維持 adminSiteUrl 名稱。
 param adminSiteUrl string = ''
 
+// LINE Pay Online API v3（直連）。ChannelSecret 為機密（HMAC 簽章金鑰），其餘以 GitHub Variable 提供。
+// 回跳網址（confirm/cancel）由程式以 Fisc__ApiBaseUrl 導出，刻意不另設鍵（見 FiscOptions 註解）。
+// BaseUrl 為沙箱↔正式的唯一開關：https://sandbox-api-pay.line.me ↔ https://api-pay.line.me
+param LinePay__Enabled string = 'false'
+param LinePay__ChannelId string = ''
+@secure()
+param LinePay__ChannelSecret string = ''
+param LinePay__BaseUrl string = 'https://sandbox-api-pay.line.me'
+
 // ezPay 電子發票。參數名稱 = appSetting 鍵 = GitHub var/secret 名（見 docs/12）。
 param EzPay__BaseUrl string = 'https://inv.ezpay.com.tw/Api'
 param EzPay__MerchantId string = ''
@@ -136,6 +145,77 @@ resource deploymentContainer 'Microsoft.Storage/storageAccounts/blobServices/con
   }
 }
 
+// ---------- 對外固定 IP（LINE Pay 來源 IP 白名單）----------
+// LINE Pay Online API 只接受在 Merchant Center 登錄過的伺服器 IP 呼叫，未登錄一律回 1106
+// （訊息寫「標頭資訊錯誤」，極易誤判成簽章寫錯）。Flex Consumption 的 outbound IP 由平台動態
+// 配發且會隨擴縮改變，故以 VNet 整合 + NAT Gateway 把所有 outbound 收斂到一個靜態 IP。
+//
+// ⚠️ 這三個資源先於 2026-07 在 Portal 手動建立，此處為「補寫回 IaC」，名稱/位址/區域皆與線上一致。
+//    改動任一欄位前先跑 what-if：位址範圍與 Public IP 的 zones 都是不可變更屬性，改了會部署失敗。
+// ⚠️ 影響範圍是 Function App 的**全部** outbound（含 SQL、ezPay、簡訊、SMTP），不只 LINE Pay。
+//    若那些服務有 IP 白名單，需一併登錄本 IP。同區 Storage 走 Azure 私有 IP，不經 NAT。
+resource natPublicIp 'Microsoft.Network/publicIPAddresses@2023-11-01' = {
+  name: 'tfoodies-nat-ip'
+  location: location
+  tags: tags
+  sku: {
+    name: 'Standard'
+    tier: 'Regional'
+  }
+  zones: ['1', '2', '3']
+  properties: {
+    publicIPAddressVersion: 'IPv4'
+    publicIPAllocationMethod: 'Static'
+    idleTimeoutInMinutes: 4
+  }
+}
+
+resource natGateway 'Microsoft.Network/natGateways@2023-11-01' = {
+  name: 'tfoodies-nat'
+  location: location
+  tags: tags
+  sku: { name: 'Standard' }
+  properties: {
+    idleTimeoutInMinutes: 4
+    publicIpAddresses: [
+      { id: natPublicIp.id }
+    ]
+  }
+}
+
+// ⚠️ subnet 必須宣告在 VNet 的 properties.subnets 內（不要另外用
+//    Microsoft.Network/virtualNetworks/subnets 資源）：subnets 是整包覆蓋的集合，
+//    漏列等於刪除該子網，混用兩種寫法則會互相覆寫掉委派與 NAT 關聯。
+resource vnet 'Microsoft.Network/virtualNetworks@2023-11-01' = {
+  name: 'tfoodies-vnet'
+  location: location
+  tags: tags
+  properties: {
+    addressSpace: {
+      addressPrefixes: ['10.20.0.0/16']
+    }
+    subnets: [
+      {
+        name: 'default'
+        properties: {
+          addressPrefix: '10.20.0.0/24'
+          natGateway: { id: natGateway.id }
+          // Flex Consumption 的 VNet 整合規定委派給 Microsoft.App/environments
+          // （不是 Microsoft.Web/serverFarms），且訂閱需已註冊 Microsoft.App provider。
+          delegations: [
+            {
+              name: 'delegation'
+              properties: { serviceName: 'Microsoft.App/environments' }
+            }
+          ]
+          privateEndpointNetworkPolicies: 'Disabled'
+          privateLinkServiceNetworkPolicies: 'Enabled'
+        }
+      }
+    ]
+  }
+}
+
 // ---------- Functions host (Flex Consumption) ----------
 resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   name: 'tfoodies-api'
@@ -144,6 +224,9 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   kind: 'functionapp,linux'
   properties: {
     httpsOnly: true
+    // VNet 整合：所有 outbound 走 vnet/default 子網，經 NAT Gateway 由靜態 IP 出去。
+    // Flex Consumption 不需要 vnetRouteAllEnabled（那是 Elastic Premium 的旋鈕）。
+    virtualNetworkSubnetId: vnet.properties.subnets[0].id
     functionAppConfig: {
       deployment: {
         storage: {
@@ -212,6 +295,11 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'Fisc__StoreSuccessUrl', value: '${storePublicUrl}/Order/Success' }
         { name: 'Fisc__AllowedStoreOrigins', value: storeAllowedOrigins }
         { name: 'Fisc__AdminSuccessUrl', value: '${empty(adminSiteUrl) ? 'https://${swaAdmin.properties.defaultHostname}' : adminSiteUrl}/admin/orders' }
+        // LINE Pay（直連 Online API v3）。confirm/cancel 回跳網址由 Fisc__ApiBaseUrl 程式導出。
+        { name: 'LinePay__Enabled', value: LinePay__Enabled }
+        { name: 'LinePay__ChannelId', value: LinePay__ChannelId }
+        { name: 'LinePay__ChannelSecret', value: LinePay__ChannelSecret }
+        { name: 'LinePay__BaseUrl', value: LinePay__BaseUrl }
         // ezPay 電子發票
         { name: 'EzPay__BaseUrl', value: EzPay__BaseUrl }
         { name: 'EzPay__MerchantId', value: EzPay__MerchantId }

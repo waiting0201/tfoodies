@@ -1,7 +1,7 @@
-# 12 · 金流（FISC）／電子發票（ezPay）設定參數對照
+# 12 · 金流（FISC / LINE Pay）／電子發票（ezPay）設定參數對照
 
 > 新系統金流與電子發票的**真正參數名稱**與三層對照（API 設定鍵 ↔ bicep 參數 ↔ GitHub var/secret）。
-> 前端（store 結帳、admin）**不持有任何 FISC/ezPay 設定**——一律呼叫 API 取回刷卡欄位後送單；設定只存在 API 一處。
+> 前端（store 結帳、admin）**不持有任何 FISC/LINE Pay/ezPay 設定**——一律呼叫 API 取回刷卡欄位或付款網址後送單；設定只存在 API 一處。
 > 部署時 Function App 的 appSettings 為**整包覆蓋**（見 [docs/06](06-cross-cutting.md) 與記憶 `project-appsettings-bicep-fullreplace`），新增鍵必須同步本表四欄。
 
 ## 命名原則（四層一致）
@@ -33,9 +33,13 @@ API 設定類別 `Fisc`（[FiscOptions.cs](../src/TFoodies.Infrastructure/Paymen
 - 前台刷卡回呼 `AuthResUrl` = `{ApiBaseUrl}/store/payment/return`
 - 後台刷卡回呼 `AdminAuthResUrl` = `{ApiBaseUrl}/store/payment/return-admin`
 - 收款連結回呼 `PayLinkAuthResUrl` = `{ApiBaseUrl}/store/payment/return-paylink`
+- LINE Pay 訂單回跳 `LinePayConfirmUrl` / `LinePayCancelUrl` = `{ApiBaseUrl}/store/payment/linepay/confirm`｜`/cancel`
+- LINE Pay 收款連結回跳 `LinePayPaylinkConfirmUrl` / `LinePayPaylinkCancelUrl` = `{ApiBaseUrl}/store/payment/linepay/confirm-paylink`｜`/cancel-paylink`
 - store 對外 origin `StoreOrigin` = `StoreSuccessUrl` 的 scheme://host[:port]（用於組收款連結網址與其結果頁 fallback）
 
-> 💡 **刷卡收款連結（docs/13）未新增任何設定鍵**——刻意全部由 `ApiBaseUrl` / `StoreSuccessUrl` 導出，避免同名設定在「程式 / bicep / infra.yml / GitHub secret」四層間漂移（新增鍵漏改任一層就會被整包部署覆蓋洗掉）。
+> 💡 **刷卡收款連結與 LINE Pay 的回跳網址都未新增設定鍵**——刻意全部由 `ApiBaseUrl` / `StoreSuccessUrl` 導出，避免同名設定在「程式 / bicep / infra.yml / GitHub secret」四層間漂移（新增鍵漏改任一層就會被整包部署覆蓋洗掉）。
+>
+> ⚠️ 因此 `Fisc__ApiBaseUrl` / `Fisc__StoreSuccessUrl` / `Fisc__AllowedStoreOrigins` 實為**站台層級**設定（與金流廠商無關），LINE Pay 亦共用之，區段名稱與用途已不完全相符。待出現第三家金流再抽共用的 `PaymentSiteOptions`。
 
 WEBPOS 送出欄位（[FiscWebpos.cs](../src/TFoodies.Infrastructure/Payments/Fisc/FiscWebpos.cs)，共 9 欄，與舊系統 ShoppingProfile.cshtml:344-353 一致）：
 `merID, MerchantID, TerminalID, lidm, purchAmt, AuthResURL, enCodeType, PayType=0, AutoCap=1`。
@@ -82,6 +86,53 @@ WEBPOS 送出欄位（[FiscWebpos.cs](../src/TFoodies.Infrastructure/Payments/Fi
 
 > 「系統檢核異常或逾時」「交易資料驗證結果有誤」**不在手冊也不在舊系統**，研判為測試環境較新 Pay Page 的客戶端 JS（可能即被 CSP 擋的 inline script）所顯示，非本系統可控。優先以上表 errcode 與「**測試環境代號是否開通（errcode 15）**」對焦。
 
+## LINE Pay Online API v4（直連）
+
+API 設定類別 `LinePay`（[LinePayOptions.cs](../src/TFoodies.Infrastructure/Payments/LinePay/LinePayOptions.cs)）。
+與 FISC 最大的差異：**需後端 HttpClient + HMAC-SHA256 簽章**（WEBPOS 是純前端 form POST、無金鑰）。
+
+> **為何用 v4 不用 v3**：v4 是為台灣《電子支付機構管理條例》(EPI) 而生的版本。
+> 對本系統而言 **v4 與 v3 的簽章方式、標頭、request/confirm body 欄位完全相同**，差別只有路徑前綴
+> （`/v3/…` → `/v4/…`，由 [LinePayClient.cs](../src/TFoodies.Infrastructure/Payments/LinePay/LinePayClient.cs) 的 `ApiVersion` 常數控制）。
+> v4 另在 confirm 回應多一個 `info.paymentProvider`（TSP/EPI），但官方註明 **Online API 一律回 TSP**
+> （EPI 交易不適用線上情境），故本實作不讀該欄位；新增的 `options.regPayRequest`（記憶付款）亦未使用。
+
+| 參數名稱（四層一致） | 種類 | 意義 / 預設 |
+|---|---|---|
+| `LinePay__Enabled` | GitHub var | 總開關（`true`/`false`）。false 時前台不顯示 LINE Pay、後端端點一律拒絕、後台無法建立 LINE Pay 收款連結。預設 `false` |
+| `LinePay__ChannelId` | GitHub var | LINE Pay 商店 Channel ID（送 `X-LINE-ChannelId` 標頭） |
+| `LinePay__ChannelSecret` | GitHub **Secret** | Channel Secret。**同時是 HMAC 金鑰與被簽訊息的前綴**（LINE Pay 的規定，非筆誤） |
+| `LinePay__BaseUrl` | GitHub var | **沙箱/正式唯一開關**。沙箱 `https://sandbox-api-pay.line.me`、正式 `https://api-pay.line.me`。預設沙箱 |
+
+回跳網址（confirm/cancel）不設鍵，由 `Fisc__ApiBaseUrl` 導出（見上節）。
+
+### 簽章規格
+
+```
+X-LINE-Authorization-Nonce : UUID（每次請求唯一）
+X-LINE-Authorization       : Base64( HMAC-SHA256( ChannelSecret,
+                                      ChannelSecret + requestUri + requestBody + nonce ) )
+```
+
+`requestUri` 為**不含網域的路徑**（`/v4/payments/request`、`/v4/payments/{transactionId}/confirm`）；GET 請求則以 query string 取代 `requestBody`（本系統只用 POST）；
+`requestBody` 必須是**實際送出的 JSON 字串本身**（重新序列化可能產生不同字串而驗簽失敗），
+故 [LinePayClient.cs](../src/TFoodies.Infrastructure/Payments/LinePay/LinePayClient.cs) 一律「先序列化成字串 → 簽章 → 送出同一字串」。
+簽章純函式在 [LinePaySigner.cs](../src/TFoodies.Infrastructure/Payments/LinePay/LinePaySigner.cs)，有固定向量測試鎖行為。
+
+### returnCode 對照（debug）
+
+| code | 意義 | 本系統處理 |
+|---|---|---|
+| `0000` | 成功 | 正常流程 |
+| `1172` | **該筆交易已完成**（重複 confirm） | **視同成功**，保 confirm 回跳被重放時的冪等 |
+| `1104` / `1105` | 商店不存在／無法使用 | 設定或商店狀態問題，回可讀訊息 |
+| `1124` / `1183` | 金額有誤 | 金額一律由 DB 重算，出現代表資料異常 |
+| `1133` / `1150` | 查無交易 | 回跳參數異常或交易已失效 |
+| `1170` / `1142` | 餘額不足 | 顧客端問題 |
+| `1177` | 超過付款可用時間 | 顧客未在時限內完成，需重新下單 |
+
+完整中文訊息對照見 [LinePayErrors.cs](../src/TFoodies.Infrastructure/Payments/LinePay/LinePayErrors.cs)；未列舉的代碼會退回 LINE Pay 原始 `returnMessage`。
+
 ## ezPay／NewebPay 電子發票
 
 API 設定類別 `EzPay`（[EzPayOptions.cs](../src/TFoodies.Infrastructure/Invoicing/EzPay/EzPayOptions.cs)）。金鑰驗證延後到實際開票（[EzPayCodec.cs](../src/TFoodies.Infrastructure/Invoicing/EzPay/EzPayCodec.cs)），未設定不影響刷卡/付款。
@@ -98,8 +149,9 @@ API 設定類別 `EzPay`（[EzPayOptions.cs](../src/TFoodies.Infrastructure/Invo
 - **必設 Variables**：`Fisc__MerchantID`、`Fisc__TerminalID`、`Fisc__MerID`、`EzPay__MerchantId`
 - **必設 Secrets**：`EzPay__HashKey`、`EzPay__HashIV`
 - **選填 Variables**（有預設）：`Fisc__ActionUrl`（測試站時設）、`Fisc__ApiBaseUrl`（財金白名單網域時設）、`ADMIN_SITE_URL`（後台自訂網域時設）、`EzPay__BaseUrl`（測試環境時設 cinv）
+- **啟用 LINE Pay 才需要**：Variables `LinePay__Enabled=true`、`LinePay__ChannelId`、`LinePay__BaseUrl`（正式時設 `https://api-pay.line.me`）；Secret `LinePay__ChannelSecret`。四者未設時 `LinePay__Enabled` 預設 false，LINE Pay 整條路徑關閉、不影響既有金流
 
-> 改動本表任一鍵：同名同步五處 —— [FiscOptions.cs](../src/TFoodies.Infrastructure/Payments/Fisc/FiscOptions.cs)/[EzPayOptions.cs](../src/TFoodies.Infrastructure/Invoicing/EzPay/EzPayOptions.cs)（屬性）+ [main.bicep](../infra/main.bicep)（param + appSettings）+ [infra.yml](../.github/workflows/infra.yml)（兩個部署區塊的左右兩側）+ GitHub var/secret + [local.settings.json](../src/TFoodies.Api.Functions/local.settings.json)，否則部署整包覆蓋時被洗掉。
+> 改動本表任一鍵：同名同步五處 —— [FiscOptions.cs](../src/TFoodies.Infrastructure/Payments/Fisc/FiscOptions.cs)/[LinePayOptions.cs](../src/TFoodies.Infrastructure/Payments/LinePay/LinePayOptions.cs)/[EzPayOptions.cs](../src/TFoodies.Infrastructure/Invoicing/EzPay/EzPayOptions.cs)（屬性）+ [main.bicep](../infra/main.bicep)（param + appSettings）+ [infra.yml](../.github/workflows/infra.yml)（兩個部署區塊的左右兩側）+ GitHub var/secret + [local.settings.json](../src/TFoodies.Api.Functions/local.settings.json)，否則部署整包覆蓋時被洗掉。
 
 ## 網域對照與切換
 

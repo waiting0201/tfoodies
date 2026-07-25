@@ -1,8 +1,10 @@
 <script setup lang="ts">
-// 刷卡收款連結 — 後台產生一次性刷卡連結給客人付款（非商城訂單，屬臨時收款）。
+// 收款連結 — 後台產生一次性付款連結給客人付款（非商城訂單，屬臨時收款）。
+// 付款方式於建立時指定（信用卡走 FISC 刷卡頁、LINE Pay 走 LINE Pay 付款頁），客人不能改。
 // 權限沿用 OrderMs；DB Lims 無對應模組列，側欄不會出現，入口為儀表板「快速導覽」卡片。
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { apiFetch, ApiError } from '../../lib/apiClient'
+import { PAY_TYPE, PAYMENT_LINK_PAY_METHOD_OPTIONS, payTypeLabel } from '../../lib/payType'
 
 interface PaymentLink {
   id: string
@@ -14,6 +16,7 @@ interface PaymentLink {
   amount: number
   status: number            // 0=未付款 1=已付款 2=已作廢
   isExpired: boolean        // 後端已算好（未付款且已過期）
+  payMethod: number         // PayType 編碼：1=信用卡 8=LINE Pay
   customerName: string | null
   customerMobile: string | null
   customerAddress: string | null   // 已組好的完整地址
@@ -155,16 +158,23 @@ const created = ref<CreatedLink | null>(null)   // 非 null = 面板切換為成
 const saving = ref(false)
 const formError = ref('')
 
-const form = reactive({ amount: '' as string | number, title: '', note: '', validDays: 7 as string | number })
+const form = reactive({
+  amount: '' as string | number,
+  title: '',
+  note: '',
+  validDays: 7 as string | number,
+  payMethod: PAY_TYPE.CREDIT_CARD as number,
+})
 
 // 成功態要顯示金額與到期日，但 created 只有 id/code/token/url，故另存送出當下的表單快照。
-const createdMeta = reactive({ title: '', amount: 0, validDays: 0 })
+const createdMeta = reactive({ title: '', amount: 0, validDays: 0, payMethod: PAY_TYPE.CREDIT_CARD as number })
 
 function openPanel() {
   form.amount = ''
   form.title = ''
   form.note = ''
   form.validDays = 7
+  form.payMethod = PAY_TYPE.CREDIT_CARD
   formError.value = ''
   created.value = null
   panelOpen.value = true
@@ -203,11 +213,13 @@ async function submitCreate() {
         note: form.note.trim() || null,
         amount,
         validDays,
+        payMethod: form.payMethod,
       }),
     })
     createdMeta.title = form.title.trim()
     createdMeta.amount = amount
     createdMeta.validDays = validDays
+    createdMeta.payMethod = form.payMethod
     created.value = res
     await nextTick()
     linkInput.value?.focus()
@@ -223,6 +235,7 @@ function createNext() {
   form.title = ''
   form.note = ''
   form.validDays = 7
+  form.payMethod = PAY_TYPE.CREDIT_CARD
   formError.value = ''
   created.value = null
   loadList()
@@ -308,6 +321,7 @@ async function confirmMarkPaid() {
             <th>收款單號</th>
             <th>收款項目</th>
             <th>金額</th>
+            <th>付款方式</th>
             <th>狀態</th>
             <th>客人資訊</th>
             <th>建立時間</th>
@@ -317,10 +331,10 @@ async function confirmMarkPaid() {
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td colspan="8" class="empty-cell">載入中…</td>
+            <td colspan="9" class="empty-cell">載入中…</td>
           </tr>
           <tr v-else-if="!items.length">
-            <td colspan="8" class="empty-cell">目前沒有收款連結</td>
+            <td colspan="9" class="empty-cell">目前沒有收款連結</td>
           </tr>
           <tr v-for="item in items" v-else :key="item.id" class="data-table__row">
             <td class="font-mono">{{ item.code }}</td>
@@ -329,6 +343,7 @@ async function confirmMarkPaid() {
               <div v-if="item.note" class="text-muted" :title="item.note">{{ item.note }}</div>
             </td>
             <td class="font-semibold">NT$ {{ fmtAmount(item.amount) }}</td>
+            <td class="text-muted">{{ payTypeLabel(item.payMethod) }}</td>
             <td>
               <span
                 class="badge"
@@ -403,6 +418,14 @@ async function confirmMarkPaid() {
             </div>
 
             <div class="form-field">
+              <label class="form-field__label">付款方式 <span class="required">*</span></label>
+              <select v-model.number="form.payMethod" class="form-field__input">
+                <option v-for="o in PAYMENT_LINK_PAY_METHOD_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+              </select>
+              <span class="form-field__hint">建立後不可更改，客人只能用指定的方式付款</span>
+            </div>
+
+            <div class="form-field">
               <label class="form-field__label">有效天數</label>
               <input v-model="form.validDays" class="form-field__input" type="number" min="0" max="365" step="1">
               <span class="form-field__hint">0 = 不限期，請謹慎使用</span>
@@ -436,6 +459,9 @@ async function confirmMarkPaid() {
               </div>
               <div class="success-summary__row">
                 <span class="success-summary__label">金額</span><span>NT$ {{ fmtAmount(createdMeta.amount) }}</span>
+              </div>
+              <div class="success-summary__row">
+                <span class="success-summary__label">付款方式</span><span>{{ payTypeLabel(createdMeta.payMethod) }}</span>
               </div>
               <div class="success-summary__row">
                 <span class="success-summary__label">有效期限</span><span>{{ expireHint }}</span>

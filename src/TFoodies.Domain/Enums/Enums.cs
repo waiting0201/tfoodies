@@ -36,6 +36,8 @@ public enum PayType
     WireTransfer = 6,
     /// <summary>支票</summary>
     Check = 7,
+    /// <summary>LINE Pay（本系統新增，非舊系統遺產；只能往後接，既有 1-7 為凍結值）</summary>
+    LinePay = 8,
 }
 
 /// <summary>付款狀態 (Orders.paystatus). Legacy EnumPayStatus.</summary>

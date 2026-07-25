@@ -3,6 +3,7 @@ using TFoodies.Api.Functions.Helpers;
 using TFoodies.Api.Functions.Router;
 using TFoodies.Application.Abstractions;
 using TFoodies.Contracts.Common;
+using TFoodies.Domain.Enums;
 
 namespace TFoodies.Api.Functions.Controllers.Admin;
 
@@ -18,11 +19,14 @@ public sealed class PaymentLinkAdminController
     private const int MaxAmount = 999_999_999;   // FISC purchAmt 為 N 且最長 10 位
 
     private readonly IPaymentLinkService _links;
+    private readonly ILinePayClient _linePay;
     private readonly IAdminPermissionService _perms;
 
-    public PaymentLinkAdminController(IPaymentLinkService links, IAdminPermissionService perms)
+    public PaymentLinkAdminController(
+        IPaymentLinkService links, ILinePayClient linePay, IAdminPermissionService perms)
     {
         _links = links;
+        _linePay = linePay;
         _perms = perms;
     }
 
@@ -61,8 +65,15 @@ public sealed class PaymentLinkAdminController
         if (body.Note is { Length: > 500 }) return ctx.BadRequest("內部備註請控制在 500 字以內。");
         if (body.ValidDays is < 0 or > 365) return ctx.BadRequest("有效天數需介於 0（不限期）至 365 之間。");
 
+        // 付款方式：未帶預設信用卡（沿用本功能上線時的既有行為）。
+        var payMethod = body.PayMethod ?? (int)PayType.CreditCard;
+        if (payMethod is not ((int)PayType.CreditCard or (int)PayType.LinePay))
+            return ctx.BadRequest("付款方式僅支援信用卡或 LINE Pay。");
+        if (payMethod == (int)PayType.LinePay && !_linePay.IsEnabled)
+            return ctx.BadRequest("LINE Pay 目前未啟用，無法建立 LINE Pay 收款連結。");
+
         var created = await _links.CreateAsync(
-            title, body.Note?.Trim(), body.Amount.Value, body.ValidDays, guard.AdminId, ct);
+            title, body.Note?.Trim(), body.Amount.Value, body.ValidDays, payMethod, guard.AdminId, ct);
 
         return ctx.Created(created);
     }
@@ -95,6 +106,10 @@ public sealed class PaymentLinkAdminController
 
     // ── DTOs ──────────────────────────────────────────────────────────────────────
 
-    /// <summary>ValidDays：null 或 0 代表不限期。</summary>
-    private sealed record CreateRequest(string? Title, string? Note, int? Amount, int? ValidDays);
+    /// <summary>
+    /// ValidDays：null 或 0 代表不限期。
+    /// PayMethod：PayType 編碼，1=信用卡（預設）、8=LINE Pay。
+    /// </summary>
+    private sealed record CreateRequest(
+        string? Title, string? Note, int? Amount, int? ValidDays, int? PayMethod);
 }

@@ -55,6 +55,10 @@ jobs:
               Fisc__ActionUrl='${{ vars.Fisc__ActionUrl || 'https://www.focas.fisc.com.tw/FOCAS_WEBPOS/online/' }}' \
               Fisc__ApiBaseUrl='${{ vars.Fisc__ApiBaseUrl || 'https://tfoodies-api.azurewebsites.net/api' }}' \
               adminSiteUrl='${{ vars.ADMIN_SITE_URL }}' \
+              LinePay__Enabled='${{ vars.LinePay__Enabled || 'false' }}' \
+              LinePay__ChannelId='${{ vars.LinePay__ChannelId }}' \
+              LinePay__ChannelSecret='${{ secrets.LinePay__ChannelSecret }}' \
+              LinePay__BaseUrl='${{ vars.LinePay__BaseUrl || 'https://sandbox-api-pay.line.me' }}' \
               EzPay__MerchantId='${{ vars.EzPay__MerchantId }}' \
               EzPay__HashKey='${{ secrets.EzPay__HashKey }}' \
               EzPay__HashIV='${{ secrets.EzPay__HashIV }}' \
@@ -86,6 +90,10 @@ jobs:
               Fisc__ActionUrl='${{ vars.Fisc__ActionUrl || 'https://www.focas.fisc.com.tw/FOCAS_WEBPOS/online/' }}' \
               Fisc__ApiBaseUrl='${{ vars.Fisc__ApiBaseUrl || 'https://tfoodies-api.azurewebsites.net/api' }}' \
               adminSiteUrl='${{ vars.ADMIN_SITE_URL }}' \
+              LinePay__Enabled='${{ vars.LinePay__Enabled || 'false' }}' \
+              LinePay__ChannelId='${{ vars.LinePay__ChannelId }}' \
+              LinePay__ChannelSecret='${{ secrets.LinePay__ChannelSecret }}' \
+              LinePay__BaseUrl='${{ vars.LinePay__BaseUrl || 'https://sandbox-api-pay.line.me' }}' \
               EzPay__MerchantId='${{ vars.EzPay__MerchantId }}' \
               EzPay__HashKey='${{ secrets.EzPay__HashKey }}' \
               EzPay__HashIV='${{ secrets.EzPay__HashIV }}' \

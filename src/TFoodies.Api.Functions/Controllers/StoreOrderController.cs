@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using TFoodies.Api.Functions.Helpers;
 using TFoodies.Api.Functions.Router;
 using TFoodies.Application.Abstractions;
 using TFoodies.Domain.Enums;
@@ -17,12 +18,15 @@ public sealed class StoreOrderController
     private readonly IOrderService _orders;
     private readonly IDiscountService _discounts;
     private readonly IEmailService _email;
+    private readonly ILinePayClient _linePay;
 
-    public StoreOrderController(IOrderService orders, IDiscountService discounts, IEmailService email)
+    public StoreOrderController(
+        IOrderService orders, IDiscountService discounts, IEmailService email, ILinePayClient linePay)
     {
         _orders = orders;
         _discounts = discounts;
         _email = email;
+        _linePay = linePay;
     }
 
     // POST /store/orders
@@ -33,6 +37,11 @@ public sealed class StoreOrderController
 
         var validation = body.Validate();
         if (validation is not null) return ctx.BadRequest(validation);
+
+        // 付款方式白名單：前台只能送出目前開放的方式（LINE Pay 未啟用時連 payType=8 都不收），
+        // 否則任何 int 都會被直接寫進 Orders.paytype。
+        if (!StorePaymentMethods.IsAllowed(body.PayType, _linePay.IsEnabled))
+            return ctx.BadRequest("不支援的付款方式。");
 
         var memberId = ExtractMemberId(ctx.CurrentUser);
 
@@ -110,6 +119,7 @@ public sealed class StoreOrderController
     private static string PayTypeLabel(string payTypeKey) => payTypeKey switch
     {
         "credit"   => "信用卡線上付款",
+        "linepay"  => "LINE Pay",
         "atmcode"  => "ATM 虛擬帳號轉帳",
         "delivery" => "貨到付款",
         _          => "無須付款",

@@ -10,6 +10,10 @@ namespace TFoodies.Infrastructure.Payments.Fisc;
 ///   Fisc__ApiBaseUrl       — 本 API 公開基底（含 /api），授權回呼網址由此導出
 ///   Fisc__StoreSuccessUrl  — 前台結果頁完整網址
 ///   Fisc__AdminSuccessUrl  — 後台訂單頁基底網址
+///
+/// ⚠️ ApiBaseUrl / StoreSuccessUrl / AdminSuccessUrl / AllowedStoreOrigins 實為**站台層級**設定
+/// （與金流廠商無關），LINE Pay 亦共用之，故本類別除財金外還導出 LinePay*Url。刻意不另立同義
+/// 設定鍵，以免同一份網址在四層設定間漂移；待出現第三家金流再抽共用的 PaymentSiteOptions。
 /// </summary>
 public sealed class FiscOptions
 {
@@ -77,6 +81,22 @@ public sealed class FiscOptions
 
     /// <summary>刷卡收款連結授權回呼網址 = {ApiBaseUrl}/store/payment/return-paylink。</summary>
     public string PayLinkAuthResUrl => Combine(ApiBaseUrl, "store/payment/return-paylink");
+
+    // ── LINE Pay 回跳網址（沿用本區段的站台設定，刻意不新增同義設定鍵）──
+    // ApiBaseUrl / StoreSuccessUrl / AllowedStoreOrigins 本質是站台層級設定、與金流廠商無關，
+    // 由 LINE Pay 共用可避免同義鍵在四層設定之間漂移（見 docs/12-payment-invoice-config.md）。
+
+    /// <summary>LINE Pay 訂單付款完成回跳 = {ApiBaseUrl}/store/payment/linepay/confirm。</summary>
+    public string LinePayConfirmUrl => Combine(ApiBaseUrl, "store/payment/linepay/confirm");
+
+    /// <summary>LINE Pay 訂單付款取消回跳 = {ApiBaseUrl}/store/payment/linepay/cancel。</summary>
+    public string LinePayCancelUrl => Combine(ApiBaseUrl, "store/payment/linepay/cancel");
+
+    /// <summary>LINE Pay 收款連結付款完成回跳 = {ApiBaseUrl}/store/payment/linepay/confirm-paylink。</summary>
+    public string LinePayPaylinkConfirmUrl => Combine(ApiBaseUrl, "store/payment/linepay/confirm-paylink");
+
+    /// <summary>LINE Pay 收款連結付款取消回跳 = {ApiBaseUrl}/store/payment/linepay/cancel-paylink。</summary>
+    public string LinePayPaylinkCancelUrl => Combine(ApiBaseUrl, "store/payment/linepay/cancel-paylink");
 
     /// <summary>
     /// store 對外基底 origin（由 <see cref="StoreSuccessUrl"/> 導出），用於組收款連結網址與

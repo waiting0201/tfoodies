@@ -81,13 +81,38 @@ const form = reactive({
   receiverTime: 0,           // 0=不指定 1=上午 2=下午
   invoiceType: 1,            // 1=電子發票(二聯) 2=捐贈 3=三聯式(公司)
   companyNumber: '', companyTitle: '',
-  payType: 1,                // 1=信用卡 2=貨到付款
+  payType: PAY_TYPE.CREDIT_CARD,
   remark: '',
   discountCode: '',
   agree: false,
 })
 
 const years = Array.from({ length: 81 }, (_, i) => new Date().getFullYear() - i)
+
+// ── 可用付款方式 ──────────────────────────────────────────────────────────────
+// 由後端 /store/payment/methods 提供（LINE Pay 未啟用時不會出現），與下單時的白名單
+// 驗證同一份來源。API 讀不到時退回信用卡＋貨到付款，避免整頁不能結帳。
+interface PaymentMethod { value: number; key: string; label: string; note: string }
+
+const FALLBACK_METHODS: PaymentMethod[] = [
+  { value: PAY_TYPE.CREDIT_CARD, key: 'credit', label: '信用卡線上刷卡', note: '結帳時將自動跳轉至銀行刷卡頁面' },
+  { value: PAY_TYPE.CASH_ON_DELIVERY, key: 'delivery', label: '宅配貨到付款', note: '貨品寄達時向貨運司機支付款項' },
+]
+
+const payMethods = ref<PaymentMethod[]>(FALLBACK_METHODS)
+
+onMounted(async () => {
+  try {
+    const res = await $fetch<{ methods: PaymentMethod[] }>(`${config.public.apiBase}/store/payment/methods`)
+    if (res?.methods?.length) payMethods.value = res.methods
+  }
+  catch {
+    // 保留 fallback
+  }
+  // 目前選取的方式若已下架（例如 LINE Pay 被關閉），退回第一個可用選項。
+  if (!payMethods.value.some(m => m.value === form.payType))
+    form.payType = payMethods.value[0]!.value
+})
 
 // ── City → area cascade ───────────────────────────────────────────────────────
 const buyerAreas = ref<{ zipcodeId: number; area: string }[]>([])
@@ -250,16 +275,31 @@ async function submitOrder() {
       email: form.buyerEmail.trim() || null,
       phone: form.buyerMobile.trim() || null,
     })
+    // 需離站付款的方式（信用卡 / LINE Pay）：先向後端取得導向資訊再離開本頁。
+    // returnOrigin：帶上目前所在網域，讓付款返回時導回「同一個網域」的結果頁（多網域服務時避免
+    // 跨域把使用者甩到主網域、且 purchase 追蹤的 sessionStorage 跨域讀不到而漏單）。後端會以白名單驗證。
+    // ⚠️ 必須先成功取得付款資訊才清空購物車——否則 create 失敗時購物車已被清空，
+    //    空購物車 v-if 會整塊取代表單（含錯誤訊息），使用者只會看到「購物車是空的」。
+    const initBody = { orderCode: res.orderCode, returnOrigin: window.location.origin }
+
+    // LINE Pay：後端建立交易後回傳付款頁網址，整頁導向；結果由 /store/payment/linepay/confirm 導回。
+    if (form.payType === PAY_TYPE.LINE_PAY) {
+      const init = await $fetch<{ paymentUrl: string }>(
+        `${config.public.apiBase}/store/payment/linepay/create`,
+        { method: 'POST', body: initBody },
+      )
+      cartStore.items = []
+      cartStore.persist()
+      window.location.href = init.paymentUrl
+      return
+    }
+
     // 信用卡：發起財金 FISC WEBPOS 刷卡。後端回傳 form action 與欄位，動態建表單
     // auto-submit 將使用者整頁導向財金刷卡頁；刷卡結果由財金導回 /store/payment/return。
-    // ⚠️ 必須先成功取得刷卡 form 才清空購物車——否則 create 失敗時購物車已被清空，
-    //    空購物車 v-if 會整塊取代表單（含錯誤訊息），使用者只會看到「購物車是空的」。
-    if (form.payType === 1) {
+    if (form.payType === PAY_TYPE.CREDIT_CARD) {
       const init = await $fetch<{ actionUrl: string; fields: Record<string, string> }>(
         `${config.public.apiBase}/store/payment/create`,
-        // returnOrigin：帶上目前所在網域，讓刷卡返回時導回「同一個網域」的結果頁（多網域服務時避免
-        // 跨域把使用者甩到主網域、且 purchase 追蹤的 sessionStorage 跨域讀不到而漏單）。後端會以白名單驗證。
-        { method: 'POST', body: { orderCode: res.orderCode, returnOrigin: window.location.origin } },
+        { method: 'POST', body: initBody },
       )
       cartStore.items = []
       cartStore.persist()
@@ -432,8 +472,9 @@ async function submitOrder() {
             <!-- 付款方式 -->
             <div class="formstyle card">
               <h2 class="card-title"><span class="must">*</span>付款方式</h2>
-              <label class="opt"><input type="radio" v-model.number="form.payType" :value="1"> 信用卡線上刷卡<span class="descript opt-note">結帳時將自動跳轉至銀行刷卡頁面</span></label>
-              <label class="opt"><input type="radio" v-model.number="form.payType" :value="2"> 宅配貨到付款<span class="descript opt-note">貨品寄達時向貨運司機支付款項</span></label>
+              <label v-for="m in payMethods" :key="m.value" class="opt">
+                <input type="radio" v-model.number="form.payType" :value="m.value"> {{ m.label }}<span class="descript opt-note">{{ m.note }}</span>
+              </label>
             </div>
 
             <!-- 備註 -->
