@@ -28,10 +28,14 @@ API 設定類別 `Fisc`（[FiscOptions.cs](../src/TFoodies.Infrastructure/Paymen
 
 ### 程式導出（不另設定）
 
-`AuthResUrl` / `AdminAuthResUrl` **不是設定鍵**，在 [FiscOptions.cs](../src/TFoodies.Infrastructure/Payments/Fisc/FiscOptions.cs) 由 `ApiBaseUrl` 導出：
+`AuthResUrl` / `AdminAuthResUrl` / `PayLinkAuthResUrl` / `StoreOrigin` **都不是設定鍵**，在 [FiscOptions.cs](../src/TFoodies.Infrastructure/Payments/Fisc/FiscOptions.cs) 由既有設定導出：
 
 - 前台刷卡回呼 `AuthResUrl` = `{ApiBaseUrl}/store/payment/return`
 - 後台刷卡回呼 `AdminAuthResUrl` = `{ApiBaseUrl}/store/payment/return-admin`
+- 收款連結回呼 `PayLinkAuthResUrl` = `{ApiBaseUrl}/store/payment/return-paylink`
+- store 對外 origin `StoreOrigin` = `StoreSuccessUrl` 的 scheme://host[:port]（用於組收款連結網址與其結果頁 fallback）
+
+> 💡 **刷卡收款連結（docs/13）未新增任何設定鍵**——刻意全部由 `ApiBaseUrl` / `StoreSuccessUrl` 導出，避免同名設定在「程式 / bicep / infra.yml / GitHub secret」四層間漂移（新增鍵漏改任一層就會被整包部署覆蓋洗掉）。
 
 WEBPOS 送出欄位（[FiscWebpos.cs](../src/TFoodies.Infrastructure/Payments/Fisc/FiscWebpos.cs)，共 9 欄，與舊系統 ShoppingProfile.cshtml:344-353 一致）：
 `merID, MerchantID, TerminalID, lidm, purchAmt, AuthResURL, enCodeType, PayType=0, AutoCap=1`。

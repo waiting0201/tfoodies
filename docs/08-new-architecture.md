@@ -71,7 +71,7 @@ tests/
 內容（`Abstractions/`）：
 - `IUnitOfWork` / `IUnitOfWorkTransaction` — 工作單元（`SaveChangesAsync`、`BeginTransactionAsync`）
 - `IDbConnectionFactory` — Dapper 連線工廠（`CreateConnection()`）
-- `ICodeNumberService` — 原子單號產生（9 種 CodeKind，MERGE HOLDLOCK）
+- `ICodeNumberService` — 原子單號產生（10 種 CodeKind，MERGE HOLDLOCK）
 - `IStockAllocator` / `AllocationResult` / `StockPick` — FIFO 庫存揀貨
 - `IPaymentCompletionService` / `IInvoiceService` — 付款完成處理（標記已付款+Income+寄信+發票）/電子發票 port
 - `IAuthService` — 會員/管理員登入（回傳 JWT token pair）
@@ -103,8 +103,9 @@ Auth/
   AuthService.cs               ← IAuthService（PBKDF2 hash-on-login，自動升級明文）
 Payments/
   PaymentCompletionService.cs  ← IPaymentCompletionService（MarkPaidAsync：標記已付款+Income+寄信+await 開票；IssueInvoiceAsync：ezPay 開票+建本地 Invoices/Invoicedetails，冪等）。store return/notify、後台 charge return、後台 pay 共用
-  Fisc/FiscOptions.cs          ← 財金 WEBPOS 設定（ActionUrl/商店代號/ApiBaseUrl/StoreSuccessUrl/AdminSuccessUrl）。前台+後台回呼網址（AuthResUrl/AdminAuthResUrl）由 ApiBaseUrl 導出（詳見 docs/12）
-  Fisc/FiscWebpos.cs           ← WEBPOS 刷卡 form 隱藏欄位產生器（store create 與後台 charge 共用，差別僅 AuthResURL）
+  PaymentLinkService.cs        ← IPaymentLinkService（刷卡收款連結：不綁會員、不寫 Orders/Incomes、不開發票，只做冪等標記 + 通知信給營運）。故不共用 PaymentCompletionService（詳見 docs/13）
+  Fisc/FiscOptions.cs          ← 財金 WEBPOS 設定（ActionUrl/商店代號/ApiBaseUrl/StoreSuccessUrl/AdminSuccessUrl）。回呼網址（AuthResUrl/AdminAuthResUrl/PayLinkAuthResUrl）與 StoreOrigin 皆由既有設定導出，不另設鍵（詳見 docs/12）
+  Fisc/FiscWebpos.cs           ← WEBPOS 刷卡 form 隱藏欄位產生器（訂單多載算 total+freight−discount；通用多載由呼叫端給 lidm/金額，收款連結用）
 Invoicing/EzPay/
   EzPayCodec.cs                ← 藍新 AES-256-CBC + SHA256 codec
   EzPayOptions.cs
@@ -117,7 +118,7 @@ Orders/
   OrderService.cs              ← IOrderService（PlaceOrderAsync/GetOrderAsync/…）
                                   ⚠ BuildAtmCode() public static（ATM 國泰演算法）
 CodeNumbers/
-  SqlCodeNumberService.cs      ← ICodeNumberService（MERGE HOLDLOCK，9 種 CodeKind）
+  SqlCodeNumberService.cs      ← ICodeNumberService（MERGE HOLDLOCK，10 種 CodeKind）
 Inventory/
   SqlStockAllocator.cs         ← IStockAllocator（FIFO，UPDLOCK/ROWLOCK）
                                   ⚠ namespace=Inventory（避免 CS0118 'Stock' 衝突）
@@ -146,6 +147,15 @@ DependencyInjection.cs         ← AddInfrastructure()，對外唯一入口
 
 - 若需要某欄位卻不存在，應調整功能設計或 UI，而非修改資料庫。
 - Scaffolded 實體是現有 DB 的忠實映射，實作前先確認實體欄位，不可憑假設撰寫 SQL。
+
+**已核可的例外（新增表，未動任何既有表）**：規範的用意是保護既有 72 張表與其資料，不是禁止新功能擁有自己的表。以下兩次例外皆為**純新增**、經明確決策、並附冪等 SQL 腳本：
+
+| 表 | 腳本 | 緣由 |
+|---|---|---|
+| `Knowledgeproducts` | [scripts/add-knowledgeproducts.sql](../scripts/add-knowledgeproducts.sql) | 小知識↔商品 M:N（比照既有 `Issueproducts`） |
+| `Paymentlinks` / `Paymentlinkcodes` | [scripts/add-paymentlinks.sql](../scripts/add-paymentlinks.sql) | 刷卡收款連結；`Orders`/`Incomes` 的 `memberid` 皆 NOT NULL + FK，無法承載不綁會員的臨時收款（見 docs/13） |
+
+例外的執行流程：寫冪等腳本（`IF NOT EXISTS` 包覆，可重複執行）→ 人工於各環境執行 → 重跑 `scripts/scaffold-db.sh` 並提交 diff，維持「空 diff = 無 schema drift」的護欄語意。**正式環境的 DDL 需列入部署 checklist**——本專案無 migration 機制，忘記執行會讓功能上線即 500。
 
 不應放在這裡：HTTP 路由、Azure Functions 觸發器、Controller 邏輯。
 
@@ -193,6 +203,8 @@ Middleware/                  ← Cors/Correlation/Exception/JwtAuth（全 Single
 Helpers/
   JwtHelper.cs               ← Bearer token 解析
   AdminGuard.cs              ← 後台 RBAC 守衛（RequireAdmin / AuthorizeAsync）
+  FiscWebposParser.cs        ← 財金授權結果解析（訂單刷卡與收款連結共用同一份成功判定）
+  FiscRedirect.cs            ← 刷卡回跳網域白名單（防 open redirect，建立端與回呼端共用）
 Controllers/
   StoreController.cs         ← 前台商品/CMS（13 GET 端點，公開；含 GET /store/shopping-guide 購物說明 FAQ）
                                + POST /store/outofnotices（缺貨「到貨通知我」登記；reCAPTCHA v3 + 同 email/商品去重）

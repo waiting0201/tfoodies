@@ -33,9 +33,13 @@ public sealed class SmtpEmailService : IEmailService
             mail.To.Add(to);
 
             // 舊系統固定密件副本給營運信箱，沿用以維持通知一致性（可由設定關閉）。
+            // 跳過與收件人相同者：營運信箱本身就在 Bcc 名單內，若某封信正是寄給他
+            // （如刷卡收款連結的付款通知），To + Bcc 會造成重複投遞。
             foreach (var bcc in _options.Bcc)
             {
-                if (!string.IsNullOrWhiteSpace(bcc)) mail.Bcc.Add(bcc.Trim());
+                if (string.IsNullOrWhiteSpace(bcc)) continue;
+                if (bcc.Trim().Equals(to?.Trim(), StringComparison.OrdinalIgnoreCase)) continue;
+                mail.Bcc.Add(bcc.Trim());
             }
 
             using var client = new SmtpClient(_options.Host, _options.Port)

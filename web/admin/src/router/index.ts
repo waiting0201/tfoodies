@@ -327,6 +327,13 @@ const routes: RouteRecordRaw[] = [
         name: 'report-amounts',
         component: () => import('../views/reports/SalesAmountReportView.vue'),
       },
+      // 刷卡收款連結（權限沿用 OrderMs）。DB Lims 無對應模組列，側欄不會出現，
+      // 入口為儀表板「快速導覽」卡片，故 AdminLayout 的 ROUTES 不需登錄。
+      {
+        path: 'admin/paymentlinks',
+        name: 'paymentlinks',
+        component: () => import('../views/paymentlinks/PaymentLinksView.vue'),
+      },
     ],
   },
   // 請款單列印（獨立頁，不套 AdminLayout；需登入）

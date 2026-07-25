@@ -75,5 +75,14 @@ public sealed class FiscOptions
     /// <summary>後台線上刷卡授權回呼網址 = {ApiBaseUrl}/store/payment/return-admin。</summary>
     public string AdminAuthResUrl => Combine(ApiBaseUrl, "store/payment/return-admin");
 
+    /// <summary>刷卡收款連結授權回呼網址 = {ApiBaseUrl}/store/payment/return-paylink。</summary>
+    public string PayLinkAuthResUrl => Combine(ApiBaseUrl, "store/payment/return-paylink");
+
+    /// <summary>
+    /// store 對外基底 origin（由 <see cref="StoreSuccessUrl"/> 導出），用於組收款連結網址與
+    /// 收款結果頁的 fallback 導回目標。刻意不另設定鍵，避免同名設定在四層間漂移。
+    /// </summary>
+    public string StoreOrigin => NormalizeOrigin(StoreSuccessUrl);
+
     private static string Combine(string baseUrl, string path) => $"{baseUrl.TrimEnd('/')}/{path}";
 }

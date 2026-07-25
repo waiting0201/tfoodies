@@ -77,6 +77,10 @@ public static class DependencyInjection
         services.Configure<FiscOptions>(configuration.GetSection(FiscOptions.SectionName));
         services.AddScoped<IPaymentCompletionService, PaymentCompletionService>();
 
+        // 刷卡收款連結（後台產生連結給客人付款）。不綁會員、不寫 Orders/Incomes、不自動開票，
+        // 因此不共用 PaymentCompletionService，只做冪等標記 + 通知信。
+        services.AddScoped<IPaymentLinkService, PaymentLinkService>();
+
         // ── Invoice service（Singleton — HttpClient pool） ────────────────────────
         services.Configure<EzPayOptions>(configuration.GetSection(EzPayOptions.SectionName));
         services.AddSingleton<EzPayCodec>(sp =>

@@ -114,6 +114,20 @@ Brands(+Brandphotos 圖庫)、Producttypes、Tags、Products(+Productphotos)。
 | SettingMsController | SettingMs | Admins, Questiontypes, Questions, Discounts | 系統設定/權限/FAQ/折價券 |
 | AjaxController | — | (JSON) | 驗證/查詢/發票/狀態變更 |
 
+### 🆕 刷卡收款連結（新系統新增，舊系統無此模組）
+
+| 項目 | 內容 |
+|---|---|
+| 前端 | `web/admin/src/views/paymentlinks/PaymentLinksView.vue`（路由 `/admin/paymentlinks`） |
+| **入口** | **僅儀表板「快速導覽」卡片**——DB `Lims` 無對應模組列，側欄不會出現（`AdminLayout.vue` 的 `ROUTES` 刻意不登錄，該處已加註解說明非遺漏） |
+| 權限 | 沿用 **`OrderMs`**：Read=列表、Add=建立、Update=作廢/手動標記已付款。憑空新增模組名會讓除 itadmin(888) 外所有帳號 403（模組授權查 DB `Lims` 頂層 Key） |
+| 端點 | `GET/POST /admin/paymentlinks`、`PATCH /admin/paymentlinks/{id}/cancel`、`PATCH /admin/paymentlinks/{id}/paid` |
+| 畫面 | 列表為主 + 右側滑出面板建立（送出成功後面板**原地切換成功態**不關閉，把連結與複製鈕直接呈現，因複製是本頁最高頻動作）。狀態 tabs 五個：全部/未付款/已逾期/已付款/已作廢 |
+| 篩選 | 「已逾期」是 `status=0` 的衍生狀態非獨立值，故列表 API 收 `status` + `isExpired` 兩參數，在 SQL 端切分（在記憶體過濾會讓 total 與分頁對不起來） |
+| 手動標記已付款 | FISC 未回呼（客人關瀏覽器）時的補救；`txnref` 記為「後台手動標記已付款（AdminID n）」 |
+
+流程、資料表與「為何不寫 Incomes/不開發票」見 [docs/13](13-payment-invoice-flow.md#刷卡收款連結paymentlinks--不走訂單的臨時收款)。
+
 ## 跨切面慣例
 - **權限 key** = `CheckSession` 剝除規則後的動作基底名；圖庫/明細頁映射回父功能。
 - **CRUD 樣板統一**：`<Entity>(p=...)` list(PagedList 15-20) + 選用 `Sort<Entity>` + `Add/Edit`(GET+POST) + `Delete`(常軟刪)。POST 用 `TryUpdateModel(entity, whitelist[])`。

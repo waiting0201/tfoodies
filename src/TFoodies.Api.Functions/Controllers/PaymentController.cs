@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using TFoodies.Api.Functions.Helpers;
 using TFoodies.Api.Functions.Router;
 using TFoodies.Application.Abstractions;
 using TFoodies.Domain.Enums;
@@ -18,13 +19,16 @@ public sealed class PaymentController
 {
     private readonly IOrderService _orders;
     private readonly IPaymentCompletionService _completion;
+    private readonly IPaymentLinkService _paymentLinks;
     private readonly FiscOptions _fisc;
 
     public PaymentController(
-        IOrderService orders, IPaymentCompletionService completion, IOptions<FiscOptions> fisc)
+        IOrderService orders, IPaymentCompletionService completion,
+        IPaymentLinkService paymentLinks, IOptions<FiscOptions> fisc)
     {
         _orders = orders;
         _completion = completion;
+        _paymentLinks = paymentLinks;
         _fisc = fisc.Value;
     }
 
@@ -81,30 +85,23 @@ public sealed class PaymentController
         return new RedirectResult(url);
     }
 
-    // 從候選來源（依序取第一個非空）正規化出 origin，且必須在 Fisc 白名單內才回傳，否則回空字串。
-    // 同時用於 create（決定是否帶 query）與 return（決定是否同網域導回）——兩端都驗證，防 open redirect。
+    // 從候選來源正規化出白名單內的 origin（防 open redirect）。同時用於 create（決定是否帶 query）
+    // 與 return（決定是否同網域導回）——兩端都驗證。與收款連結共用 FiscRedirect。
     private string ResolveAllowedOrigin(params string?[] candidates)
-    {
-        foreach (var c in candidates)
-        {
-            var o = FiscOptions.NormalizeOrigin(c);
-            if (o.Length > 0 && _fisc.AllowedStoreOriginSet.Contains(o)) return o;
-        }
-        return "";
-    }
+        => FiscRedirect.ResolveAllowedOrigin(_fisc, candidates);
 
     // 解析財金 form 回傳 + 冪等標記已付款（store / admin 返回共用，差別僅在最終 redirect 目標）。
-    private async Task<WebposResult> CompleteFromFormAsync(RouteContext ctx, CancellationToken ct)
+    private async Task<FiscWebposParser.WebposResult> CompleteFromFormAsync(RouteContext ctx, CancellationToken ct)
     {
-        var form = await ReadFormSafeAsync(ctx, ct);
-        var result = ParseFields(form);
+        var form = await FiscWebposParser.ReadFormSafeAsync(ctx, ct);
+        var result = FiscWebposParser.ParseForm(form);
         if (result.IsSuccess && !string.IsNullOrEmpty(result.Lidm))
             await _completion.MarkPaidAsync(result.Lidm, result.LastPan4, result.TxnRef, ct: ct);
         return result;
     }
 
     // 無論成功失敗都導回結果頁，由前端呈現付款結果。
-    private static IActionResult RedirectToResultPage(string baseUrl, WebposResult result)
+    private static IActionResult RedirectToResultPage(string baseUrl, FiscWebposParser.WebposResult result)
     {
         var paid = result.IsSuccess ? "1" : "0";
         var url = $"{baseUrl}?code={Uri.EscapeDataString(result.Lidm)}&paid={paid}";
@@ -112,85 +109,27 @@ public sealed class PaymentController
     }
 
     // POST /store/payment/notify（主動通知，AuthResp 字串）
+    // 財金的主動通知網址在特店端只登錄一組，訂單與收款連結的交易都會打到這裡，
+    // 因此依 lidm 前綴分派：訂單標記不到（不存在/已付款）且單號為 PL 開頭時，再試收款連結。
     public async Task<IActionResult> Notify(RouteContext ctx)
     {
         var ct = ctx.Request.HttpContext.RequestAborted;
 
-        var form = await ReadFormSafeAsync(ctx, ct);
+        var form = await FiscWebposParser.ReadFormSafeAsync(ctx, ct);
         var authResp = form.GetValueOrDefault("AuthResp");
         if (string.IsNullOrEmpty(authResp))
-            authResp = await ReadRawBodyAsync(ctx, ct); // 後援：body 即 AuthResp 字串
+            authResp = await FiscWebposParser.ReadRawBodyAsync(ctx, ct); // 後援：body 即 AuthResp 字串
 
-        var result = ParseAuthResp(authResp);
+        var result = FiscWebposParser.ParseAuthResp(authResp);
         if (result.IsSuccess && !string.IsNullOrEmpty(result.Lidm))
-            await _completion.MarkPaidAsync(result.Lidm, result.LastPan4, result.TxnRef, ct: ct);
+        {
+            var marked = await _completion.MarkPaidAsync(result.Lidm, result.LastPan4, result.TxnRef, ct: ct);
+            if (!marked && result.Lidm.StartsWith("PL", StringComparison.OrdinalIgnoreCase))
+                await _paymentLinks.MarkPaidAsync(result.Lidm, result.LastPan4, result.TxnRef, ct);
+        }
 
         // 財金期待 http 200，未回 200 會重試最多 3 次。
         return ctx.Ok(new { received = true, orderNumber = result.Lidm, paid = result.IsSuccess });
-    }
-
-    // ── 解析 ──────────────────────────────────────────────────────────────────────
-
-    // status=="0" 且 authCode 非空 = 授權成功（手冊 3.1.2 / 3.4.3）。
-    private static WebposResult ParseFields(IReadOnlyDictionary<string, string> f)
-    {
-        var status   = f.GetValueOrDefault("status");
-        var authCode = f.GetValueOrDefault("authCode");
-        var lidm     = f.GetValueOrDefault("lidm") ?? "";
-        var lastPan4 = f.GetValueOrDefault("lastPan4");
-        var xid      = f.GetValueOrDefault("xid");
-
-        var success = status == "0" && !string.IsNullOrWhiteSpace(authCode);
-        var txnRef  = $"FISC authCode:{authCode} xid:{xid}";
-        return new WebposResult(success, lidm, lastPan4, txnRef);
-    }
-
-    // 主動通知字串：AuthResp={status=0, authCode=123456, lidm=..., lastPan4=9104, ...}
-    private static WebposResult ParseAuthResp(string? raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw)) return new WebposResult(false, "", null, "");
-
-        var s = raw.Trim();
-        var eq = s.IndexOf('=');
-        if (s.StartsWith("AuthResp", StringComparison.OrdinalIgnoreCase) && eq >= 0)
-            s = s[(eq + 1)..];
-        s = s.Trim().Trim('{', '}');
-
-        var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var pair in s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            var i = pair.IndexOf('=');
-            if (i <= 0) continue;
-            dict[pair[..i].Trim()] = pair[(i + 1)..].Trim();
-        }
-        return ParseFields(dict);
-    }
-
-    private static async Task<IReadOnlyDictionary<string, string>> ReadFormSafeAsync(RouteContext ctx, CancellationToken ct)
-    {
-        try
-        {
-            if (!ctx.Request.HasFormContentType) return new Dictionary<string, string>();
-            var form = await ctx.Request.ReadFormAsync(ct);
-            return form.ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
-        }
-        catch
-        {
-            return new Dictionary<string, string>();
-        }
-    }
-
-    private static async Task<string> ReadRawBodyAsync(RouteContext ctx, CancellationToken ct)
-    {
-        try
-        {
-            using var reader = new StreamReader(ctx.Request.Body);
-            return await reader.ReadToEndAsync(ct);
-        }
-        catch
-        {
-            return "";
-        }
     }
 
     // ── DTOs ──────────────────────────────────────────────────────────────────────
@@ -198,5 +137,4 @@ public sealed class PaymentController
     // ReturnOrigin：前端帶入使用者結帳所在的 store 網域（window.location.origin），供多網域同網域導回。
     private sealed record CreatePaymentRequest(string? OrderCode, string? ReturnOrigin);
     private sealed record CreatePaymentResponse(string ActionUrl, IReadOnlyDictionary<string, string> Fields);
-    private sealed record WebposResult(bool IsSuccess, string Lidm, string? LastPan4, string TxnRef);
 }

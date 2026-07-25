@@ -159,9 +159,61 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 >
 > 🐞 **`Orders.total` 語意雙重扣折扣（2026-07-22 修）**：`Orders.total` 的**權威語意 = 純商品小計**（`Σ Orderdetails.subtotal`，**不含**運費、**不含**訂單層折扣），對齊舊系統（`Cart.TotalPrice()`＋`order.total = ca.TotalPrice()`）；所有消費端一律 `應付 = total + freight − discount` 還原（發票 `TotalAmt`、FISC `purchAmt`、Income 金額、會計報表、Excel）。新系統一度在**寫入端**（store `OrderService`、admin 建單/編輯前端）把「最終金額 `subtotal+freight−discount`」直接寫進 `total`，導致消費端再減一次 → **運費多加、折扣多扣**（B2B 折扣單最明顯：折扣被扣兩次，發票 `TotalAmt = subtotal + 2×freight − 2×discount`）。因多數單免運（freight=0）、無折扣碼而長期未爆。**修正**：寫入端改回存商品小計；顯示端（admin 清單/詳情總計、store 會員清單）改算 `total + freight − discount`；消費端不動；歷史資料以冪等腳本 [`scripts/fix-orders-total-semantics.sql`](../scripts/fix-orders-total-semantics.sql)（`total ← Σ Orderdetails.subtotal`，舊單 no-op）校正。store 會員清單為此在 `GetMemberOrdersAsync`／`OrderListItem` 補帶 `freight`/`discount`。
 
+## 刷卡收款連結（Paymentlinks）— 不走訂單的臨時收款
+
+後台填一個金額就產生一次性刷卡連結（客訂、補款、活動費用等不走商城流程的收款），客人開連結填收件資料後直接刷卡。**與訂單刷卡共用 FISC 欄位產生器與回傳解析，但不共用 `PaymentCompletionService`。**
+
+### 流程
+
+```
+後台 /admin/paymentlinks（OrderMs 權限）
+  └ POST /admin/paymentlinks {title, note, amount, validDays}
+      ├ CodeKind.PaymentLink → PL+yyyyMMdd+3碼（=FISC lidm，13 字元）
+      ├ token = RandomNumberGenerator 16 bytes → 32 字元 hex（128-bit）
+      └ 201 {id, code, token, url}   url = {StoreOrigin}/Pay/{token}
+                    ↓ 後台人員複製連結傳給客人（LINE / email）
+客人開 /Pay/{token}（免登入，layouts/pay.vue 極簡外殼）
+  ├ GET  /store/paylinks/{token}          → 只回 {code,title,amount,status,isExpired}
+  └ POST /store/paylinks/{token}/checkout → 寫入客人資料 + 回 FISC form 欄位
+                    ↓ 前端 auto-submit（purchAmt 取自 DB，前端不傳金額）
+FISC 刷卡頁 → POST /store/payment/return-paylink（PayLinkAuthResUrl）
+  ├ FiscWebposParser.ParseForm（與訂單同一份成功判定）
+  ├ PaymentLinkService.MarkPaidAsync（冪等）→ 寄通知信給 angela@tfoodies.com
+  └ 302 → {origin 或 StoreOrigin}/Pay/Result?code=PL...&paid=1|0
+```
+
+主動通知：財金的 notify URL 在特店端只登錄一組，訂單與收款連結都會打到 `/store/payment/notify`，由 `PaymentController.Notify` 依 **lidm `PL` 前綴**分派（訂單標記不到才轉收款連結）。
+
+### ⚠️ 刻意不寫 Incomes、不開發票（不是漏做）
+
+`Orders.memberid` 與 `Incomes.memberid` 都是 `NOT NULL` + FK 到 `Members`，而收款連結**不綁會員**（客人只填姓名/手機/地址，連 email 都不收）。硬塞假 memberid 會污染會員數與會計報表：銷貨收入有金額卻無對應 `Orderdetails`/`Invoicedetails`，帳會不平。
+
+因此金額**只存在 `Paymentlinks` 表**，由營運依通知信人工入帳與開立發票；通知信中亦明載此事。後台列表另提供「手動標記已付款」，作為 FISC 未回呼（客人關瀏覽器）時的補救。
+
+### 與訂單刷卡的差異
+
+| | 訂單刷卡 | 收款連結 |
+|---|---|---|
+| lidm | `Orders.ordercode` | `Paymentlinks.paymentlinkcode`（`PL` 前綴） |
+| 金額 | `total + freight − discount` | `amount`（管理員填多少收多少，不加運費、不套折扣） |
+| 會員 | 必須有 | 無 |
+| 完成處理 | `PaymentCompletionService`（Incomes + 發票 + 寄信） | `PaymentLinkService`（只有冪等標記 + 寄信） |
+| 回呼 | `/store/payment/return`(-admin) | `/store/payment/return-paylink` |
+| 結果頁 | `/Order/Success` | `/Pay/Result` |
+
+### 相關檔案
+
+- [IPaymentLinkService.cs](../src/TFoodies.Application/Abstractions/IPaymentLinkService.cs) · [PaymentLinkService.cs](../src/TFoodies.Infrastructure/Payments/PaymentLinkService.cs)
+- [PaymentLinkController.cs](../src/TFoodies.Api.Functions/Controllers/PaymentLinkController.cs)（客人端，`store/` 前綴故免 JWT）· [PaymentLinkAdminController.cs](../src/TFoodies.Api.Functions/Controllers/Admin/PaymentLinkAdminController.cs)
+- 共用元件：[FiscWebposParser.cs](../src/TFoodies.Api.Functions/Helpers/FiscWebposParser.cs)（授權結果解析）· [FiscRedirect.cs](../src/TFoodies.Api.Functions/Helpers/FiscRedirect.cs)（回跳白名單，防 open redirect）
+- 建表：[scripts/add-paymentlinks.sql](../scripts/add-paymentlinks.sql)（冪等）
+- 前端：[web/admin/src/views/paymentlinks/PaymentLinksView.vue](../web/admin/src/views/paymentlinks/PaymentLinksView.vue) · [web/store/app/pages/Pay/[token].vue](../web/store/app/pages/Pay/) · `layouts/pay.vue`
+
 ## 冪等與失敗處理
 
 - `MarkPaidAsync`：已付款回 false → return＋notify 雙觸發不重複入帳/開票/寄信。
+- `PaymentLinkService.MarkPaidAsync`：`UPDATE ... WHERE paymentlinkcode=@code AND status=0`，`rows==0` 即不寄信（同上，雙觸發只寄一封）。
+- `SmtpEmailService` 對 Bcc 與收件人相同者跳過：營運信箱本就在 Bcc 名單，收款連結通知信正是寄給他，不去重會重複投遞。
 - `IssueInvoiceAsync`：`UPDATE ... WHERE invoicestatus=0` 護欄，避免重複建發票。
 - 開票失敗：付款照算完成，發票狀態留「未開」→ 後台補開。
 

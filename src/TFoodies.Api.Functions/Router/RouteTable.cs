@@ -265,6 +265,16 @@ public class RouteTable
         Register<PaymentController>("POST", "store/payment/return-admin",                                 (c, ctx) => c.ReturnAdmin(ctx));
         Register<PaymentController>("POST", "store/payment/notify",                                       (c, ctx) => c.Notify(ctx));
 
+        // ── Payment Links（後台產生刷卡收款連結；客人端公開，回呼與訂單同族命名）────
+        Register<PaymentLinkController>("POST", "store/payment/return-paylink",                           (c, ctx) => c.Return(ctx));
+        Register<PaymentLinkController>("POST", @"store/paylinks/(?<token>[^/]+)/checkout$",              (c, ctx) => c.Checkout(ctx));
+        Register<PaymentLinkController>("GET",  @"store/paylinks/(?<token>[^/]+)$",                       (c, ctx) => c.Get(ctx));
+
+        Register<PaymentLinkAdminController>("GET",   "admin/paymentlinks",                              (c, ctx) => c.List(ctx));
+        Register<PaymentLinkAdminController>("POST",  "admin/paymentlinks",                              (c, ctx) => c.Create(ctx));
+        Register<PaymentLinkAdminController>("PATCH", @"admin/paymentlinks/(?<id>[^/]+)/cancel$",        (c, ctx) => c.Cancel(ctx));
+        Register<PaymentLinkAdminController>("PATCH", @"admin/paymentlinks/(?<id>[^/]+)/paid$",          (c, ctx) => c.MarkPaidManually(ctx));
+
         // ── Admin Auth ──────────────────────────────────────────────────────────
         Register<AdminAuthController>("POST", "auth/admin/login",                                         (c, ctx) => c.Login(ctx));
         Register<AdminAuthController>("POST", "auth/admin/logout",                                        (c, ctx) => c.Logout(ctx));

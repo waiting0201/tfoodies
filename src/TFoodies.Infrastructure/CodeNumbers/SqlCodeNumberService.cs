@@ -27,6 +27,7 @@ public sealed class SqlCodeNumberService : ICodeNumberService
         [CodeKind.Invoice]     = new("Invoicecodes",    "invoicecodeid",    "IV"),
         [CodeKind.Outcome]     = new("Outcomecodes",    "outcomecodeid",    "OC"),
         [CodeKind.Atm]         = new("Atmcodes",        "atmcodeid",        "A"),
+        [CodeKind.PaymentLink] = new("Paymentlinkcodes","paymentlinkcodeid","PL"),
     };
 
     public async Task<string> NextAsync(
