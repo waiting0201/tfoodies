@@ -654,6 +654,16 @@ SVG 尺寸一律用 `style="width:1.25rem;height:1.25rem"`，不用 Tailwind `w-
 ```
 > 既有 44 個清單頁已批次套用此規則（`.card overflow:auto` + `.data-table min-width`），新頁直接照抄即可。
 
+### 手機縮放復原（`lib/viewportZoom.ts`）
+上面的表格策略是**靠水平捲動、不縮小字級**，因此在 375px 手機看寬表格時，使用者雙指放大是**預期行為**、不是問題。
+真正的問題是瀏覽器會把該縮放狀態沿用到下一頁與重新整理之後，而後台是 SPA（`createWebHistory`），換路由不會觸發 viewport 重算 → 換頁後畫面卡在放大狀態。
+
+`installZoomReset(router)` 於 `main.ts` 掛在 **router 層**（不是 `AdminLayout`，因為 layout 的 `watch(route.path)` 蓋不到 `/login` 與 `/admin/ar-invoices/:id/print` 這兩個不套 layout 的路由）：
+- `router.afterEach` + `load` 事件各觸發一次 → 涵蓋轉頁與重整。
+- 只在 `visualViewport.scale > 1.01` 時才動作。桌機 `Ctrl` `+`/`-` 的頁面縮放**不會**反映在此值，故不會干擾桌機使用者。
+- 手法為暫時把 viewport meta 設成 `maximum-scale=1.0`，雙 `requestAnimationFrame` 後還原（單一 rAF 在 iOS Safari 偶爾太早而失效）。
+- 刻意**不**用 `user-scalable=no` 永久鎖死：iOS 10 起會忽略該值，且小字看不清時沒有退路。
+
 ### 版面外殼 RWD（`AdminLayout.vue`）
 - 側欄 `w-60 fixed`，`md:` 以下為 **off-canvas 抽屜**：預設 `-translate-x-full` 隱藏，`md:translate-x-0` 常駐；以 `sidebarOpen` 控制 `translate-x-0` 滑入。
 - topbar 在 `md:` 以下顯示 **漢堡按鈕**（`md:hidden`）開啟側欄；換頁（`watch route.path`）與點遮罩會自動收合。
