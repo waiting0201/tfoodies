@@ -48,8 +48,39 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       - name: Deploy to Flex Consumption
+        env:
+          RG: ${{ vars.RESOURCE_GROUP }}
+          APP: ${{ vars.FUNCTION_APP_NAME }}
         run: |
+          set +e
+          # az CLI 在 Flex Consumption 上會把「SyncTriggerStep 還沒跑完」的暫態
+          # PartialSuccess 當成致命錯誤（Kudu 往往要再數十秒才轉成 Success），
+          # 因此先容錯，改以 ARM 上的部署紀錄判定最終結果。
           az functionapp deployment source config-zip \
-            -g ${{ vars.RESOURCE_GROUP }} \
-            -n ${{ vars.FUNCTION_APP_NAME }} \
-            --src ./publish.zip
+            -g "$RG" -n "$APP" --src ./publish.zip 2>&1 | tee deploy.log
+          rc=${PIPESTATUS[0]}
+          if [ "$rc" -eq 0 ]; then echo "✅ 部署成功。"; exit 0; fi
+
+          id=$(grep -o 'deployment id "[^"]*"' deploy.log | head -1 | cut -d'"' -f2)
+          if [ -z "$id" ]; then
+            echo "::error::部署失敗且取不到 deployment id，詳見上方 CLI 輸出。"
+            exit 1
+          fi
+          echo "::warning::az CLI 回報失敗（rc=${rc}），改輪詢部署 ${id} 的最終狀態…"
+
+          sub=$(az account show --query id -o tsv)
+          url="https://management.azure.com/subscriptions/$sub/resourceGroups/$RG/providers/Microsoft.Web/sites/$APP/deployments/$id?api-version=2023-01-01"
+          for _ in $(seq 1 60); do
+            # 這個端點的回應尾端會夾雜非 JSON 內容，用 jq -n input 只取第一個 JSON 值。
+            # status: 3=Failed 4=Success（其餘為進行中）
+            s=$(az rest --method get --url "$url" 2>/dev/null \
+                | jq -rn 'input | "\(.properties.status) \(.properties.complete)"')
+            echo "  deployment status = ${s:-unknown}"
+            case "$s" in
+              '4 true') echo "✅ 部署最終狀態為 Success（CLI 為誤報）。"; exit 0 ;;
+              '3 true') echo "::error::部署確實失敗。"; exit 1 ;;
+            esac
+            sleep 10
+          done
+          echo "::error::等待部署完成逾時（10 分鐘）。"
+          exit 1
