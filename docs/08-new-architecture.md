@@ -103,7 +103,7 @@ Auth/
   AuthService.cs               ← IAuthService（PBKDF2 hash-on-login，自動升級明文）
 Payments/
   PaymentCompletionService.cs  ← IPaymentCompletionService（MarkPaidAsync：標記已付款+Income+寄信+await 開票；IssueInvoiceAsync：ezPay 開票+建本地 Invoices/Invoicedetails，冪等）。store return/notify、後台 charge return、後台 pay 共用
-  PaymentLinkService.cs        ← IPaymentLinkService（刷卡收款連結：不綁會員、不寫 Orders/Incomes、不開發票，只做冪等標記 + 通知信給營運）。故不共用 PaymentCompletionService（詳見 docs/13）
+  PaymentLinkService.cs        ← IPaymentLinkService（收款連結：不綁會員、不寫 Orders/Incomes、不開發票，只做冪等標記 + 通知信給營運）。故不共用 PaymentCompletionService（詳見 docs/13）
   Fisc/FiscOptions.cs          ← 財金 WEBPOS 設定（ActionUrl/商店代號/ApiBaseUrl/StoreSuccessUrl/AdminSuccessUrl）。回呼網址（AuthResUrl/AdminAuthResUrl/PayLinkAuthResUrl）與 StoreOrigin 皆由既有設定導出，不另設鍵（詳見 docs/12）
   Fisc/FiscWebpos.cs           ← WEBPOS 刷卡 form 隱藏欄位產生器（訂單多載算 total+freight−discount；通用多載由呼叫端給 lidm/金額，收款連結用）
 Invoicing/EzPay/
@@ -153,7 +153,7 @@ DependencyInjection.cs         ← AddInfrastructure()，對外唯一入口
 | 表 | 腳本 | 緣由 |
 |---|---|---|
 | `Knowledgeproducts` | [scripts/add-knowledgeproducts.sql](../scripts/add-knowledgeproducts.sql) | 小知識↔商品 M:N（比照既有 `Issueproducts`） |
-| `Paymentlinks` / `Paymentlinkcodes` | [scripts/add-paymentlinks.sql](../scripts/add-paymentlinks.sql) | 刷卡收款連結；`Orders`/`Incomes` 的 `memberid` 皆 NOT NULL + FK，無法承載不綁會員的臨時收款（見 docs/13） |
+| `Paymentlinks` / `Paymentlinkcodes` | [scripts/add-paymentlinks.sql](../scripts/add-paymentlinks.sql) | 收款連結；`Orders`/`Incomes` 的 `memberid` 皆 NOT NULL + FK，無法承載不綁會員的臨時收款（見 docs/13） |
 
 例外的執行流程：寫冪等腳本（`IF NOT EXISTS` 包覆，可重複執行）→ 人工於各環境執行 → 重跑 `scripts/scaffold-db.sh` 並提交 diff，維持「空 diff = 無 schema drift」的護欄語意。**正式環境的 DDL 需列入部署 checklist**——本專案無 migration 機制，忘記執行會讓功能上線即 500。
 

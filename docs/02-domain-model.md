@@ -38,7 +38,7 @@
 | `Refounds` / `Refoundcodes` | 退款紀錄(amount,note) / 單號 | refoundid | →Members, →Returns |
 | `Exchanges` | ⚠️ **匯率表**(title, rate) — 供 Purchases 用，非商品換貨 | exchangeid | 1:* Purchases |
 | `Invoices` / `Invoicedetails` / `Invoicecodes` | 電子發票主檔/明細(price,tax)/單號 | — | Invoices →Incomes,→Members；Invoicedetails →Orders,→Accountings |
-| `Paymentlinks` / `Paymentlinkcodes` | 🆕 **刷卡收款連結**（新系統新增；建表腳本 `scripts/add-paymentlinks.sql`）：後台產生一次性刷卡連結供客人付款，`paymentlinkcode`(=FISC lidm，`PL` 前綴)、`token`(32 字元 hex，URL 用)、`amount`、`status`(0未付/1已付/2作廢)、`expiredate`、客人 `customername/mobile/zipcodeid/address`、`lastpan4`/`txnref`。`Paymentlinkcodes` 結構比照 `Ordercodes` | paymentlinkid | →Zipcodes（僅此一個 FK）|
+| `Paymentlinks` / `Paymentlinkcodes` | 🆕 **收款連結**（新系統新增；建表腳本 `scripts/add-paymentlinks.sql`）：後台產生一次性付款連結供客人付款，`paymentlinkcode`(=FISC lidm，`PL` 前綴)、`token`(32 字元 hex，URL 用)、`amount`、`status`(0未付/1已付/2作廢)、`expiredate`、客人 `customername/mobile/zipcodeid/address`、`lastpan4`/`txnref`。`Paymentlinkcodes` 結構比照 `Ordercodes` | paymentlinkid | →Zipcodes（僅此一個 FK）|
 
 > 🆕 **`Paymentlinks` 刻意不與 Orders/Members/Incomes 關聯**：收款連結不綁會員（客人只填姓名/手機/地址），而 `Orders.memberid` 與 `Incomes.memberid` 皆 `NOT NULL` + FK，塞假會員會污染會員數與會計報表。金額只存本表，由營運人工入帳與開票。`createadminid` 亦**不加 FK 到 Admins**——itadmin 後門帳號（AdminID 888）在 `Admins` 表沒有資料列，加 FK 會讓它建連結時 547 失敗。詳見 [docs/13](13-payment-invoice-flow.md#收款連結paymentlinks--不走訂單的臨時收款)。
 

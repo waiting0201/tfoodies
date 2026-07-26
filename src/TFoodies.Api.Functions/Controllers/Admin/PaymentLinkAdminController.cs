@@ -8,7 +8,7 @@ using TFoodies.Domain.Enums;
 namespace TFoodies.Api.Functions.Controllers.Admin;
 
 /// <summary>
-/// 後台刷卡收款連結（/admin/paymentlinks）。
+/// 後台收款連結（/admin/paymentlinks）。
 ///
 /// 權限沿用 OrderMs：收款屬訂單/財務作業，且 Lims 模組樹為 DB 既有結構，新增模組名會讓
 /// 除 itadmin 外所有帳號 403。本模組不在側欄（DB 無對應 Lim 列），從儀表板卡片進入。

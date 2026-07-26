@@ -13,7 +13,7 @@ using TFoodies.Infrastructure.Payments.Fisc;
 namespace TFoodies.Infrastructure.Payments;
 
 /// <summary>
-/// 刷卡收款連結（Paymentlinks）。詳見 <see cref="IPaymentLinkService"/>。
+/// 收款連結（Paymentlinks）。詳見 <see cref="IPaymentLinkService"/>。
 ///
 /// 與 <see cref="PaymentCompletionService"/> 的關係：兩者都處理 FISC 授權成功後的入帳，
 /// 但收款連結沒有訂單也沒有會員，所以不共用 MarkPaidAsync——這裡只做「冪等標記 + 通知信」。
@@ -318,7 +318,7 @@ WHERE p.paymentlinkcode = @code",
 
         var sent = await _email.SendAsync(
             NotifyTo,
-            $"食在呼 TFoodies–刷卡收款連結付款完成 {row.paymentlinkcode}",
+            $"食在呼 TFoodies–收款連結付款完成 {row.paymentlinkcode}",
             BuildNoticeHtml(row),
             ct);
 
@@ -351,7 +351,7 @@ WHERE p.paymentlinkcode = @code",
   <meta charset=""utf-8"">
   <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
   <meta name=""x-apple-disable-message-reformatting"">
-  <title>刷卡收款連結付款完成</title>
+  <title>收款連結付款完成</title>
 </head>
 <body style=""margin:0; padding:0; background-color:#f4f5f7; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;"">
   <div style=""display:none; max-height:0; overflow:hidden; opacity:0; font-size:1px; line-height:1px; color:#f4f5f7;"">收款連結 {E(r.paymentlinkcode)} 已完成付款，金額 NT$ {r.amount:N0}。</div>
@@ -364,7 +364,7 @@ WHERE p.paymentlinkcode = @code",
           <tr>
             <td align=""center"" style=""background-color:#26b7bc; background-image:linear-gradient(135deg,#26b7bc 0%,#1d8e92 100%); padding:34px 24px;"">
               <div style=""font-size:26px; font-weight:700; letter-spacing:2px; color:#ffffff; line-height:1.2;"">食在呼 TFoodies</div>
-              <div style=""font-size:13px; color:#e6f6f6; margin-top:6px; letter-spacing:1px;"">刷卡收款連結 · 付款完成通知</div>
+              <div style=""font-size:13px; color:#e6f6f6; margin-top:6px; letter-spacing:1px;"">收款連結 · 付款完成通知</div>
             </td>
           </tr>
 

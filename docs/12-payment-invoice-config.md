@@ -37,7 +37,7 @@ API 設定類別 `Fisc`（[FiscOptions.cs](../src/TFoodies.Infrastructure/Paymen
 - LINE Pay 收款連結回跳 `LinePayPaylinkConfirmUrl` / `LinePayPaylinkCancelUrl` = `{ApiBaseUrl}/store/payment/linepay/confirm-paylink`｜`/cancel-paylink`
 - store 對外 origin `StoreOrigin` = `StoreSuccessUrl` 的 scheme://host[:port]（用於組收款連結網址與其結果頁 fallback）
 
-> 💡 **刷卡收款連結與 LINE Pay 的回跳網址都未新增設定鍵**——刻意全部由 `ApiBaseUrl` / `StoreSuccessUrl` 導出，避免同名設定在「程式 / bicep / infra.yml / GitHub secret」四層間漂移（新增鍵漏改任一層就會被整包部署覆蓋洗掉）。
+> 💡 **收款連結與 LINE Pay 的回跳網址都未新增設定鍵**——刻意全部由 `ApiBaseUrl` / `StoreSuccessUrl` 導出，避免同名設定在「程式 / bicep / infra.yml / GitHub secret」四層間漂移（新增鍵漏改任一層就會被整包部署覆蓋洗掉）。
 >
 > ⚠️ 因此 `Fisc__ApiBaseUrl` / `Fisc__StoreSuccessUrl` / `Fisc__AllowedStoreOrigins` 實為**站台層級**設定（與金流廠商無關），LINE Pay 亦共用之，區段名稱與用途已不完全相符。待出現第三家金流再抽共用的 `PaymentSiteOptions`。
 

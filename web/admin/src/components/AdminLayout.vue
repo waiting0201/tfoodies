@@ -19,7 +19,7 @@ interface MenuItemDto { key: string; label: string; icon: string | null; sort: n
 
 // Lim.Key → 前端 SPA 路由。未列出者代表該頁面尚未開發，選單顯示為停用（開發中）。
 // 新增頁面時，只要在此補上 Lim.Key → 路徑即可，選單結構本身由 DB Lims 決定。
-// 註：/admin/paymentlinks（刷卡收款連結）刻意不在此表——DB Lims 沒有對應模組列，
+// 註：/admin/paymentlinks（收款連結）刻意不在此表——DB Lims 沒有對應模組列，
 // 側欄不會出現該項，入口為儀表板「快速導覽」卡片。這不是遺漏。
 const ROUTES: Record<string, string> = {
   // HomeMs（網頁管理）

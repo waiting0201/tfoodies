@@ -88,7 +88,7 @@ const modules = [
   { label: '會計帳管理', desc: '營業支出、付款、請款、入帳與退款', path: '/admin/expenditures', dot: '#f43f5e' },
   { label: '內容管理', desc: '首頁橫幅、新聞、食譜等 CMS', path: '/admin/cms', dot: '#14b8a6' },
   // 收款連結不在 DB Lims 樹中（側欄不會出現），這張卡片是唯一入口。
-  { label: '刷卡收款連結', desc: '產生一次性刷卡連結供客人付款', path: '/admin/paymentlinks', dot: '#8b5cf6' },
+  { label: '收款連結', desc: '產生一次性付款連結供客人付款', path: '/admin/paymentlinks', dot: '#8b5cf6' },
 ]
 
 onMounted(load)

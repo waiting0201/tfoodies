@@ -5,7 +5,7 @@ namespace TFoodies.Infrastructure.Payments.Fisc;
 /// <summary>
 /// 財金 FISC FOCAS_WEBPOS 刷卡 form 隱藏欄位產生器（手冊 3.1.1）。
 /// 由 store 結帳（/store/payment/create）、後台線上刷卡（/admin/orders/{code}/charge）與
-/// 刷卡收款連結（/store/paylinks/{token}/checkout）共用，差別僅在 lidm/金額來源與
+/// 收款連結（/store/paylinks/{token}/checkout）共用，差別僅在 lidm/金額來源與
 /// AuthResURL（授權結果導回前台 / 後台 / 收款連結結果頁）。
 /// purchAmt 一律由後端權威計算，避免前端竄改。
 /// </summary>

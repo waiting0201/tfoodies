@@ -32,5 +32,5 @@ public enum CodeKind
     Invoice,
     Outcome,
     Atm,
-    PaymentLink,   // Paymentlinkcodes — 後台刷卡收款連結（新增表，非舊系統遺產）
+    PaymentLink,   // Paymentlinkcodes — 後台收款連結（新增表，非舊系統遺產）
 }

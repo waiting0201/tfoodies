@@ -80,7 +80,7 @@
   - 🆕 **內容帶貨橋（新 store）**：食譜詳情頁 `pages/Recipe/[recipeid]/[[p]].vue` 的「購買相關商品」區塊新增 **「🛒 一鍵把 N 項商品加入購物車」** 按鈕（`addAllToCart()` 把 `item.products`(排除 `isdisabled`) 逐一 `cart.add()`，順帶觸發 `add_to_cart` 追蹤），解決「看完食譜想煮卻找不到食材在哪買、看完就走」的流失。相關商品資料 API(`/store/recipes/detail`) 早已回傳 `products`，原本僅以 `ProductCard`(只連商品頁)呈現。**綠誌(Issue)詳情頁 `pages/Issue/[issuetitle]/[[p]].vue` 已比照加入同一顆按鈕**(用 `sortedProducts`、同樣 `cart.add()`+toast)。
 - **購物車**：Session `Session["myCart"]` = `List<CartItem>`（見 `Commons/Cart.cs`）；增刪改走 Ajax；mini-cart 於 `_Header`/`_PartialCartItem`；庫存以 `Products.added` 把關。
 - **結帳流程**：`ShoppingCart`(檢視+折扣碼→`GetDiscountCode`) → `ShoppingProfile`(訂購/收件；手機唯一性`Checkmobile`；統編查詢；郵遞`GetZipcodeByCity`) → 送 **`Ajax/PostOrder`** → 成功 JS 導向 `ShoppingSuccess?lidm={ordercode}`。訪客自動建會員。信用卡由金流回呼 `ShoppingSuccess`/`MemberMs/PayResult`。定價於 `Commons/General.cs`：`GetFreight`(滿 2000 免運)、`GetDiscount`(折扣%/折價固定、效期/一次性)、`GetAmountPrice`。
-- 🆕 **刷卡收款連結（新 store，舊系統無此功能）**：`pages/Pay/[token].vue` + `pages/Pay/Result.vue`，供**不走商城流程的臨時收款**（客訂、補款、活動費用）。後台產生連結後由人員傳給客人，客人免登入直接開啟：確認金額 → 填姓名/手機/縣市區/地址 → auto-submit 至 FISC 刷卡頁 → 導回 `/Pay/Result?code=&paid=`。
+- 🆕 **收款連結（新 store，舊系統無此功能）**：`pages/Pay/[token].vue` + `pages/Pay/Result.vue`，供**不走商城流程的臨時收款**（客訂、補款、活動費用）。後台產生連結後由人員傳給客人，客人免登入直接開啟：確認金額 → 填姓名/手機/縣市區/地址 → auto-submit 至 FISC 刷卡頁 → 導回 `/Pay/Result?code=&paid=`。
   - **不套 `layouts/default.vue`**，改用專用極簡外殼 `layouts/pay.vue`（只留 logo + SSL 提示）：這位訪客是被動收到連結、目的單一的人，`SiteHeader` 的社群列/免運跑馬燈/品牌導覽/mini-cart（此情境購物車必為空）全是流失出口；但完全裸表單又會讓人起疑，尤其常在 LINE 內建瀏覽器開啟、網址列被摺疊。
   - 四態：載入中／未付款（金額收據卡 + 表單）／已付款（保留收據卡供核對，無表單無 CTA）／已失效。**逾期、作廢、不存在合併為同一句「此連結已失效」**，不暴露內部狀態機、也不再顯示金額。
   - 地址欄位重用 `useZipcodes()` 與 `Checkout` 的縣市→區 cascade；手機另有 sticky 底部確認列（金額全程可見）。跳轉刷卡前以全頁覆蓋層 + 按鈕 disabled 兩道防線擋重複點擊。

@@ -296,8 +296,8 @@ async function confirmMarkPaid() {
   <div class="paylinks">
     <div class="paylinks__header">
       <div>
-        <h1 class="paylinks__title">刷卡收款連結</h1>
-        <p class="paylinks__subtitle">產生一次性刷卡連結給客人付款；款項不進訂單與會計收入，請人工入帳與開立發票。</p>
+        <h1 class="paylinks__title">收款連結</h1>
+        <p class="paylinks__subtitle">產生一次性付款連結給客人付款；款項不進訂單與會計收入，請人工入帳與開立發票。</p>
       </div>
       <button class="btn btn--primary" @click="openPanel">+ 建立收款連結</button>
     </div>
@@ -366,11 +366,13 @@ async function confirmMarkPaid() {
             <td class="text-muted">{{ fmtDateTime(item.createDate) }}</td>
             <td class="text-muted">{{ fmtDateTime(item.payDate) }}</td>
             <td class="action-cell">
-              <button class="btn btn--sm btn--secondary" @click="onCopyRow(item)">複製連結</button>
-              <template v-if="canAct(item)">
-                <button class="btn btn--sm btn--accent" @click="askMarkPaid(item)">標記已付</button>
-                <button class="btn btn--sm btn--danger" @click="askVoid(item)">作廢</button>
-              </template>
+              <div class="action-cell__inner">
+                <button class="btn btn--sm btn--secondary" @click="onCopyRow(item)">複製連結</button>
+                <template v-if="canAct(item)">
+                  <button class="btn btn--sm btn--accent" @click="askMarkPaid(item)">標記已付</button>
+                  <button class="btn btn--sm btn--danger" @click="askVoid(item)">作廢</button>
+                </template>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -554,7 +556,10 @@ async function confirmMarkPaid() {
 .data-table__row:last-child td { border-bottom: none; }
 .data-table__row:hover td { background: #f8faf8; }
 .action-th { width: 260px; }
-.action-cell { white-space: nowrap; display: flex; gap: 0.35rem; justify-content: flex-end; }
+/* td 不直接 display:flex — 按鈕數量不同時（已付/已作廢只有 1 顆）儲存格會脫離
+   table-cell 佈局導致列高與對齊跑掉；改由內層 div 套 flex，td 維持正常 table-cell。 */
+.action-cell { white-space: nowrap; vertical-align: middle; }
+.action-cell__inner { display: flex; gap: 0.35rem; flex-wrap: wrap; }
 .empty-cell { text-align: center; color: var(--tf-color-muted); padding: 2.5rem; }
 .font-mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
 .font-semibold { font-weight: 600; }

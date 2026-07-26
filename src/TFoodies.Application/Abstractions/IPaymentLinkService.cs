@@ -3,7 +3,7 @@ using TFoodies.Domain.Common;
 namespace TFoodies.Application.Abstractions;
 
 /// <summary>
-/// 刷卡收款連結：後台填金額產生一次性連結，客人開連結填收件資料後直接刷卡（FISC WEBPOS）。
+/// 收款連結：後台填金額產生一次性連結，客人開連結填收件資料後直接刷卡（FISC WEBPOS）。
 ///
 /// 與訂單刷卡的差異：不綁會員、不建 Orders/Orderdetails、不寫 Incomes、不自動開發票
 /// （Orders.memberid 與 Incomes.memberid 皆 NOT NULL + FK，付款連結沒有會員可綁；

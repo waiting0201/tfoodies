@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 刷卡收款連結 — 付款結果頁。銀行授權後由 API 的 return-paylink 端點 302 導回，
+// 收款連結 — 付款結果頁。銀行授權後由 API 的 return-paylink 端點 302 導回，
 // query 為 ?code=PL...&paid=1|0。視覺沿用 Order/Success.vue（同為流程終點頁）。
 definePageMeta({ layout: 'pay' })
 

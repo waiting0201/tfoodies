@@ -79,7 +79,7 @@ public sealed class FiscOptions
     /// <summary>後台線上刷卡授權回呼網址 = {ApiBaseUrl}/store/payment/return-admin。</summary>
     public string AdminAuthResUrl => Combine(ApiBaseUrl, "store/payment/return-admin");
 
-    /// <summary>刷卡收款連結授權回呼網址 = {ApiBaseUrl}/store/payment/return-paylink。</summary>
+    /// <summary>收款連結刷卡授權回呼網址 = {ApiBaseUrl}/store/payment/return-paylink。</summary>
     public string PayLinkAuthResUrl => Combine(ApiBaseUrl, "store/payment/return-paylink");
 
     // ── LINE Pay 回跳網址（沿用本區段的站台設定，刻意不新增同義設定鍵）──

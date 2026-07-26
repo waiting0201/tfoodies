@@ -9,7 +9,7 @@ using TFoodies.Infrastructure.Payments.Fisc;
 namespace TFoodies.Api.Functions.Controllers;
 
 /// <summary>
-/// 刷卡收款連結的客人端端點（全部公開，不需 JWT — 客人不是會員）。
+/// 收款連結的客人端端點（全部公開，不需 JWT — 客人不是會員）。
 ///   GET  /store/paylinks/{token}           — 取連結資訊（項目/金額/狀態）
 ///   POST /store/paylinks/{token}/checkout  — 送出收件資料，取得刷卡 form 欄位
 ///   POST /store/payment/return-paylink     — AuthResURL：授權後財金 form 導回，處理後 302 回結果頁
