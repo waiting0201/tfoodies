@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { apiFetch } from '../../lib/apiClient'
+import { apiFetch, ApiError } from '../../lib/apiClient'
 
 // /admin/brands、/admin/producttypes 由 Dapper dynamic 回傳，key 為原始 DB 欄位名（小寫）。
 interface Brand {
@@ -21,6 +21,7 @@ interface Product {
   brandName?: string
   typeName?: string
   isdisabled: boolean
+  sort: number
 }
 interface PagedResult<T> {
   items: T[]
@@ -37,6 +38,17 @@ const products = ref<Product[]>([])
 const totalCount = ref(0)
 const loading = ref(false)
 const error = ref('')
+
+// 排序：清單依 sort ASC, createdate DESC 回傳。inline 修改後立即以
+// PUT /admin/products/sort 存檔，但不重新載入（避免使用者連續調整時該列跳走），
+// 改用 sortDirty 提示手動「套用新順序」。
+const sortBaseline = new Map<string, number>()
+const savingSortIds = ref<string[]>([])
+const sortDirty = ref(false)
+
+function errMsg(e: unknown, fallback: string) {
+  return (e as ApiError).problem?.detail ?? (e as Error).message ?? fallback
+}
 
 const filter = reactive({
   keyword: '',
@@ -71,10 +83,41 @@ async function loadProducts() {
     const res = await apiFetch<PagedResult<Product>>(`/admin/products?${params}`)
     products.value = res.items
     totalCount.value = res.totalCount
+    sortBaseline.clear()
+    for (const p of res.items) sortBaseline.set(p.productId, p.sort ?? 0)
+    sortDirty.value = false
   } catch (e: any) {
     error.value = e.message ?? '載入失敗'
   } finally {
     loading.value = false
+  }
+}
+
+async function updateSort(p: Product) {
+  const original = sortBaseline.get(p.productId) ?? 0
+  // input 清空 / 非數字時 v-model.number 會給空字串或 NaN，直接還原。
+  if (typeof p.sort !== 'number' || !Number.isFinite(p.sort)) {
+    p.sort = original
+    return
+  }
+  const next = Math.max(0, Math.trunc(p.sort))
+  p.sort = next
+  if (next === original) return
+
+  savingSortIds.value = [...savingSortIds.value, p.productId]
+  try {
+    await apiFetch('/admin/products/sort', {
+      method: 'PUT',
+      body: JSON.stringify([{ id: p.productId, sort: next }]),
+    })
+    sortBaseline.set(p.productId, next)
+    sortDirty.value = true
+    error.value = ''
+  } catch (e) {
+    p.sort = original
+    error.value = errMsg(e, '更新排序失敗')
+  } finally {
+    savingSortIds.value = savingSortIds.value.filter(id => id !== p.productId)
   }
 }
 
@@ -138,12 +181,18 @@ onMounted(async () => {
 
     <p v-if="error" class="products__error">{{ error }}</p>
 
+    <p v-if="sortDirty" class="products__notice">
+      排序已儲存，重新載入後才會依新順序顯示。
+      <button class="btn btn--sm btn--ghost" @click="loadProducts">套用新順序</button>
+    </p>
+
     <div v-if="loading" class="products__loading">載入中...</div>
 
     <div v-else class="card">
       <table class="table">
         <thead>
           <tr>
+            <th class="th--sort" title="數字小者排前面；相同時以建立時間新者優先">排序</th>
             <th>商品編號</th>
             <th>品名</th>
             <th>品牌</th>
@@ -155,9 +204,19 @@ onMounted(async () => {
         </thead>
         <tbody>
           <tr v-if="products.length === 0">
-            <td colspan="7" class="table__empty">無資料</td>
+            <td colspan="8" class="table__empty">無資料</td>
           </tr>
           <tr v-for="p in products" :key="p.productId" :class="{ 'row--disabled': p.isdisabled }">
+            <td class="td--sort">
+              <input
+                v-model.number="p.sort"
+                class="input input--sort"
+                type="number"
+                min="0"
+                :disabled="savingSortIds.includes(p.productId)"
+                @change="updateSort(p)"
+              />
+            </td>
             <td class="td--mono">{{ p.productNum || '—' }}</td>
             <td>
               <span class="product-title">{{ p.title }}</span>
@@ -239,6 +298,18 @@ onMounted(async () => {
   margin-bottom: 1rem;
 }
 
+.products__notice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #e6f4ea;
+  color: #1e7e34;
+  padding: 0.5rem 0.9rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
 .products__loading {
   color: var(--tf-color-muted);
   padding: 2rem;
@@ -301,6 +372,21 @@ onMounted(async () => {
 
 .td--number {
   text-align: right;
+}
+
+.th--sort {
+  width: 88px;
+}
+
+.td--sort {
+  width: 88px;
+}
+
+.input--sort {
+  width: 68px;
+  min-width: 0;
+  padding: 0.3rem 0.4rem;
+  text-align: center;
 }
 
 .td--actions {

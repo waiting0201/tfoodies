@@ -284,6 +284,37 @@
 - 搜尋按鈕：`btn--secondary`（中性操作，不搶主按鈕視覺焦點）
 - 每個欄位 `@change` 觸發搜尋，keyword 用 `@keyup.enter`
 
+### 清單內 inline 排序欄（`sort` 欄位）
+
+有 `sort` 欄位的資料表（Products / Producttypes / Brands / Productphotos / Brandphotos …），清單第一欄放 inline 數字輸入，`@change` 即時存檔，**不做拖曳**（分頁 + 篩選下拖曳語意不明）。參照 `ProductsView.vue`、`ProductPhotosView.vue`。
+
+```html
+<th class="th--sort" title="數字小者排前面；相同時以建立時間新者優先">排序</th>
+…
+<td class="td--sort">
+  <input v-model.number="p.sort" class="input input--sort" type="number" min="0"
+         :disabled="savingSortIds.includes(p.productId)" @change="updateSort(p)" />
+</td>
+```
+
+```css
+.th--sort, .td--sort { width: 88px; }
+.input--sort { width: 68px; min-width: 0; padding: 0.3rem 0.4rem; text-align: center; }
+```
+
+**規則：**
+
+| 項目 | 規範 |
+|---|---|
+| 端點 | 批次排序端點 `PUT /admin/{resource}/sort`，body `[{ id, sort }]`（單筆變更就送單元素陣列） |
+| 存檔時機 | `@change`（blur / Enter），不用 `@input` |
+| 值防呆 | 清空或 NaN 還原原值；負數與小數以 `Math.max(0, Math.trunc(v))` 正規化 |
+| 失敗處理 | 還原 baseline 值 + 顯示 `error`，不留下與 DB 不一致的畫面 |
+| 存檔後 | **不自動重載清單**（該列會跳走），改設 `sortDirty` 顯示提示列 + 「套用新順序」按鈕手動重載 |
+| baseline | `loadXxx()` 時建 `Map<id, sort>`，供比對「沒變就不送」與失敗還原 |
+
+---
+
 ### 分頁列規範
 
 分頁列放在 `.card` **外部**，`margin-top: 1rem`，右對齊。

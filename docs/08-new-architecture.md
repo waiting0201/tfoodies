@@ -315,7 +315,7 @@ web/admin/src/
 │      DeclarationsView.vue           ← 報關（唯讀：報關單 + 待報關訂單）
 │      （OrdersView 另含 Excel 匯出 / 美安報表 / 待出貨揀貨單按鈕；下載走 apiClient.apiDownload）
 │    products/
-│      ProductsView.vue               ← 商品列表（品牌/分類/狀態篩選、圖庫/編輯/停用）
+│      ProductsView.vue               ← 商品列表（品牌/分類/狀態篩選、inline 排序欄、圖庫/編輯/停用）
 │      ProductFormView.vue            ← 新增/編輯商品（全欄位 + 標籤 + 套裝 + 代表圖 + HtmlEditor + 庫存檢視）
 │      ProductPhotosView.vue          ← 商品圖庫管理（上傳/排序/刪除）
 │      BrandsView.vue                 ← 品牌列表（導向表單頁 + 圖庫）
