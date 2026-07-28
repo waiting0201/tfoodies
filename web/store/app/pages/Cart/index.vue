@@ -7,7 +7,16 @@ useHead({ title: '購物車' })
 
 const cartStore = useCartStore()
 const blobUrl = String(useRuntimeConfig().public.blobUrl)
-onMounted(() => cartStore.hydrate())
+
+// 與後端對帳（現價／是否下架），避免顧客看到過期金額或到結帳最後一步才被擋。
+const { unavailable, repriced, syncCart, removeUnavailable } = useCartSync()
+const isUnavailable = (productId: string) =>
+  unavailable.value.some(u => u.productId.toLowerCase() === productId.toLowerCase())
+
+onMounted(async () => {
+  cartStore.hydrate()
+  await syncCart()
+})
 
 const FREIGHT_THRESHOLD = 2000
 const FREIGHT_FEE = 180
@@ -26,9 +35,21 @@ const dec = (it: { productId: string; quantity: number }) =>
   cartStore.updateQty(it.productId, it.quantity - 1)
 const inc = (it: { productId: string; quantity: number }) =>
   cartStore.updateQty(it.productId, it.quantity + 1)
+// 有下架商品就別讓他進結帳頁——那裡填完整張表單送出還是會被後端擋下。
+const onCheckoutClick = (e: MouseEvent) => {
+  if (!unavailable.value.length) return
+  e.preventDefault()
+  document.querySelector('.cart-notice--err')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+
 const onQtyInput = (productId: string, e: Event) => {
-  const n = Math.floor(Number((e.target as HTMLInputElement).value))
-  cartStore.updateQty(productId, Number.isFinite(n) && n >= 1 ? n : 1)
+  const el = e.target as HTMLInputElement
+  const n = Math.floor(Number(el.value))
+  const qty = Number.isFinite(n) && n >= 1 ? n : 1
+  cartStore.updateQty(productId, qty)
+  // 把畫面同步回實際存下的數量：輸入 0 / -5 / abc 會被修正成 1，但 :value 綁的值沒變（1→1）
+  // 不會觸發重繪，輸入框會一直顯示無效值，使用者以為自己買了 0 件。
+  if (el.value !== String(qty)) el.value = String(qty)
 }
 </script>
 
@@ -50,6 +71,18 @@ const onQtyInput = (productId: string, e: Event) => {
 
         <!-- Items + summary -->
         <div v-else class="checkout-cart">
+          <!-- 對帳結果：已下架 / 價格已更新（在這裡先講，別讓顧客填完結帳表單才發現） -->
+          <div v-if="unavailable.length" class="cart-notice cart-notice--err">
+            以下商品已下架或無法購買，請先移除才能結帳：<strong>{{ unavailable.map(u => u.title).join('、') }}</strong>
+            <button type="button" class="cart-notice-btn" @click="removeUnavailable">一鍵移除</button>
+          </div>
+          <div v-if="repriced.length" class="cart-notice cart-notice--warn">
+            部分商品價格已更新：
+            <span v-for="(r, i) in repriced" :key="r.title">
+              {{ i ? '、' : '' }}{{ r.title }}（{{ ntd(r.from) }} → {{ ntd(r.to) }}）
+            </span>
+          </div>
+
           <!-- Free-shipping progress -->
           <div class="freeship-bar" :class="{ qualified: freight === 0 }">
             <template v-if="freight === 0">
@@ -70,7 +103,7 @@ const onQtyInput = (productId: string, e: Event) => {
           </div>
 
           <ul class="cart-items">
-            <li v-for="item in cartStore.items" :key="item.productId" class="item">
+            <li v-for="item in cartStore.items" :key="item.productId" class="item" :class="{ 'item--unavailable': isUnavailable(item.productId) }">
               <a :href="productUrl(item.title)" class="thumb">
                 <img v-if="item.photo" :src="blobUrl + item.photo" :alt="item.title">
                 <span v-else class="thumb-fallback"></span>
@@ -78,6 +111,7 @@ const onQtyInput = (productId: string, e: Event) => {
               <div class="item-content">
                 <div class="ci-info">
                   <a :href="productUrl(item.title)" class="ci-name">{{ item.title }}</a>
+                  <span v-if="isUnavailable(item.productId)" class="ci-badge">已下架</span>
                   <div v-if="item.capacity" class="ci-description descript">{{ item.capacity }}</div>
                 </div>
                 <div class="ci-price" data-label="單價：">{{ ntd(item.unitPrice) }}</div>
@@ -133,7 +167,12 @@ const onQtyInput = (productId: string, e: Event) => {
           <!-- Actions -->
           <div class="cart-actions">
             <a href="/Products" class="outline-btn solidhover">繼續購物</a>
-            <a href="/Checkout" class="btn basic">前往結帳</a>
+            <a
+              href="/Checkout"
+              class="btn basic"
+              :class="{ 'btn-blocked': unavailable.length > 0 }"
+              @click="onCheckoutClick"
+            >前往結帳</a>
           </div>
         </div>
       </div>
@@ -147,6 +186,24 @@ const onQtyInput = (productId: string, e: Event) => {
    more whitespace. Scoped overrides of legacy globals are written with the `.checkout-cart`
    prefix so they out-specify main.css. Brand teal #26b7bc / dark #156467. */
 .checkout-cart { max-width: 760px; margin: 0 auto; }
+
+/* 對帳提示（已下架 / 價格已更新） */
+.cart-notice {
+  border-radius: 6px; padding: .9em 1.1em; margin-bottom: 1.2em;
+  font-size: .88em; line-height: 1.7;
+}
+.cart-notice--err { background: #fdf3f3; border: 1px solid #f0c9c9; color: #a33; }
+.cart-notice--warn { background: #fff8ec; border: 1px solid #f3dca6; color: #8a6d1f; }
+.cart-notice-btn {
+  margin-left: .6em; padding: .25em .9em; border: 1px solid currentColor; border-radius: 4px;
+  background: transparent; color: inherit; font-size: .95em; cursor: pointer;
+}
+.checkout-cart .cart-items .item--unavailable { opacity: .55; background: #fbf6f6; }
+.ci-badge {
+  display: inline-block; margin-left: .5em; padding: .1em .5em; border-radius: 3px;
+  background: #d0021b; color: #fff; font-size: .72em; vertical-align: middle;
+}
+.btn-blocked { opacity: .5; cursor: not-allowed; }
 
 /* Free-shipping progress — slim, understated */
 .freeship-bar {

@@ -15,6 +15,13 @@ export interface CartItem {
 
 const STORAGE_KEY = 'tfoodies.cart'
 
+// localStorage 的內容是不可信的（舊版格式、寫入被截斷、使用者/擴充套件亂改）。
+function isCartItem(v: unknown): v is CartItem {
+  const i = v as CartItem
+  return !!i && typeof i.productId === 'string' && typeof i.title === 'string'
+    && Number.isFinite(i.unitPrice) && Number.isFinite(i.quantity) && i.quantity > 0
+}
+
 export const useCartStore = defineStore('cart', {
   state: () => ({
     items: [] as CartItem[],
@@ -29,10 +36,21 @@ export const useCartStore = defineStore('cart', {
     subtotal: (s) => s.items.reduce((n, i) => n + i.unitPrice * i.quantity, 0),
   },
   actions: {
+    // ⚠️ 這支由 SiteHeader 在每一頁 onMounted 呼叫：一旦 JSON.parse 拋錯，整個站的每一頁都會
+    // 變成錯誤頁，而使用者除了自己清除瀏覽器資料無法自救。壞掉的資料一律丟棄（比照 memberAuth）。
     hydrate() {
-      if (import.meta.client) {
-        const raw = localStorage.getItem(STORAGE_KEY)
-        if (raw) this.items = JSON.parse(raw)
+      if (!import.meta.client) return
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (!raw) return
+      try {
+        const parsed: unknown = JSON.parse(raw)
+        const items = Array.isArray(parsed) ? parsed.filter(isCartItem) : []
+        this.items = items
+        // 內容有被過濾掉（部分壞資料）時把清理結果寫回，避免每次載入重複過濾。
+        if (!Array.isArray(parsed) || items.length !== parsed.length) this.persist()
+      } catch {
+        localStorage.removeItem(STORAGE_KEY)
+        this.items = []
       }
     },
     persist() {

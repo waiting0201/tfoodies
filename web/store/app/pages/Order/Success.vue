@@ -23,7 +23,18 @@ useHead({ title: heading })
 
 // 漏斗第五關：購買成功。讀取結帳時暫存的訂單摘要（含金額/品項，廣告優化才準確）。
 // 信用卡付款失敗(cardFailed)時不計入營收，但仍清掉暫存避免殘留。
+const cartStore = useCartStore()
+
 onMounted(() => {
+  // 購物車在這裡才清空（不在結帳頁導向付款前清）：使用者若從刷卡頁退回、或刷卡頁載入失敗，
+  // 結帳頁還留著商品可以重試。抵達本頁代表訂單已經成立——即使刷卡失敗，訂單也已保留、
+  // 應由會員中心重新付款，不需要再用購物車下一次單。
+  // ⚠️ 必須有 code 才清：沒有訂單編號就直接開這頁（瀏覽紀錄、書籤、誤觸）不該把購物車清掉。
+  if (orderCode.value) {
+    cartStore.items = []
+    cartStore.persist()
+  }
+
   const pending = takePendingPurchase()
   if (!pending || cardFailed.value) return
 

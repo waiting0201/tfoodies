@@ -583,6 +583,27 @@ FROM Questions ORDER BY sort, title;";
             .ToList();
     }
 
+    // ── 購物車對帳 ────────────────────────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<CartProductState>> GetCartProductStatesAsync(
+        IReadOnlyCollection<Guid> productIds, CancellationToken ct = default)
+    {
+        if (productIds.Count == 0) return [];
+
+        using var conn = await _db.CreateOpenConnectionAsync(ct);
+
+        // 含已下架商品（isdisabled 一起回傳）——購物車要能明確告訴顧客「這項已下架，請移除」。
+        var rows = await conn.QueryAsync<CartProductStateRow>(
+            "SELECT productid, title, price, isdisabled FROM Products WHERE productid IN @ids",
+            new { ids = productIds });
+
+        return rows
+            .Select(r => new CartProductState(r.productid, r.title, r.price, r.isdisabled))
+            .ToList();
+    }
+
+    private sealed record CartProductStateRow(Guid productid, string title, int price, bool isdisabled);
+
     // ── Mapping helpers ───────────────────────────────────────────────────────────
 
     private static ProductListItem MapProduct(ProductRow r) =>

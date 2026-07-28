@@ -97,3 +97,13 @@
 10. **三處設定分歧**（前台/後台 Web.config vs Service App.config 的 blob 帳號與 freight）。
 11. Schema：金額混型(Int32/Decimal)、9 張 `*codes` + 5 張 `*medias` 可泛化、多個 FK 形狀欄位無參照完整性、`Orders` god-table、`Refounds` 拼字錯誤已固化。
 12. .NET Framework 4.8 + EF6 DB-first + 大量 4.3 `System.*` shim + bindingRedirect — 升級 .NET (Core) 須重做資料層與設定。
+
+## 🆕 新系統前台下單的已知陷阱（2026-07-28 排查）
+
+- **`Members.mobile` 沒有唯一索引**（沿用舊 schema，正式庫目前有 1 組重複號碼）。訪客結帳是以手機號比對既有會員（`OrderService.ResolveGuestMemberAsync`），原本用 `QuerySingleOrDefault` → 同號碼多筆時直接丟 `InvalidOperationException`（回 422 `Sequence contains more than one element`），該顧客**永遠無法下單**。已改 `QueryFirstOrDefault`（取 `createdate` 最早的一筆）。
+- **訂單通知信在下單 request 內同步 `await`**（`StoreOrderController.PlaceOrder`）。`SmtpClient.Timeout` 只作用於同步 `Send`、對 `SendMailAsync` 無效，需自行用 `CancellationToken` 設上限（現為 10 秒）；否則 relay 不通時整支下單 API 會卡到 Functions 的 230 秒上限，顧客畫面停在「送出中…」而訂單其實已經成立。
+- **購物車對帳（2026-07-28 已實作）**：購物車把 `unitPrice`/`title` 存在瀏覽器 localStorage，商品調價或下架後畫面會過期，而下單一律以 `Products.price` 現價計算（防竄改，正確）→ 不對帳顧客會「看到 A 金額、被扣 B 金額」。新增 `POST /store/cart/sync`（`IStoreQueryService.GetCartProductStatesAsync`，回現價/名稱/`isDisabled`，含已下架商品），前台以 `useCartSync()` 在購物車頁與結帳頁 onMounted 對帳：更新價格與名稱、標出已下架品項（一鍵移除、鎖住「前往結帳」、結帳頁擋下送出）。
+- **應付 0 元不進金流（2026-07-28 已實作）**：100% 折扣碼 + 滿額免運會產生應付 0 元的訂單，金流不收 0 元，送過去顧客只會卡在錯誤頁。`OrderService` 於 `payable <= 0` 時直接把 `paystatus` 設為 **3 = 免付款**；`PaymentController.CreatePayment` 與 `LinePayController.CreatePayment` 都在狀態檢查**之前**擋下（訊息才會是「無須刷卡」而非誤導的「訂單已付款」）；前台則以後端回傳的 `total/freight/discount` 判斷，應付 0 時不發起金流、直接進完成頁。
+- **`store/*` 全部是公開路由**（`JwtAuthMiddleware.PublicPrefixes`），`ctx.CurrentUser` 恆為 `null` → `PlaceOrder` 的 `memberId` 永遠是 `null`。**登入與未登入在後端走同一條路**，都靠手機號比對會員。
+- **折扣碼 `isonetime=2`（每會員限用一次）在前台不具強制力**（2026-07-28 決策）。原本預覽（`POST /store/discount/apply`，拿不到 memberId）與下單（以手機號解析出會員後才檢查）兩階段規則不一致，老會員會遇到「套用顯示折抵成功、送出卻被 400 拒絕」且無從補救。已改為**下單時放行已通過預覽的碼**：`IDiscountService.ValidateAsync` 新增 `enforcePerMemberLimit`，`OrderService` 以 `false` 呼叫、其餘呼叫端維持 `true`。
+  → **營運注意**：需要嚴格控管用量的活動請改用 `isonetime=1`（全域一次性，預覽與下單兩端都仍然強制）。

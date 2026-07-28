@@ -91,8 +91,10 @@ public sealed class StoreOrderController
         var memberId = ExtractMemberId(ctx.CurrentUser);
         var subtotal = body.OrderSubtotal > 0 ? body.OrderSubtotal : 0;
 
+        // memberId 在此恆為 null（store/* 為公開路由，不解析 token），所以 isonetime=2 的每會員
+        // 檢查在預覽階段本來就跑不到；下單階段亦以 enforcePerMemberLimit:false 對齊，兩邊規則一致。
         var result = await _discounts.ValidateAsync(
-            body.DiscountCode, subtotal, memberId, ctx.Request.HttpContext.RequestAborted);
+            body.DiscountCode, subtotal, memberId, ct: ctx.Request.HttpContext.RequestAborted);
 
         if (!result.IsSuccess)
             return ctx.BadRequest(result.Error.Message);

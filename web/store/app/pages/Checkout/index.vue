@@ -23,6 +23,9 @@ interface MemberProfile {
 }
 
 let prefilling = false
+// 登入態失效（伺服器換金鑰、帳號被停用、token 被撤銷）時要顯示的提示。
+const sessionExpired = ref(false)
+
 async function prefillBuyerFromMember() {
   try {
     const profile = await $fetch<MemberProfile>(`${config.public.apiBase}/member/profile`, {
@@ -38,17 +41,63 @@ async function prefillBuyerFromMember() {
       buyerAreas.value = await loadAreas(profile.city)
       form.buyerZipcodeId = profile.zipcodeId
     }
-  } catch {
-    // 取不到 profile 時退回 token 內的姓名，至少帶入姓名（舊系統最低限度）。
+  } catch (e: unknown) {
+    // ⚠️ 401/403：token 還在（hydrate 只驗 exp、不驗簽章）但伺服器已不認。此時若仍當成「已登入」，
+    // 訂購人欄位會是空白且 readonly ——「請填寫訂購人手機號碼」卻又不能打字，訂單永遠送不出去。
+    // 直接登出改走訪客表單，讓使用者至少能完成這筆訂單。
+    const status = (e as { status?: number; statusCode?: number; response?: { status?: number } })
+    const code = status?.status ?? status?.statusCode ?? status?.response?.status
+    if (code === 401 || code === 403) {
+      memberAuth.logout()
+      sessionExpired.value = true
+      form.buyerName = ''
+      return
+    }
+    // 其他錯誤（網路瞬斷等）退回 token 內的姓名，至少帶入姓名（舊系統最低限度）。
     if (memberAuth.memberName) form.buyerName = memberAuth.memberName
   } finally {
     prefilling = false
   }
 }
 
+// 郵遞區號參照載入失敗時，縣市/區域下拉會是空的 → 收件人區域永遠選不到、訂單永遠送不出去，
+// 且畫面上完全沒有線索。改為明確顯示錯誤並提供重新載入。
+const zipcodeError = ref('')
+const reloadingZipcodes = ref(false)
+async function reloadCities() {
+  zipcodeError.value = ''
+  reloadingZipcodes.value = true
+  try {
+    await loadCities()
+  } catch {
+    zipcodeError.value = '縣市資料載入失敗，無法選擇收件地址。'
+  } finally {
+    reloadingZipcodes.value = false
+  }
+}
+async function safeLoadAreas(city: string) {
+  if (!city) return []
+  try {
+    const areas = await loadAreas(city)
+    zipcodeError.value = ''
+    return areas
+  } catch {
+    zipcodeError.value = '鄉鎮市區載入失敗，請重新選擇縣市。'
+    return []
+  }
+}
+
+// 從刷卡頁退回時，訂單其實已經成立。提示編號，避免使用者再送一次變成兩筆訂單。
+const pendingOrderCode = ref('')
+
+// 與購物車頁相同的對帳：直接進結帳頁（書籤／從商品頁按「立即結帳」）也要抓到調價與下架。
+const { unavailable, repriced, syncCart, removeUnavailable } = useCartSync()
+
 onMounted(async () => {
   cartStore.hydrate()
-  await loadCities()
+  await syncCart()
+  pendingOrderCode.value = peekPendingPurchase()?.transaction_id ?? ''
+  await reloadCities()
   if (isLoggedIn.value) await prefillBuyerFromMember()
   // 漏斗第四關：進入結帳。
   if (cartStore.items.length > 0) {
@@ -121,12 +170,12 @@ const receiverAreas = ref<{ zipcodeId: number; area: string }[]>([])
 watch(() => form.buyerCity, async (city) => {
   if (prefilling) return   // 預帶會員資料時由 prefill 自行設定區域與 zipcodeId
   form.buyerZipcodeId = null
-  buyerAreas.value = await loadAreas(city)
+  buyerAreas.value = await safeLoadAreas(city)
 })
 watch(() => form.receiverCity, async (city) => {
   if (copying) return
   form.receiverZipcodeId = null
-  receiverAreas.value = await loadAreas(city)
+  receiverAreas.value = await safeLoadAreas(city)
 })
 
 // ── 同訂購人資訊（對齊舊系統：須先填妥訂購人資訊才能勾選複製）──────────────────────
@@ -155,10 +204,24 @@ watch(() => form.sameAsBuyer, async (on) => {
   form.receiverMobile = form.buyerMobile
   form.receiverCity = form.buyerCity
   form.receiverAddress = form.buyerAddress
-  receiverAreas.value = await loadAreas(form.buyerCity)
+  receiverAreas.value = await safeLoadAreas(form.buyerCity)
   form.receiverZipcodeId = form.buyerZipcodeId
   copying = false
 })
+
+// API 錯誤格式是 { error: { code, message } }（見 ApiErrorResponse）。舊寫法只讀 e.data.message，
+// 所以後端所有具體訊息（庫存不足／折扣碼已使用／商品下架…）都會被吃掉成通用錯誤。
+function apiErrorMessage(e: unknown, fallback: string): string {
+  const d = (e as { data?: { message?: string; error?: { message?: string } } })?.data
+  return d?.error?.message ?? d?.message ?? fallback
+}
+
+// $fetch 逾時（AbortSignal.timeout）在不同瀏覽器/版本的錯誤形態不一，一律用特徵字串判斷。
+function isTimeout(e: unknown): boolean {
+  const err = e as { name?: string; message?: string; cause?: { name?: string } }
+  const text = `${err?.name ?? ''} ${err?.cause?.name ?? ''} ${err?.message ?? ''}`.toLowerCase()
+  return text.includes('timeout') || text.includes('abort')
+}
 
 // ── Discount ──────────────────────────────────────────────────────────────────
 const appliedCode = ref('')
@@ -180,7 +243,7 @@ async function applyDiscount() {
     appliedCode.value = res.discountCode
     discountAmount.value = res.discountAmount
   } catch (e: unknown) {
-    discountError.value = (e as { data?: { message?: string } })?.data?.message ?? '折扣碼無效'
+    discountError.value = apiErrorMessage(e, '折扣碼無效')
   } finally {
     validatingDiscount.value = false
   }
@@ -197,31 +260,67 @@ const ntd = (n: number) => 'NT$ ' + new Intl.NumberFormat('zh-TW').format(Math.t
 const submitting = ref(false)
 const submitError = ref('')
 
-function clientValidate(): string | null {
-  if (!form.buyerName.trim()) return '請填寫訂購人姓名。'
-  if (!form.buyerMobile.trim()) return '請填寫訂購人手機號碼。'
+// 出錯的欄位：用來標紅 + 捲動 + focus。錯誤訊息本身顯示在右側摘要（送出鈕上方），
+// 但表單很長，若使用者是在頁面上方按 Enter 送出，訊息會落在畫面外而看起來「按了沒反應」。
+const errorField = ref('')
+
+interface FieldError { msg: string; field: string }
+
+function clientValidate(): FieldError | null {
+  const e = (msg: string, field: string): FieldError => ({ msg, field })
+  if (!form.buyerName.trim()) return e('請填寫訂購人姓名。', 'buyerName')
+  if (!form.buyerMobile.trim()) return e('請填寫訂購人手機號碼。', 'buyerMobile')
   if (!isLoggedIn.value) {
-    if (!/^09\d{8}$/.test(form.buyerMobile.trim())) return '請輸入正確的手機格式，如：0987654321。'
-    if (!form.password || form.password.length < 6) return '請設定 6～20 字元的密碼。'
-    if (form.password !== form.password2) return '兩次輸入的密碼不相同。'
-    if (!form.buyerEmail.trim()) return '請填寫電子郵件。'
+    if (!/^09\d{8}$/.test(form.buyerMobile.trim())) return e('請輸入正確的手機格式，如：0987654321。', 'buyerMobile')
+    if (!form.password || form.password.length < 6) return e('請設定 6～20 字元的密碼。', 'password')
+    if (form.password !== form.password2) return e('兩次輸入的密碼不相同。', 'password2')
+    if (!form.buyerEmail.trim()) return e('請填寫電子郵件。', 'buyerEmail')
   }
-  if (!form.receiverName.trim()) return '請填寫收件人姓名。'
-  if (!/^09\d{8}$/.test(form.receiverMobile.trim())) return '請輸入正確的收件人手機格式。'
-  if (!form.receiverZipcodeId) return '請選擇收件人縣市與鄉鎮市區。'
-  if (!form.receiverAddress.trim()) return '請填寫收件人地址。'
-  if (form.invoiceType === 3 && (!form.companyNumber.trim() || !form.companyTitle.trim()))
-    return '三聯式發票請填寫統一編號與公司抬頭。'
-  if (!form.agree) return '請先閱讀並同意服務條款與隱私權政策。'
+  if (!form.receiverName.trim()) return e('請填寫收件人姓名。', 'receiverName')
+  if (!/^09\d{8}$/.test(form.receiverMobile.trim())) return e('請輸入正確的收件人手機格式。', 'receiverMobile')
+  if (!form.receiverZipcodeId) return e('請選擇收件人縣市與鄉鎮市區。', 'receiverCity')
+  if (!form.receiverAddress.trim()) return e('請填寫收件人地址。', 'receiverAddress')
+  if (form.invoiceType === 3 && !form.companyNumber.trim()) return e('三聯式發票請填寫統一編號。', 'companyNumber')
+  if (form.invoiceType === 3 && !form.companyTitle.trim()) return e('三聯式發票請填寫公司抬頭。', 'companyTitle')
+  if (!form.agree) return e('請先閱讀並同意服務條款與隱私權政策。', 'agree')
   return null
 }
 
+// 捲到出錯欄位並 focus，讓「按了沒反應」變成「明確指出哪一格要改」。
+async function focusErrorField() {
+  await nextTick()
+  if (!import.meta.client) return
+  const el = document.querySelector<HTMLElement>(`[data-field="${errorField.value}"]`)
+  if (!el) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  el.focus({ preventScroll: true })
+}
+
+// 下單／發起付款都必須有上限：$fetch 預設不逾時，後端一慢（訂單通知信同步寄送最慢 10 秒、
+// Functions 上限 230 秒）畫面就永遠停在「送出中…」，使用者只能重整，且重整很可能變成第二筆訂單。
+const ORDER_TIMEOUT_MS = 20000
+const PAYMENT_TIMEOUT_MS = 15000
+
 async function submitOrder() {
   if (cartStore.items.length === 0) return
+  // 已下架商品先擋在這裡：後端一定會拒，讓顧客白填一整張表單沒有意義。
+  if (unavailable.value.length) {
+    submitError.value = `「${unavailable.value.map(u => u.title).join('」、「')}」已下架，請先移除後再送出。`
+    return
+  }
   const err = clientValidate()
-  if (err) { submitError.value = err; return }
+  if (err) {
+    submitError.value = err.msg
+    errorField.value = err.field
+    await focusErrorField()
+    return
+  }
+  errorField.value = ''
   submitError.value = ''
   submitting.value = true
+  // 訂單一旦成立就記下編號：後續步驟（發起付款）失敗時，訊息必須告訴使用者「訂單已經成立」，
+  // 否則他會再送一次。
+  let placedCode = ''
   try {
     const birthday = form.birthYear && form.birthMonth && form.birthDay
       ? `${form.birthYear}-${String(form.birthMonth).padStart(2, '0')}-${String(form.birthDay).padStart(2, '0')}`
@@ -257,10 +356,19 @@ async function submitOrder() {
     const headers: Record<string, string> = {}
     if (memberAuth.accessToken) headers['Authorization'] = `Bearer ${memberAuth.accessToken}`
 
-    const res = await $fetch<{ orderCode: string; payTypeKey?: string; atmCode?: string; atmExpiry?: string }>(
+    const res = await $fetch<{
+      orderCode: string; payTypeKey?: string; atmCode?: string; atmExpiry?: string
+      total?: number; freight?: number; discount?: number
+    }>(
       `${config.public.apiBase}/store/orders`,
-      { method: 'POST', body, headers },
+      { method: 'POST', body, headers, timeout: ORDER_TIMEOUT_MS },
     )
+    placedCode = res.orderCode
+
+    // 應付 0 元（100% 折扣 + 免運）不發起金流：金流不收 0 元，送過去只會卡在錯誤頁。
+    // 後端在下單時已把這種訂單標記為「無須付款」。
+    const payableFromServer = (res.total ?? 0) + (res.freight ?? 0) - (res.discount ?? 0)
+    const needsGateway = payableFromServer > 0
     // 漏斗第五關：購買。先暫存訂單摘要再清空購物車——信用卡會跳轉外部刷卡頁，
     // 由完成頁(/Order/Success)導回後才實際觸發 purchase 事件（見 Order/Success.vue）。
     setPendingPurchase({
@@ -278,31 +386,27 @@ async function submitOrder() {
     // 需離站付款的方式（信用卡 / LINE Pay）：先向後端取得導向資訊再離開本頁。
     // returnOrigin：帶上目前所在網域，讓付款返回時導回「同一個網域」的結果頁（多網域服務時避免
     // 跨域把使用者甩到主網域、且 purchase 追蹤的 sessionStorage 跨域讀不到而漏單）。後端會以白名單驗證。
-    // ⚠️ 必須先成功取得付款資訊才清空購物車——否則 create 失敗時購物車已被清空，
-    //    空購物車 v-if 會整塊取代表單（含錯誤訊息），使用者只會看到「購物車是空的」。
+    // ⚠️ 購物車一律留到完成頁(/Order/Success)才清空——在導向付款頁前就清空的話，只要使用者從
+    //    刷卡頁退回或刷卡頁載入失敗，回到結帳頁就只剩「購物車是空的」，連重試都做不到。
     const initBody = { orderCode: res.orderCode, returnOrigin: window.location.origin }
 
     // LINE Pay：後端建立交易後回傳付款頁網址，整頁導向；結果由 /store/payment/linepay/confirm 導回。
-    if (form.payType === PAY_TYPE.LINE_PAY) {
+    if (form.payType === PAY_TYPE.LINE_PAY && needsGateway) {
       const init = await $fetch<{ paymentUrl: string }>(
         `${config.public.apiBase}/store/payment/linepay/create`,
-        { method: 'POST', body: initBody },
+        { method: 'POST', body: initBody, timeout: PAYMENT_TIMEOUT_MS },
       )
-      cartStore.items = []
-      cartStore.persist()
       window.location.href = init.paymentUrl
       return
     }
 
     // 信用卡：發起財金 FISC WEBPOS 刷卡。後端回傳 form action 與欄位，動態建表單
     // auto-submit 將使用者整頁導向財金刷卡頁；刷卡結果由財金導回 /store/payment/return。
-    if (form.payType === PAY_TYPE.CREDIT_CARD) {
+    if (form.payType === PAY_TYPE.CREDIT_CARD && needsGateway) {
       const init = await $fetch<{ actionUrl: string; fields: Record<string, string> }>(
         `${config.public.apiBase}/store/payment/create`,
-        { method: 'POST', body: initBody },
+        { method: 'POST', body: initBody, timeout: PAYMENT_TIMEOUT_MS },
       )
-      cartStore.items = []
-      cartStore.persist()
       const f = document.createElement('form')
       f.method = 'post'
       f.action = init.actionUrl
@@ -319,15 +423,23 @@ async function submitOrder() {
       return
     }
 
-    cartStore.items = []
-    cartStore.persist()
-
+    // 無須離站付款（貨到付款 / ATM）：購物車同樣由完成頁清空。
     const query: Record<string, string> = { code: res.orderCode }
     if (res.atmCode) query.atm = res.atmCode
     if (res.atmExpiry) query.atmExpiry = res.atmExpiry
     await navigateTo({ path: '/Order/Success', query })
   } catch (e: unknown) {
-    submitError.value = (e as { data?: { message?: string } })?.data?.message ?? '訂單送出失敗，請稍後再試。'
+    if (placedCode) {
+      // 訂單已經進資料庫、庫存也扣了，只是後續發起付款失敗——絕不能讓使用者再送一次。
+      pendingOrderCode.value = placedCode
+      submitError.value = isTimeout(e)
+        ? `訂單 ${placedCode} 已成立，但轉往付款頁時逾時。請勿重複送出，請至會員中心查看訂單並重新付款。`
+        : `訂單 ${placedCode} 已成立，但轉往付款頁失敗（${apiErrorMessage(e, '請稍後再試')}）。請勿重複送出，請至會員中心重新付款。`
+    } else if (isTimeout(e)) {
+      submitError.value = '連線逾時，訂單可能已經成立。請勿重複送出，請先至會員中心確認訂單，或與客服聯繫。'
+    } else {
+      submitError.value = apiErrorMessage(e, '訂單送出失敗，請稍後再試。')
+    }
   } finally {
     submitting.value = false
   }
@@ -362,31 +474,61 @@ async function submitOrder() {
           <div class="checkout-form">
             <p class="ssl-note descript">🔒 本站採用 SSL 加密傳輸，請安心填寫。</p>
 
+            <!-- 購物車對帳結果：已下架要先移除、價格有變要講清楚（送出後才發現金額不同會變成客訴） -->
+            <div v-if="unavailable.length" class="notice notice--err">
+              以下商品已下架或無法購買，請先移除才能送出訂單：<strong>{{ unavailable.map(u => u.title).join('、') }}</strong>
+              <button type="button" class="notice-btn" @click="removeUnavailable">一鍵移除</button>
+            </div>
+            <div v-if="repriced.length" class="notice notice--warn">
+              部分商品價格已更新，下方金額為最新售價：
+              <span v-for="(r, i) in repriced" :key="r.title">{{ i ? '、' : '' }}{{ r.title }}（{{ ntd(r.from) }} → {{ ntd(r.to) }}）</span>
+            </div>
+
+            <!-- 登入態失效：已自動切回訪客表單，告知原因，避免使用者以為資料莫名不見 -->
+            <div v-if="sessionExpired" class="notice notice--warn">
+              您的登入狀態已失效，已切換為訪客結帳。可先完成本次訂單，或
+              <a href="/Member/Login">重新登入</a>後再結帳。
+            </div>
+
+            <!-- 從付款頁退回時：訂單其實已經成立，提醒不要再送一次 -->
+            <div v-if="pendingOrderCode" class="notice notice--warn">
+              您有一筆訂單 <strong>{{ pendingOrderCode }}</strong> 已經成立、尚未完成付款。
+              請至<a href="/Member/Orders">會員中心 › 訂單查詢</a>重新付款，重新送出會產生另一筆訂單。
+            </div>
+
+            <!-- 郵遞區號載入失敗：不提示的話，使用者會卡在「請選擇收件人縣市」卻無從選起 -->
+            <div v-if="zipcodeError" class="notice notice--err">
+              {{ zipcodeError }}
+              <button type="button" class="notice-btn" :disabled="reloadingZipcodes" @click="reloadCities">
+                {{ reloadingZipcodes ? '載入中…' : '重新載入' }}
+              </button>
+            </div>
+
             <!-- 訂購人資訊 -->
             <div class="formstyle card">
               <h2 class="card-title">訂購人資訊</h2>
               <div class="field">
                 <label><span class="must">*</span>姓名</label>
-                <input v-model="form.buyerName" class="input" maxlength="20" placeholder="請輸入姓名" :readonly="isLoggedIn">
+                <input v-model="form.buyerName" class="input" :class="{ 'field-error': errorField === 'buyerName' }" data-field="buyerName" maxlength="20" placeholder="請輸入姓名" :readonly="isLoggedIn">
               </div>
               <div class="field">
                 <label><span class="must">*</span>手機號碼</label>
-                <input v-model="form.buyerMobile" class="input" maxlength="10" placeholder="例：0987654321" :readonly="isLoggedIn">
+                <input v-model="form.buyerMobile" class="input" :class="{ 'field-error': errorField === 'buyerMobile' }" data-field="buyerMobile" maxlength="10" placeholder="例：0987654321" :readonly="isLoggedIn">
                 <p v-if="!isLoggedIn" class="descript hint">手機號碼將成為您的會員帳號與聯絡電話，請輸入純數字。</p>
               </div>
 
               <template v-if="!isLoggedIn">
                 <div class="field">
                   <label><span class="must">*</span>設定密碼</label>
-                  <input v-model="form.password" type="password" class="input" maxlength="20" placeholder="6～20 字元">
+                  <input v-model="form.password" type="password" class="input" :class="{ 'field-error': errorField === 'password' }" data-field="password" maxlength="20" placeholder="6～20 字元">
                 </div>
                 <div class="field">
                   <label><span class="must">*</span>密碼確認</label>
-                  <input v-model="form.password2" type="password" class="input" maxlength="20" placeholder="再次輸入密碼">
+                  <input v-model="form.password2" type="password" class="input" :class="{ 'field-error': errorField === 'password2' }" data-field="password2" maxlength="20" placeholder="再次輸入密碼">
                 </div>
                 <div class="field">
                   <label><span class="must">*</span>電子郵件</label>
-                  <input v-model="form.buyerEmail" type="email" class="input" placeholder="example@mail.com">
+                  <input v-model="form.buyerEmail" type="email" class="input" :class="{ 'field-error': errorField === 'buyerEmail' }" data-field="buyerEmail" placeholder="example@mail.com">
                 </div>
                 <div class="field">
                   <label>性別</label>
@@ -425,19 +567,19 @@ async function submitOrder() {
               <p v-if="sameError" class="same-error">{{ sameError }}</p>
               <div class="field">
                 <label><span class="must">*</span>姓名</label>
-                <input v-model="form.receiverName" class="input" maxlength="20" placeholder="請輸入收件人姓名">
+                <input v-model="form.receiverName" class="input" :class="{ 'field-error': errorField === 'receiverName' }" data-field="receiverName" maxlength="20" placeholder="請輸入收件人姓名">
               </div>
               <div class="field">
                 <label><span class="must">*</span>手機號碼</label>
-                <input v-model="form.receiverMobile" class="input" maxlength="10" placeholder="例：0987654321">
+                <input v-model="form.receiverMobile" class="input" :class="{ 'field-error': errorField === 'receiverMobile' }" data-field="receiverMobile" maxlength="10" placeholder="例：0987654321">
               </div>
               <div class="field">
                 <label><span class="must">*</span>聯絡地址</label>
                 <div class="addr-row">
-                  <select v-model="form.receiverCity" class="input"><option value="">縣市</option><option v-for="c in cities" :key="c" :value="c">{{ c }}</option></select>
-                  <select v-model.number="form.receiverZipcodeId" class="input" :disabled="!form.receiverCity"><option :value="null">鄉鎮市區</option><option v-for="a in receiverAreas" :key="a.zipcodeId" :value="a.zipcodeId">{{ a.area }}</option></select>
+                  <select v-model="form.receiverCity" class="input" :class="{ 'field-error': errorField === 'receiverCity' }" data-field="receiverCity"><option value="">縣市</option><option v-for="c in cities" :key="c" :value="c">{{ c }}</option></select>
+                  <select v-model.number="form.receiverZipcodeId" class="input" :class="{ 'field-error': errorField === 'receiverCity' }" :disabled="!form.receiverCity"><option :value="null">鄉鎮市區</option><option v-for="a in receiverAreas" :key="a.zipcodeId" :value="a.zipcodeId">{{ a.area }}</option></select>
                 </div>
-                <input v-model="form.receiverAddress" class="input" placeholder="請填寫詳細地址（勿填郵政信箱）">
+                <input v-model="form.receiverAddress" class="input" :class="{ 'field-error': errorField === 'receiverAddress' }" data-field="receiverAddress" placeholder="請填寫詳細地址（勿填郵政信箱）">
               </div>
               <div class="field">
                 <label>配送時段</label>
@@ -460,11 +602,11 @@ async function submitOrder() {
                 <p class="descript opt-detail">依統一發票使用辦法，個人戶（二聯式）發票開立後不得更改為公司戶（三聯式）。</p>
                 <div class="field inline-field">
                   <label>統一編號</label>
-                  <input v-model="form.companyNumber" class="input" maxlength="8" placeholder="8 碼統一編號">
+                  <input v-model="form.companyNumber" class="input" :class="{ 'field-error': errorField === 'companyNumber' }" data-field="companyNumber" maxlength="8" placeholder="8 碼統一編號">
                 </div>
                 <div class="field inline-field">
                   <label>公司抬頭</label>
-                  <input v-model="form.companyTitle" class="input" maxlength="50" placeholder="公司抬頭">
+                  <input v-model="form.companyTitle" class="input" :class="{ 'field-error': errorField === 'companyTitle' }" data-field="companyTitle" maxlength="50" placeholder="公司抬頭">
                 </div>
               </template>
             </div>
@@ -516,7 +658,7 @@ async function submitOrder() {
               <div class="sum-total"><span>應付金額</span><strong>{{ ntd(total) }}</strong></div>
 
               <label class="agree descript">
-                <input type="checkbox" v-model="form.agree" class="agree-cb">
+                <input type="checkbox" v-model="form.agree" class="agree-cb" :class="{ 'field-error': errorField === 'agree' }" data-field="agree">
                 <span class="agree-text">我已閱讀並同意<a href="/Terms" target="_blank">服務條款</a>與<a href="/Policy" target="_blank">隱私權政策</a></span>
               </label>
 
@@ -594,6 +736,26 @@ async function submitOrder() {
 /* 登入會員的訂購人欄位為唯讀，視覺與 disabled 一致（灰底、不可改）。 */
 .checkout-form :deep(.input[readonly]) { background: #f6f6f6; color: #888; cursor: not-allowed; border-color: #ececec; }
 .checkout-form :deep(.input[readonly]:focus) { border-color: #ececec; }
+
+/* 驗證失敗的欄位標紅（配合 focusErrorField 捲動 + focus） */
+.checkout-form :deep(.field-error), .agree-cb.field-error {
+  border-color: #d0021b !important; background-color: #fff7f7;
+  outline: 2px solid rgba(208, 2, 27, .12); outline-offset: 1px;
+}
+
+/* 頁面級提示（未完成付款的訂單 / 郵遞區號載入失敗） */
+.notice {
+  border-radius: 6px; padding: .9em 1.1em; margin-bottom: 1.2em;
+  font-size: .88em; line-height: 1.7;
+}
+.notice--warn { background: #fff8ec; border: 1px solid #f3dca6; color: #8a6d1f; }
+.notice--err { background: #fdf3f3; border: 1px solid #f0c9c9; color: #a33; }
+.notice a { color: #1d8e92; text-decoration: underline; }
+.notice-btn {
+  margin-left: .6em; padding: .25em .9em; border: 1px solid currentColor; border-radius: 4px;
+  background: transparent; color: inherit; font-size: .95em; cursor: pointer;
+}
+.notice-btn:disabled { opacity: .5; cursor: default; }
 
 .addr-row, .birth-row { display: flex; gap: .6em; margin-bottom: .6em; }
 .birth-row { margin-bottom: 0; }

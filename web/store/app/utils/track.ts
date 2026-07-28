@@ -42,6 +42,19 @@ export function setPendingPurchase(p: PurchasePayload) {
   if (import.meta.client) sessionStorage.setItem(PENDING_KEY, JSON.stringify(p))
 }
 
+// 只讀取、不清除：結帳頁用來判斷「已建立但尚未完成付款」的訂單（使用者從刷卡頁退回時），
+// 以便提示訂單編號、避免他重按一次又下一筆。
+export function peekPendingPurchase(): PurchasePayload | null {
+  if (!import.meta.client) return null
+  const raw = sessionStorage.getItem(PENDING_KEY)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as PurchasePayload
+  } catch {
+    return null
+  }
+}
+
 // 取出並清除暫存的訂單摘要（取一次就移除，避免重新整理完成頁時重複計算營收）。
 export function takePendingPurchase(): PurchasePayload | null {
   if (!import.meta.client) return null

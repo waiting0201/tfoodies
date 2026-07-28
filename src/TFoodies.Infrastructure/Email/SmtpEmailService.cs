@@ -18,6 +18,10 @@ public sealed class SmtpEmailService : IEmailService
         _options = options.Value;
     }
 
+    // SmtpClient.Timeout 只作用於同步 Send，SendMailAsync 不理會它——relay 一不通就會卡到 TCP 逾時
+    // （下單 API 是同步 await 寄信，畫面會整個停在「送出中…」）。改用 CancellationToken 自行設上限。
+    private static readonly TimeSpan SendTimeout = TimeSpan.FromSeconds(10);
+
     public async Task<bool> SendAsync(string to, string subject, string htmlBody, CancellationToken ct = default)
     {
         try
@@ -46,9 +50,13 @@ public sealed class SmtpEmailService : IEmailService
             {
                 EnableSsl = _options.EnableSsl,
                 Credentials = new NetworkCredential(_options.Username, _options.Password),
+                Timeout = (int)SendTimeout.TotalMilliseconds,
             };
 
-            await client.SendMailAsync(mail, ct);
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(SendTimeout);
+
+            await client.SendMailAsync(mail, timeoutCts.Token);
             return true;
         }
         catch

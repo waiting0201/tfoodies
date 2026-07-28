@@ -17,7 +17,8 @@ public sealed class DiscountService : IDiscountService
     public DiscountService(IDbConnectionFactory db) => _db = db;
 
     public async Task<Result<DiscountResult>> ValidateAsync(
-        string discountCode, int orderSubtotal, Guid? memberId, CancellationToken ct = default)
+        string discountCode, int orderSubtotal, Guid? memberId,
+        bool enforcePerMemberLimit = true, CancellationToken ct = default)
     {
         using var conn = await _db.CreateOpenConnectionAsync(ct);
 
@@ -49,7 +50,9 @@ public sealed class DiscountService : IDiscountService
             if (used > 0)
                 return new Error("discount.used", "折扣碼已使用");
         }
-        else if (row.isonetime == 2 && memberId.HasValue)
+        // 每會員限用一次：只有在能一致地檢查時才擋。前台下單以 enforcePerMemberLimit=false 呼叫，
+        // 因為「套用」預覽階段沒有 memberId，此時才擋等於在最後一步推翻先前給顧客的承諾。
+        else if (row.isonetime == 2 && memberId.HasValue && enforcePerMemberLimit)
         {
             var used = await conn.ExecuteScalarAsync<int>(
                 "SELECT COUNT(1) FROM Orders WHERE discountid = @id AND memberid = @memberId",

@@ -46,6 +46,11 @@ public sealed class PaymentController
 
         if (summary.PayType != PayType.CreditCard)
             return ctx.BadRequest("此訂單非信用卡付款，無法發起刷卡。");
+        // 財金不收 0 元（100% 折扣 + 免運會發生）：送過去只會得到錯誤頁，顧客卡在刷卡頁。
+        // 擺在狀態檢查之前，訊息才會是「無須刷卡」而不是語意不符的「訂單已付款」。
+        // 下單時 payable<=0 已標記為「免付款」，這裡是防禦既有訂單與直接呼叫。
+        if (summary.Total + summary.Freight - summary.Discount <= 0)
+            return ctx.BadRequest("本訂單應付金額為 0，無須刷卡。");
         if (summary.PayStatus != PayStatus.Unpaid)
             return ctx.Conflict("訂單已付款或目前狀態不可發起刷卡。");
 

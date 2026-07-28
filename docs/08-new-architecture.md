@@ -206,7 +206,8 @@ Helpers/
   FiscWebposParser.cs        ← 財金授權結果解析（訂單刷卡與收款連結共用同一份成功判定）
   FiscRedirect.cs            ← 刷卡回跳網域白名單（防 open redirect，建立端與回呼端共用）
 Controllers/
-  StoreController.cs         ← 前台商品/CMS（13 GET 端點，公開；含 GET /store/shopping-guide 購物說明 FAQ）
+  StoreController.cs         ← 前台商品/CMS（13 GET 端點，公開；含 GET /store/shopping-guide 購物說明 FAQ
+                                 ＋ POST /store/cart/sync 購物車對帳：批次回現價/名稱/isDisabled）
                                + POST /store/outofnotices（缺貨「到貨通知我」登記；reCAPTCHA v3 + 同 email/商品去重）
   AuthController.cs          ← POST /auth/login, /auth/refresh
   MemberAuthController.cs    ← 會員認證延伸（公開）：POST /auth/register（註冊）、

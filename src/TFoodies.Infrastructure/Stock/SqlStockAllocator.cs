@@ -51,7 +51,7 @@ ORDER BY s.expiredate ASC, ws.transdate ASC;";
 
         // 先確認總量充足（避免部分更新後再 rollback）
         var total = batches.Sum(b => b.quantity_left);
-        if (total < quantity) return AllocationResult.Insufficient;
+        if (total < quantity) return AllocationResult.NotEnough(total);
 
         var picks = new List<StockPick>();
         var remaining = quantity;

@@ -20,7 +20,19 @@ public interface IStoreQueryService
     Task<(IReadOnlyList<EventListItem> Items, int TotalCount)> GetEventsAsync(int page, int pageSize, CancellationToken ct = default);
     Task<EventDetail?> GetEventDetailAsync(Guid eventId, CancellationToken ct = default);
     Task<IReadOnlyList<ShoppingGuideType>> GetShoppingGuideAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// 購物車對帳用：以 productId 批次取回現價/名稱/是否已下架。
+    /// 購物車存在瀏覽器 localStorage（可以放很久），商品調價或下架後畫面上的金額與可購狀態都會過期，
+    /// 而下單一律以 Products.price 現價計算 → 不對帳的話顧客會「看到 A 金額、被扣 B 金額」。
+    /// 查無此 id 者不會出現在結果中（視同已不存在）。
+    /// </summary>
+    Task<IReadOnlyList<CartProductState>> GetCartProductStatesAsync(
+        IReadOnlyCollection<Guid> productIds, CancellationToken ct = default);
 }
+
+/// <summary>購物車品項的目前狀態（現價 / 名稱 / 是否下架）。</summary>
+public sealed record CartProductState(Guid ProductId, string Title, int Price, bool IsDisabled);
 
 // ── Home ───────────────────────────────────────────────────────────────────────
 public sealed record HomeData(

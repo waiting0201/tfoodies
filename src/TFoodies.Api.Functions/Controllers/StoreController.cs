@@ -52,6 +52,23 @@ public sealed class StoreController
         return detail is null ? ctx.NotFound("找不到商品。") : ctx.Ok(detail);
     }
 
+    // POST /store/cart/sync — 購物車對帳：帶入 productId 清單，回現價/名稱/是否下架。
+    // 前台購物車存在 localStorage，商品調價或下架後畫面會過期；下單一律以現價計算，
+    // 不對帳顧客就會「看到 A 金額、被扣 B 金額」，或在最後一步才發現商品已下架。
+    public async Task<IActionResult> SyncCart(RouteContext ctx)
+    {
+        var ct = ctx.Request.HttpContext.RequestAborted;
+        var body = await ctx.TryReadBodyAsync<CartSyncRequest>(ct);
+        if (body?.ProductIds is null) return ctx.BadRequest("缺少 productIds 欄位。");
+
+        // 上限保護：購物車不會有幾百筆，避免被當成任意批次查詢端點。
+        var ids = body.ProductIds.Distinct().Take(100).ToList();
+        var states = await _store.GetCartProductStatesAsync(ids, ct);
+        return ctx.Ok(new { items = states });
+    }
+
+    private sealed record CartSyncRequest(List<Guid>? ProductIds);
+
     // GET /store/brands — 導覽列「品牌系列」下拉清單（isdisplay=1，依 sort）。
     public async Task<IActionResult> GetBrands(RouteContext ctx)
     {

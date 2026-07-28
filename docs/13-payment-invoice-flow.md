@@ -33,9 +33,13 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 
 檔案：[Checkout/index.vue](../web/store/app/pages/Checkout/index.vue)、[PaymentController.cs](../src/TFoodies.Api.Functions/Controllers/PaymentController.cs)
 
+> ⚠️ **應付 0 元不進金流**：100% 折扣 + 滿額免運會產生 `total + freight − discount = 0` 的訂單。
+> `OrderService` 下單時即把 `paystatus` 設為 3(免付款)，`CreatePayment`（FISC / LINE Pay 皆是）在狀態
+> 檢查前先擋下並回「本訂單應付金額為 0，無須刷卡」，前台則直接跳過金流進完成頁。
+
 ```
 結帳頁（選信用卡 payType=1）
- 1. POST /store/orders            → 建未付款訂單，回 orderCode
+ 1. POST /store/orders            → 建未付款訂單，回 orderCode（含 total/freight/discount）
  2. POST /store/payment/create    → CreatePayment 驗證(信用卡+未付款)
         body 帶 returnOrigin = window.location.origin（使用者當前網域）
                                      → origin 經白名單(AllowedStoreOrigins)驗證；通過才附進
@@ -43,6 +47,7 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
                                      → FiscWebpos.BuildFields(AuthResUrl=上者)
                                      → 回 { actionUrl, fields }
  3. 前端動態建 <form> → f.submit()（整頁 POST 到財金刷卡頁）
+    ⚠️ 此時「不」清空購物車——顧客可能從刷卡頁退回；購物車由 /Order/Success 清空
    ▼ 財金 FOCAS_WEBPOS 刷卡頁（顧客輸入卡號授權）
  4a. 導回 AuthResURL = /store/payment/return(?origin=…) → Return
         ParseFields(status=="0" 且 authCode 非空 = 成功) → MarkPaidAsync

@@ -70,9 +70,13 @@ public sealed class OrderService : IOrderService
                 return new Error("order.no_warehouse", "找不到線上倉");
 
             // 3. 驗證商品並計算小計
-            var lines = await ResolveOrderLinesAsync(req.Lines, conn, tx);
+            var unavailable = new List<string>();
+            var lines = await ResolveOrderLinesAsync(req.Lines, conn, tx, unavailable);
             if (lines is null)
-                return new Error("order.invalid_product", "商品不存在或已下架");
+                return new Error("order.invalid_product",
+                    unavailable.Count > 0
+                        ? $"「{string.Join("」、「", unavailable)}」已下架或無法購買，請從購物車移除後再送出。"
+                        : "商品不存在或已下架");
 
             var subtotal = lines.Sum(l => l.Subtotal);
 
@@ -84,8 +88,13 @@ public sealed class OrderService : IOrderService
             Guid? discountId = null;
             if (!string.IsNullOrWhiteSpace(req.DiscountCode))
             {
+                // enforcePerMemberLimit: false —— 前台「套用」預覽時拿不到 memberId（store/* 為公開
+                // 路由），到這裡才以手機號解析出會員。若在此擋下 isonetime=2，顧客會看到「套用成功
+                // 卻送不出訂單」且無從補救，因此已通過預覽的碼一律放行。（每會員限用一次因而對前台
+                // 線上訂單不具強制力；需要嚴格控管的活動請改用 isonetime=1 全域一次性。）
                 var discResult = await _discounts.ValidateAsync(
-                    req.DiscountCode, subtotal, resolvedMemberId, ct);
+                    req.DiscountCode, subtotal, resolvedMemberId,
+                    enforcePerMemberLimit: false, ct: ct);
                 if (!discResult.IsSuccess)
                     return discResult.Error;
                 discountAmount = discResult.Value!.DiscountAmount;
@@ -119,16 +128,23 @@ public sealed class OrderService : IOrderService
             {
                 var alloc = await _stocks.AllocateAsync(warehouseId.Value, line.ProductId, line.Qty, tx, ct);
                 if (!alloc.IsSufficient)
-                    return new Error("order.insufficient_stock", $"商品 {line.ProductId} 庫存不足");
+                    // 訊息要能讓顧客自行處理：講商品名稱（不是 GUID）並說明還剩幾件。
+                    return new Error("order.insufficient_stock", alloc.Available > 0
+                        ? $"「{line.Title}」庫存不足，目前僅剩 {alloc.Available} 件，請調整數量後再送出。"
+                        : $"「{line.Title}」已售完，請從購物車移除後再送出。");
                 detailInserts.Add((line.DetailId, alloc.Picks));
             }
 
             // 9. 決定付款狀態
-            var payStatus = req.PayType switch
-            {
-                PayType.NoPayment => (int)PayStatus.NoPayment,
-                _ => (int)PayStatus.Unpaid,
-            };
+            // 應付為 0（例如 100% 折扣碼 + 滿額免運）時一律視為「無須付款」：金流不收 0 元，
+            // 讓它留在「未付款」只會讓顧客被導去刷 0 元、卡在金流頁，訂單也永遠不會被標記付款。
+            var payStatus = payable <= 0
+                ? (int)PayStatus.NoPayment
+                : req.PayType switch
+                {
+                    PayType.NoPayment => (int)PayStatus.NoPayment,
+                    _ => (int)PayStatus.Unpaid,
+                };
 
             // 10. INSERT Order
             await conn.ExecuteAsync(@"
@@ -318,9 +334,10 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;",
     private static async Task<Guid> ResolveGuestMemberAsync(
         PlaceOrderRequest req, IDbConnection conn, IDbTransaction tx, CancellationToken ct)
     {
-        // 以手機號尋找現有會員
-        var existing = await conn.QuerySingleOrDefaultAsync<Guid?>(
-            "SELECT memberid FROM Members WHERE mobile = @mobile",
+        // 以手機號尋找現有會員。Members.mobile 沒有唯一索引（舊系統遺留），同號碼可能有多筆；
+        // 用 QuerySingleOrDefault 會直接丟例外，讓那位客人永遠無法下單。取最早建立的那筆即可。
+        var existing = await conn.QueryFirstOrDefaultAsync<Guid?>(
+            "SELECT TOP 1 memberid FROM Members WHERE mobile = @mobile ORDER BY createdate ASC",
             new { mobile = req.BuyerMobile }, tx);
 
         if (existing.HasValue) return existing.Value;
@@ -358,25 +375,43 @@ VALUES (@memberid, @name, @mobile, @gender, @birthday, @password, @email,
         return newId;
     }
 
+    /// <summary>
+    /// 驗證購物車品項並帶出價格/名稱。回傳 null 代表有商品下架或不存在，
+    /// 此時 <paramref name="unavailable"/> 為那些商品的名稱（查不到名稱者退回 GUID）——
+    /// 顧客的購物車存在 localStorage 可以放很久，商品下架後若只回「商品不存在或已下架」，
+    /// 他無從得知要移除哪一項，等於永遠送不出訂單。
+    /// </summary>
     private static async Task<List<OrderLine>?> ResolveOrderLinesAsync(
         IReadOnlyList<CartLineRequest> cartLines,
-        IDbConnection conn, IDbTransaction tx)
+        IDbConnection conn, IDbTransaction tx,
+        List<string>? unavailable = null)
     {
-        var productIds = cartLines.Select(l => l.ProductId).ToList();
+        var productIds = cartLines.Select(l => l.ProductId).Distinct().ToList();
 
         var products = (await conn.QueryAsync<ProductPriceRow>(
-            @"SELECT productid, price FROM Products
+            @"SELECT productid, price, title FROM Products
               WHERE productid IN @ids AND isdisabled = 0",
             new { ids = productIds }, tx)).ToDictionary(p => p.productid);
 
-        if (products.Count != productIds.Distinct().Count())
+        if (products.Count != productIds.Count)
+        {
+            if (unavailable is not null)
+            {
+                var missing = productIds.Where(id => !products.ContainsKey(id)).ToList();
+                // 下架商品在 Products 裡還在，查得到名稱；真的不存在才退回 GUID。
+                var names = (await conn.QueryAsync<ProductNameRow>(
+                    "SELECT productid, title FROM Products WHERE productid IN @ids",
+                    new { ids = missing }, tx)).ToDictionary(x => x.productid, x => x.title);
+                unavailable.AddRange(missing.Select(id => names.TryGetValue(id, out var t) ? t : id.ToString()));
+            }
             return null;
+        }
 
         return cartLines.Select(l =>
         {
             var p = products[l.ProductId];
             var subtotal = p.price * l.Qty;
-            return new OrderLine(Guid.NewGuid(), l.ProductId, l.Qty, p.price, subtotal);
+            return new OrderLine(Guid.NewGuid(), l.ProductId, p.title, l.Qty, p.price, subtotal);
         }).ToList();
     }
 
@@ -456,8 +491,9 @@ OUTPUT INSERTED.code;",
 
     // ─── Private row types ─────────────────────────────────────────────────────────
 
-    private sealed record OrderLine(Guid DetailId, Guid ProductId, int Qty, int Price, int Subtotal);
-    private sealed record ProductPriceRow(Guid productid, int price);
+    private sealed record OrderLine(Guid DetailId, Guid ProductId, string Title, int Qty, int Price, int Subtotal);
+    private sealed record ProductPriceRow(Guid productid, int price, string title);
+    private sealed record ProductNameRow(Guid productid, string title);
     private sealed record OrderHeaderRow(
         Guid orderid, string ordercode, DateOnly orderdate,
         int total, int freight, int discount,

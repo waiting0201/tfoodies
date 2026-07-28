@@ -107,7 +107,7 @@
 |---|---|---|---|
 | `istype` | 0=折扣比例、1=折抵金額 | radio（`:value` 0/1） | `Domain.DiscountType`；計算見 DiscountService |
 | `v` | 折扣值（decimal） | number input | istype=0 時為**折扣後比例**（0.85=85折）；istype=1 時為固定金額 |
-| `isonetime` | 0=不限、1=全站限一次、2=每位會員限一次 | radio／select（三態） | **不在 Enums.cs**；語意在 DiscountService |
+| `isonetime` | 0=不限、1=全站限一次、2=每位會員限一次 | radio／select（三態） | **不在 Enums.cs**；語意在 DiscountService。⚠️ 2（每位會員限一次）對**前台線上訂單不具強制力**（見 [docs/06](06-cross-cutting.md#-新系統前台下單的已知陷阱2026-07-28-排查)），要嚴格控管請用 1 |
 | `isdisable` | 0=啟用、1=停用 | checkbox（需 int↔bool 轉換） | 軟刪欄位 |
 
 ---

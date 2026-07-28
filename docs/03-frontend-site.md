@@ -87,7 +87,17 @@
   - **不觸發 `purchase` 追蹤**（收款連結不是電商交易，計入會污染 GA4/Meta 營收）。`/Pay/**` 已加入 `nuxt.config.ts` 的 `sitemap.exclude` 與 `robots.disallow`，頁面另帶 `noindex,nofollow`。
   - Result 頁 query 只有 `code` 沒有 `token`，失敗態的「返回重新付款」改讀付款頁在 mounted 時寄存於 `sessionStorage` 的 token（`history.back()` 會退回銀行刷卡頁並觸發表單重送警告）；讀不到則不顯示按鈕、改給客服聯絡方式。
   - 後端與流程詳見 [docs/13](13-payment-invoice-flow.md#收款連結paymentlinks--不走訂單的臨時收款)。
-- 🆕 **結帳付款方式（新 store）**：選項不再寫死在 `pages/Checkout/index.vue`，改由 `GET /store/payment/methods` 提供（後端 `Helpers/StorePaymentMethods.cs` 為單一真相，同時驅動下單時的白名單驗證——舊做法完全不驗 `payType`，任何 int 都能寫進 `Orders.paytype`）。目前開放：信用卡(1)、**LINE Pay(8)**、貨到付款(2)；LINE Pay 由設定鍵 `LinePay__Enabled` 控制，關閉時前台不顯示且後端拒收。API 讀不到時退回「信用卡＋貨到付款」的 fallback，避免整頁不能結帳。送出後分支：信用卡→動態 form auto-submit 至 FISC；LINE Pay→整頁導向 `paymentUrl`；其餘→ `/Order/Success`。⚠️ 兩種離站付款都**必須先成功取得付款資訊才清空購物車**，否則失敗時空購物車 `v-if` 會整塊取代表單（含錯誤訊息）。付款方式標籤集中於 `app/utils/payType.ts`。流程見 [docs/13](13-payment-invoice-flow.md)。
+- 🆕 **結帳付款方式（新 store）**：選項不再寫死在 `pages/Checkout/index.vue`，改由 `GET /store/payment/methods` 提供（後端 `Helpers/StorePaymentMethods.cs` 為單一真相，同時驅動下單時的白名單驗證——舊做法完全不驗 `payType`，任何 int 都能寫進 `Orders.paytype`）。目前開放：信用卡(1)、**LINE Pay(8)**、貨到付款(2)；LINE Pay 由設定鍵 `LinePay__Enabled` 控制，關閉時前台不顯示且後端拒收。API 讀不到時退回「信用卡＋貨到付款」的 fallback，避免整頁不能結帳。送出後分支：信用卡→動態 form auto-submit 至 FISC；LINE Pay→整頁導向 `paymentUrl`；其餘→ `/Order/Success`。⚠️ **購物車一律由完成頁 `/Order/Success` 清空**，結帳頁在導向付款前不清（舊做法在 `f.submit()` 前就清空，只要顧客從刷卡頁退回或刷卡頁載入失敗，回到結帳頁就只剩「購物車是空的」，連重試都做不到；已實測修正）。付款方式標籤集中於 `app/utils/payType.ts`。流程見 [docs/13](13-payment-invoice-flow.md)。
+- 🆕 **結帳頁的失敗處理（新 store，2026-07-28 修正）**：以下四點都經 Playwright 情境實測。
+  - **逾時上限**：`POST /store/orders` 20 秒、發起付款 15 秒（`$fetch` 預設不逾時，後端一慢畫面會永遠停在「送出中…」，使用者只能重整而重整常變成第二筆訂單）。逾時文案明確告知「訂單可能已成立、請勿重複送出」。
+  - **訂單已成立但發起付款失敗**：錯誤訊息帶出 `orderCode` 並導引至會員中心重新付款；回到結帳頁時以 `peekPendingPurchase()` 顯示「您有一筆訂單已成立、尚未完成付款」提示條，避免重複下單。
+  - **錯誤訊息解析**：API 錯誤格式是 `{ error: { code, message } }`，必須讀 `e.data.error.message`（舊寫法只讀 `e.data.message`，導致庫存不足／折扣碼已使用／商品下架等具體訊息全被吃成通用的「訂單送出失敗」）。
+  - **購物車對帳 `useCartSync()`**：購物車頁與結帳頁 onMounted 呼叫 `POST /store/cart/sync`，用現價/名稱覆蓋 localStorage 的舊值並標出已下架品項 —— 購物車頁顯示「價格已更新 A → B」與「已下架」badge＋一鍵移除＋鎖住「前往結帳」，結帳頁同樣提示並在送出前擋下（否則後端必拒，等於白填一整張表單）。對帳失敗不擋流程（後端仍會以現價計算並指名擋下的商品）。
+  - **購物車 localStorage 防護**：`cart.hydrate()` 的 `JSON.parse` 必須包 try/catch 並過濾非法項目。這支由 `SiteHeader` 在**每一頁** onMounted 呼叫，資料一壞（舊格式、寫入被截斷、被亂改）整站每頁都會變成錯誤頁，使用者除了自清瀏覽器資料無法自救（已實測重現並修正）。
+  - **完成頁清購物車要有 `code`**：`/Order/Success` 沒帶訂單編號（書籤、瀏覽紀錄、誤觸）不得清空購物車。
+  - **登入態失效自動改訪客**：`/member/profile` 回 401/403 時（token 未過期但簽章/帳號已失效，`hydrate` 只驗 `exp`）必須 `logout()` 並提示。否則畫面仍是「已登入」樣式、訂購人欄位空白且 `readonly` → 要求「請填寫訂購人手機號碼」卻不能打字，訂單永遠送不出去。
+  - **後端錯誤訊息要能自救**：商品下架回「『商品名』已下架或無法購買，請從購物車移除」、庫存不足回「『商品名』庫存不足，目前僅剩 N 件」（`AllocationResult.Available`）。舊訊息是「商品不存在或已下架」與「商品 {GUID} 庫存不足」，顧客無從得知該移除哪一項。
+  - **前端驗證回饋**：驗證失敗時標紅欄位 + `scrollIntoView` + `focus`（錯誤訊息在右側摘要，表單很長，若在頁面上方按 Enter 送出，訊息落在畫面外，看起來像「按了沒反應」）。郵遞區號 API 載入失敗時顯示錯誤與「重新載入」按鈕（否則縣市下拉全空，顧客卡在「請選擇收件人縣市」卻無從選起）。
 - **會員/帳戶**：結帳隱式註冊；登入 `Login`→`Ajax/Login`(reCAPTCHA+記住我)；忘記密碼 `Forget`→`Ajax/PasswordSend`。會員中心 `MemberMs/*`。Session key：`IsLogin`、`MemberID`、`Username`。
 - **預購/團購**：`GroupMs/Index` → `Ajax/PostPreorder` → `Preorders`（明細未實作）。
 - **驗證碼**：reCAPTCHA v3（Login/PostOrder/PasswordSend）；GDI 圖形(`Captcha/VerificationCode`)（補貨通知/預購）。
