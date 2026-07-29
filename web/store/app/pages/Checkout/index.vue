@@ -118,8 +118,6 @@ const form = reactive({
   buyerName: '',
   buyerMobile: '',
   buyerEmail: '',
-  password: '',
-  password2: '',
   gender: 1,                 // 1=男 0=女
   birthYear: '', birthMonth: '', birthDay: '',
   buyerCity: '', buyerZipcodeId: null as number | null, buyerAddress: '',
@@ -272,8 +270,8 @@ function clientValidate(): FieldError | null {
   if (!form.buyerMobile.trim()) return e('請填寫訂購人手機號碼。', 'buyerMobile')
   if (!isLoggedIn.value) {
     if (!/^09\d{8}$/.test(form.buyerMobile.trim())) return e('請輸入正確的手機格式，如：0987654321。', 'buyerMobile')
-    if (!form.password || form.password.length < 6) return e('請設定 6～20 字元的密碼。', 'password')
-    if (form.password !== form.password2) return e('兩次輸入的密碼不相同。', 'password2')
+    // Email 對訪客是必填：帳號由後端自動建立且不設密碼，日後要登入只能走「忘記密碼」，
+    // 而那支流程以「手機 + Email」核對身分後把新密碼寄到信箱——沒有 Email 就等於永遠拿不回帳號。
     if (!form.buyerEmail.trim()) return e('請填寫電子郵件。', 'buyerEmail')
   }
   if (!form.receiverName.trim()) return e('請填寫收件人姓名。', 'receiverName')
@@ -335,7 +333,7 @@ async function submitOrder() {
       buyerZipcodeId: form.buyerZipcodeId,
       buyerAddress: form.buyerAddress.trim() || null,
       gender: isLoggedIn.value ? null : form.gender,
-      password: isLoggedIn.value ? null : form.password,
+      // 不送 password：訪客結帳不設密碼（後端會建立一組無人知悉的隨機密碼），要登入請走「忘記密碼」。
       birthday: birthday,
       receiverName: form.receiverName.trim(),
       receiverMobile: form.receiverMobile.trim(),
@@ -518,14 +516,6 @@ async function submitOrder() {
               </div>
 
               <template v-if="!isLoggedIn">
-                <div class="field">
-                  <label><span class="must">*</span>設定密碼</label>
-                  <input v-model="form.password" type="password" class="input" :class="{ 'field-error': errorField === 'password' }" data-field="password" maxlength="20" placeholder="6～20 字元">
-                </div>
-                <div class="field">
-                  <label><span class="must">*</span>密碼確認</label>
-                  <input v-model="form.password2" type="password" class="input" :class="{ 'field-error': errorField === 'password2' }" data-field="password2" maxlength="20" placeholder="再次輸入密碼">
-                </div>
                 <div class="field">
                   <label><span class="must">*</span>電子郵件</label>
                   <input v-model="form.buyerEmail" type="email" class="input" :class="{ 'field-error': errorField === 'buyerEmail' }" data-field="buyerEmail" placeholder="example@mail.com">

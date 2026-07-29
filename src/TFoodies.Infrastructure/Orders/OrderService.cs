@@ -347,9 +347,15 @@ OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;",
             return Guid.Empty;
 
         var newId = Guid.NewGuid();
-        var password = string.IsNullOrWhiteSpace(req.Password)
-            ? req.BuyerMobile   // 預設密碼 = 手機號（明文，登入時會升級）
-            : HashPassword(req.Password);
+        // 訪客結帳不要求設定密碼，因此新會員一律寫入一組無人知悉的隨機密碼＝「尚未設定密碼」。
+        // 顧客日後要登入，走會員中心的「忘記密碼」（以手機 + Email 核對後寄出新密碼）。
+        // ⚠️ 舊行為是把手機號當預設密碼存成明文——手機號在訂單、收件資訊裡到處都是，
+        //    等於任何拿到號碼的人都能登入該帳號，切勿恢復。
+        // req.Password 分支保留給仍會送密碼的舊版前端 / 其他呼叫端（後台代客下單）。
+        var password = HashPassword(
+            string.IsNullOrWhiteSpace(req.Password)
+                ? Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(24))
+                : req.Password);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(8));
 

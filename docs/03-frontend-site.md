@@ -88,6 +88,12 @@
   - Result 頁 query 只有 `code` 沒有 `token`，失敗態的「返回重新付款」改讀付款頁在 mounted 時寄存於 `sessionStorage` 的 token（`history.back()` 會退回銀行刷卡頁並觸發表單重送警告）；讀不到則不顯示按鈕、改給客服聯絡方式。
   - 後端與流程詳見 [docs/13](13-payment-invoice-flow.md#收款連結paymentlinks--不走訂單的臨時收款)。
 - 🆕 **結帳付款方式（新 store）**：選項不再寫死在 `pages/Checkout/index.vue`，改由 `GET /store/payment/methods` 提供（後端 `Helpers/StorePaymentMethods.cs` 為單一真相，同時驅動下單時的白名單驗證——舊做法完全不驗 `payType`，任何 int 都能寫進 `Orders.paytype`）。目前開放：信用卡(1)、**LINE Pay(8)**、貨到付款(2)；LINE Pay 由設定鍵 `LinePay__Enabled` 控制，關閉時前台不顯示且後端拒收。API 讀不到時退回「信用卡＋貨到付款」的 fallback，避免整頁不能結帳。送出後分支：信用卡→動態 form auto-submit 至 FISC；LINE Pay→整頁導向 `paymentUrl`；其餘→ `/Order/Success`。⚠️ **購物車一律由完成頁 `/Order/Success` 清空**，結帳頁在導向付款前不清（舊做法在 `f.submit()` 前就清空，只要顧客從刷卡頁退回或刷卡頁載入失敗，回到結帳頁就只剩「購物車是空的」，連重試都做不到；已實測修正）。付款方式標籤集中於 `app/utils/payType.ts`。流程見 [docs/13](13-payment-invoice-flow.md)。
+- 🆕 **訪客結帳不設密碼（新 store，2026-07-29 改版）**：結帳頁**已移除「設定密碼／密碼確認」兩個必填欄位**（Shopify 式流程：下單不等於註冊，密碼是事後才設定的東西）。
+  - **舊行為的問題**：後端 `ResolveGuestMemberAsync` 以手機號查到既有會員時會**直接沿用該會員、把送來的密碼整包丟棄**（不覆蓋、也不驗證）。老顧客在結帳頁填的那組密碼從來沒生效過，事後拿它登入必定失敗，而畫面上沒有任何提示。
+  - **現行為**：訪客送出訂單時不再送 `password`；後端替新會員寫入一組隨機、無人知悉的 PBKDF2 密碼（＝尚未設定密碼）。手機號命中既有會員時行為不變（沿用該會員、不改任何既有資料），但顧客不會再被騙填一組無效密碼。
+  - **顧客要登入怎麼辦**：走會員中心「[忘記密碼](../web/store/app/pages/Member/Forget.vue)」→ `POST /auth/forgot-password`，以**手機 + Email 兩者相符**核對身分後產生 6 碼新密碼寄到信箱。因此**訪客的 Email 仍是必填**（沒 Email = 永遠拿不回帳號）。
+  - ⚠️ 結帳頁**刻意不放**「如何取得密碼」與「此號碼已是會員」的說明文字（2026-07-29 決策：結帳頁不談帳號的事，避免增加閱讀負擔）。改版後若客服接到「我要登入但沒有密碼」的詢問，引導至忘記密碼即可。
+  - ⚠️ 後端 `PlaceOrderRequest.Password` **刻意保留**（後台代客下單等其他呼叫端仍可送），有送就用、沒送才產隨機密碼——部署順序因此不敏感。
 - 🆕 **結帳頁的失敗處理（新 store，2026-07-28 修正）**：以下四點都經 Playwright 情境實測。
   - **逾時上限**：`POST /store/orders` 20 秒、發起付款 15 秒（`$fetch` 預設不逾時，後端一慢畫面會永遠停在「送出中…」，使用者只能重整而重整常變成第二筆訂單）。逾時文案明確告知「訂單可能已成立、請勿重複送出」。
   - **訂單已成立但發起付款失敗**：錯誤訊息帶出 `orderCode` 並導引至會員中心重新付款；回到結帳頁時以 `peekPendingPurchase()` 顯示「您有一筆訂單已成立、尚未完成付款」提示條，避免重複下單。

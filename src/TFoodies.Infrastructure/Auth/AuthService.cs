@@ -14,9 +14,10 @@ namespace TFoodies.Infrastructure.Auth;
 ///   1. 先嘗試以 PBKDF2 驗證（新格式 "pbkdf2:迭代:salt:hash"）。
 ///   2. 若格式不符，判斷為明文舊密碼，直接比對。
 ///
-/// ⚠️ 不做 hash-on-login 自動升級：Admins.Password / Members.password 皆為 nvarchar(20)，
-/// 且 DB schema 唯讀（禁止 DDL），無法容納 ~83 字元的 PBKDF2 雜湊。先前寫回雜湊會觸發
-/// SQL「String or binary data would be truncated」例外，導致登入回傳 HTTP 500。
+/// 目前不做 hash-on-login 自動升級（登入成功也不把明文改寫成雜湊）。
+/// 註：欄位長度曾經是 nvarchar(20)（寫回 ~83 字元的 PBKDF2 會觸發 SQL
+/// 「String or binary data would be truncated」→ 登入 500），現正式庫 Admins.Password /
+/// Members.password 皆已是 nvarchar(200)，容得下雜湊；要恢復升級請先確認目標環境的欄位長度。
 ///
 /// JWT 主體格式："role:id"，例如 "member:3fa85f64-..."  /  "admin:888"
 /// </summary>
