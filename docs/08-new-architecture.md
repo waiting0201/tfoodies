@@ -130,6 +130,8 @@ Sms/
 Email/
   SmtpEmailService.cs          ← IEmailService（SMTP，Singleton；對齊舊 Libs.SendMail/Sendinblue，
                                   但失敗回 false 不無限遞迴；BCC 可設定，appsettings:Smtp）
+  ConsoleEmailService.cs       ← IEmailService 的 dry-run 實作：只 LogWarning 印出信件內容不寄出。
+                                  Smtp:Enabled=false 時由 DI 改註冊此實作（本機/測試預設，避免寄到真實顧客）
 Captcha/
   GoogleReCaptchaVerifier.cs   ← ICaptchaVerifier（reCAPTCHA v3 siteverify，具名 HttpClient，Singleton；
                                   appsettings:ReCaptcha；SecretKey 留空則放行＝本地/未佈署）

@@ -81,4 +81,11 @@ public sealed class SmtpOptions
     public string FromName { get; set; } = "食在呼 TFoodies";
     public bool EnableSsl { get; set; } = true;
     public string[] Bcc { get; set; } = [];
+
+    /// <summary>
+    /// 是否真的送出郵件。false 時改用 <see cref="ConsoleEmailService"/>，只把信件內容印到 console。
+    /// 本機／測試環境務必設 false——local.settings.json 用的是正式 relay，會真的寄到顧客信箱。
+    /// 預設 true，正式環境不需額外設定此鍵。
+    /// </summary>
+    public bool Enabled { get; set; } = true;
 }

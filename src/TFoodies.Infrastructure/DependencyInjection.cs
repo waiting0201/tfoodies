@@ -104,8 +104,15 @@ public static class DependencyInjection
         services.AddSingleton<ISmsService, MitakeSmsService>();
 
         // ── Email service（SMTP，Singleton — 無狀態） ─────────────────────────────
+        // Smtp:Enabled=false（本機/測試）改用 ConsoleEmailService：只印到 console，
+        // 避免測試信真的寄到顧客信箱（local.settings.json 掛的是正式 relay）。
         services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.SectionName));
-        services.AddSingleton<IEmailService, SmtpEmailService>();
+        var smtpEnabled = configuration.GetSection(SmtpOptions.SectionName)
+            .GetValue<bool?>(nameof(SmtpOptions.Enabled)) ?? true;
+        if (smtpEnabled)
+            services.AddSingleton<IEmailService, SmtpEmailService>();
+        else
+            services.AddSingleton<IEmailService, ConsoleEmailService>();
 
         // ── Blob Storage（Singleton — BlobContainerClient 是 thread-safe）────────
         services.Configure<AzureBlobOptions>(configuration.GetSection(AzureBlobOptions.SectionName));

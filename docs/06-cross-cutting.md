@@ -67,6 +67,7 @@
 
 > 系統所有「寄送 Email」情境集中於此。SMS（三竹簡訊）為獨立管線，見上表，與 email 無關。
 > 共用寄信方法：舊系統 `Libs.SendMail`；新系統 `IEmailService.SendAsync`（實作 `Infrastructure/Email/SmtpEmailService.cs`，皆走 Sendinblue/Brevo SMTP relay，固定 BCC 營運信箱）。
+> ⚠️ **本機／測試不得真的寄信**（收件者是真實顧客）：設 `Smtp:Enabled=false`，DI 會改註冊 `Infrastructure/Email/ConsoleEmailService.cs`，只把 To/Bcc/主旨/HTML 以 `LogWarning` 印到 console 並回傳 `true`。`local.settings.json` 已預設 `Smtp__Enabled=false`；預設值為 `true`，正式環境無須設定此鍵。
 > 版型慣例：新系統信件採純 table + inline-style、相容 Outlook/Gmail，共用品牌視覺（主色 `#26B7BC`、深色 `#156467`）。
 
 | 情境 | 主旨 | 觸發點（新系統） | 觸發點（舊系統） | 內容重點 |
