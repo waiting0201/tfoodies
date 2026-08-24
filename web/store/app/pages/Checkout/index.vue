@@ -7,6 +7,8 @@ useHead({ title: '結帳' })
 const config = useRuntimeConfig()
 const cartStore = useCartStore()
 const memberAuth = useMemberAuthStore()
+// 信用卡導向財金刷卡頁（與會員中心「重新付款」共用同一份表單組裝）。
+const { redirectToFisc } = useFiscCheckout()
 const { cities, loadCities, loadAreas } = useZipcodes()
 
 const isLoggedIn = computed(() => memberAuth.isAuthenticated)
@@ -207,20 +209,6 @@ watch(() => form.sameAsBuyer, async (on) => {
   copying = false
 })
 
-// API 錯誤格式是 { error: { code, message } }（見 ApiErrorResponse）。舊寫法只讀 e.data.message，
-// 所以後端所有具體訊息（庫存不足／折扣碼已使用／商品下架…）都會被吃掉成通用錯誤。
-function apiErrorMessage(e: unknown, fallback: string): string {
-  const d = (e as { data?: { message?: string; error?: { message?: string } } })?.data
-  return d?.error?.message ?? d?.message ?? fallback
-}
-
-// $fetch 逾時（AbortSignal.timeout）在不同瀏覽器/版本的錯誤形態不一，一律用特徵字串判斷。
-function isTimeout(e: unknown): boolean {
-  const err = e as { name?: string; message?: string; cause?: { name?: string } }
-  const text = `${err?.name ?? ''} ${err?.cause?.name ?? ''} ${err?.message ?? ''}`.toLowerCase()
-  return text.includes('timeout') || text.includes('abort')
-}
-
 // ── Discount ──────────────────────────────────────────────────────────────────
 const appliedCode = ref('')
 const discountAmount = ref(0)
@@ -386,7 +374,7 @@ async function submitOrder() {
     // 跨域把使用者甩到主網域、且 purchase 追蹤的 sessionStorage 跨域讀不到而漏單）。後端會以白名單驗證。
     // ⚠️ 購物車一律留到完成頁(/Order/Success)才清空——在導向付款頁前就清空的話，只要使用者從
     //    刷卡頁退回或刷卡頁載入失敗，回到結帳頁就只剩「購物車是空的」，連重試都做不到。
-    const initBody = { orderCode: res.orderCode, returnOrigin: window.location.origin }
+    const initBody = { orderCode: res.orderCode, returnOrigin: window.location.origin }  // LINE Pay 用；信用卡走 useFiscCheckout
 
     // LINE Pay：後端建立交易後回傳付款頁網址，整頁導向；結果由 /store/payment/linepay/confirm 導回。
     if (form.payType === PAY_TYPE.LINE_PAY && needsGateway) {
@@ -401,23 +389,8 @@ async function submitOrder() {
     // 信用卡：發起財金 FISC WEBPOS 刷卡。後端回傳 form action 與欄位，動態建表單
     // auto-submit 將使用者整頁導向財金刷卡頁；刷卡結果由財金導回 /store/payment/return。
     if (form.payType === PAY_TYPE.CREDIT_CARD && needsGateway) {
-      const init = await $fetch<{ actionUrl: string; fields: Record<string, string> }>(
-        `${config.public.apiBase}/store/payment/create`,
-        { method: 'POST', body: initBody, timeout: PAYMENT_TIMEOUT_MS },
-      )
-      const f = document.createElement('form')
-      f.method = 'post'
-      f.action = init.actionUrl
-      f.acceptCharset = 'UTF-8'
-      for (const [k, v] of Object.entries(init.fields)) {
-        const i = document.createElement('input')
-        i.type = 'hidden'
-        i.name = k
-        i.value = v ?? ''
-        f.appendChild(i)
-      }
-      document.body.appendChild(f)
-      f.submit()
+      // 表單組裝與逾時設定共用 useFiscCheckout（會員中心「重新付款」走同一份）。
+      await redirectToFisc(res.orderCode)
       return
     }
 

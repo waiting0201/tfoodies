@@ -98,6 +98,31 @@ const grandTotal = computed(() => {
 const showAtmInfo = computed(
   () => data.value?.payStatus === PAY_STATUS_UNPAID && data.value?.payType === PAY_TYPE_ATM,
 )
+
+// 信用卡未付款 → 可自助重新付款。刷卡失敗（授權未通過）後訂單會停在這個狀態，
+// 顧客若沒有這個入口就只能打客服——這正是「客人常說刷卡沒成功」最後演變成客訴的環節。
+const canRepay = computed(
+  () => data.value?.payStatus === PAY_STATUS_UNPAID
+    && data.value?.payType === PAY_TYPE.CREDIT_CARD,
+)
+
+const { redirectToFisc } = useFiscCheckout()
+const repaying = ref(false)
+const repayError = ref('')
+
+async function repay() {
+  if (repaying.value || !data.value?.orderCode) return
+  repaying.value = true
+  repayError.value = ''
+  try {
+    // 成功時整頁導向財金刷卡頁，不會回到這裡。
+    await redirectToFisc(data.value.orderCode)
+  }
+  catch (e: unknown) {
+    repayError.value = apiErrorMessage(e, '無法前往刷卡頁，請稍後再試或與客服聯繫。')
+    repaying.value = false
+  }
+}
 </script>
 
 <template>
@@ -210,6 +235,18 @@ const showAtmInfo = computed(
             </div>
           </section>
 
+          <!-- 重新付款（未付款 + 信用卡）：刷卡失敗的訂單由此重試，不必重下一次單 -->
+          <section v-if="canRepay" class="od-card od-repay">
+            <h2 class="od-card-title">尚未完成付款</h2>
+            <p class="od-repay-note">
+              這筆訂單已為您保留，商品尚未出貨。您可以直接重新刷卡完成付款。
+            </p>
+            <p v-if="repayError" class="od-repay-err">{{ repayError }}</p>
+            <button type="button" class="od-repay-btn" :disabled="repaying" @click="repay">
+              {{ repaying ? '前往刷卡頁…' : '重新付款' }}
+            </button>
+          </section>
+
           <!-- 匯款資訊（未付款 + ATM 轉帳）-->
           <section v-if="showAtmInfo" class="od-card od-atm">
             <h2 class="od-card-title">匯款資訊</h2>
@@ -238,6 +275,44 @@ const showAtmInfo = computed(
 </template>
 
 <style scoped>
+.od-repay-note {
+  margin: 0 0 1rem;
+  color: #6b7676;
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.od-repay-err {
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.9rem;
+  background: #fdf3f2;
+  border: 1px solid #f4d5d2;
+  border-radius: 6px;
+  color: #a8443c;
+  font-size: 0.88rem;
+}
+
+.od-repay-btn {
+  padding: 0.7rem 1.8rem;
+  border: 0;
+  border-radius: 6px;
+  background: #26b7bc;
+  color: #fff;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.od-repay-btn:hover:not(:disabled) {
+  background: #1d8e92;
+}
+
+.od-repay-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .od-wrap {
   display: flex;
   justify-content: center;

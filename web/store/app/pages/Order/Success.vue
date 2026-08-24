@@ -10,10 +10,15 @@ const paidParam = computed(() => String(route.query.paid ?? ''))
 const isCardReturn = computed(() => paidParam.value !== '')
 const cardFailed = computed(() => isCardReturn.value && paidParam.value !== '1')
 
+// 失敗時後端會附上財金錯誤代碼（errcode）。顧客最想知道的是「為什麼」與「接下來怎麼辦」，
+// 只寫「授權未成功」等於把人推去打客服。
+const errCode = computed(() => String(route.query.err ?? ''))
+const failureReason = computed(() => fiscErrorMessage(errCode.value))
+
 const heading = computed(() => (cardFailed.value ? '付款未完成' : '訂單成立'))
 const lead = computed(() =>
   cardFailed.value
-    ? '您的信用卡授權未成功，訂單已為您保留，您可至會員中心重新付款。'
+    ? '您的信用卡授權未成功，訂單已為您保留，可直接重新付款。'
     : isCardReturn.value
       ? '付款完成，感謝您的購買！我們已收到您的訂單。'
       : '感謝您的購買，我們已收到您的訂單。',
@@ -91,6 +96,10 @@ onMounted(() => {
           <h1 class="order-success__title">{{ heading }}</h1>
           <p class="order-success__lead">{{ lead }}</p>
 
+          <p v-if="cardFailed" class="order-success__reason">
+            {{ failureReason }}
+          </p>
+
           <div v-if="orderCode" class="order-success__code">
             <span class="order-success__code-label">訂單編號</span>
             <span class="order-success__code-value">{{ orderCode }}</span>
@@ -114,7 +123,11 @@ onMounted(() => {
           </div>
 
           <div class="order-success__actions">
-            <a href="/Member/Orders" class="btn basic">查看我的訂單</a>
+            <!-- 刷卡失敗時第一順位是「重新付款」：訂單已保留，顧客不必重下一次單。 -->
+            <a v-if="cardFailed && orderCode" :href="`/Member/Orders/${orderCode}`" class="btn basic">
+              重新付款
+            </a>
+            <a v-else href="/Member/Orders" class="btn basic">查看我的訂單</a>
             <a href="/Products" class="outline-btn solidhover">繼續購物</a>
           </div>
         </div>
@@ -163,6 +176,18 @@ onMounted(() => {
   margin: 0.6em 0 0;
   color: #8a9292;
   font-size: 1em;
+  line-height: 1.7;
+}
+
+.order-success__reason {
+  margin: 1.1em auto 0;
+  max-width: 420px;
+  padding: 0.9em 1.2em;
+  background: #fdf3f2;
+  border: 1px solid #f4d5d2;
+  border-radius: 8px;
+  color: #a8443c;
+  font-size: 0.92em;
   line-height: 1.7;
 }
 

@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TFoodies.Api.Functions.Helpers;
 using TFoodies.Api.Functions.Router;
@@ -21,11 +22,17 @@ public sealed class PaymentLinkController
     private static readonly Regex MobilePattern = new(@"^09\d{8}$", RegexOptions.Compiled);
 
     private readonly IPaymentLinkService _links;
+    private readonly IPaymentAttemptLog _attempts;
+    private readonly ILogger<PaymentLinkController> _logger;
     private readonly FiscOptions _fisc;
 
-    public PaymentLinkController(IPaymentLinkService links, IOptions<FiscOptions> fisc)
+    public PaymentLinkController(
+        IPaymentLinkService links, IPaymentAttemptLog attempts,
+        ILogger<PaymentLinkController> logger, IOptions<FiscOptions> fisc)
     {
         _links = links;
+        _attempts = attempts;
+        _logger = logger;
         _fisc = fisc.Value;
     }
 
@@ -85,9 +92,36 @@ public sealed class PaymentLinkController
     {
         var ct = ctx.Request.HttpContext.RequestAborted;
 
-        var result = FiscWebposParser.ParseForm(await FiscWebposParser.ReadFormSafeAsync(ctx, ct));
+        var result = FiscWebposParser.ParseForm(await FiscFormReader.ReadFormSafeAsync(ctx, ct));
+
+        string? note = null;
         if (result.IsSuccess && !string.IsNullOrEmpty(result.Lidm))
-            await _links.MarkPaidAsync(result.Lidm, result.LastPan4, result.TxnRef, ct);
+        {
+            try
+            {
+                await _links.MarkPaidAsync(result.Lidm, result.LastPan4, result.TxnRef, ct);
+            }
+            catch (Exception ex)
+            {
+                // 卡已授權；讓例外變成 500 只會讓客人以為付款失敗。後台可「手動標記已付款」補救。
+                note = $"授權成功但標記處理失敗：{ex.Message}";
+                _logger.LogError(ex, "收款連結授權成功但標記處理拋出例外，單號 {Lidm}", result.Lidm);
+            }
+        }
+
+        // 與訂單刷卡同一份紀錄：客人回報「刷卡沒成功」時才有 errcode/errDesc 可查。
+        if (result.IsSuccess)
+            _logger.LogInformation("收款連結刷卡授權成功，單號 {Lidm}（末四碼 {LastPan4}）", result.Lidm, result.LastPan4);
+        else
+            _logger.LogWarning(
+                "收款連結刷卡授權失敗，單號 {Lidm}：status={Status} errcode={ErrCode} errDesc={ErrDesc}",
+                result.Lidm, result.Status, result.ErrCode, result.ErrDesc);
+
+        await _attempts.RecordAsync(new PaymentAttempt(
+            Lidm: result.Lidm, Source: "return-paylink", IsSuccess: result.IsSuccess,
+            Status: result.Status, ErrCode: result.ErrCode, ErrDesc: result.ErrDesc,
+            AuthCode: result.AuthCode, Xid: result.Xid, LastPan4: result.LastPan4,
+            CardBrand: result.CardBrand, AuthAmt: result.AuthAmt, Note: note), ct);
 
         // 動態回跳：checkout 時帶進 query 的客人所在網域，經白名單再驗證後同網域導回；
         // 不在白名單 / FISC 未保留 query → 退回設定導出的 StoreOrigin（並防 open redirect）。
@@ -95,8 +129,11 @@ public sealed class PaymentLinkController
         var baseUrl = origin.Length == 0 ? _fisc.StoreOrigin : origin;
         var paid = result.IsSuccess ? "1" : "0";
 
-        // 成功失敗都導回結果頁，由前端呈現。
-        return new RedirectResult($"{baseUrl}/Pay/Result?code={Uri.EscapeDataString(result.Lidm)}&paid={paid}");
+        // 成功失敗都導回結果頁，由前端呈現。失敗時附財金錯誤代碼供顯示白話原因。
+        var url = $"{baseUrl}/Pay/Result?code={Uri.EscapeDataString(result.Lidm)}&paid={paid}";
+        if (!result.IsSuccess && !string.IsNullOrEmpty(result.ErrCode))
+            url += $"&err={Uri.EscapeDataString(result.ErrCode)}";
+        return new RedirectResult(url);
     }
 
     // ── DTOs ──────────────────────────────────────────────────────────────────────

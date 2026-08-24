@@ -38,6 +38,7 @@ public sealed class OrderAdminController
     private readonly IStockAllocator _stocks;
     private readonly IPaymentCompletionService _completion;
     private readonly IOrderService _orders;
+    private readonly IPaymentAttemptLog _attempts;
     private readonly FiscOptions _fisc;
 
     private const string LoveCode = "01170";   // 舊系統發票捐贈碼
@@ -45,7 +46,8 @@ public sealed class OrderAdminController
     public OrderAdminController(
         IAdminPermissionService perms, IDbConnectionFactory db,
         ICodeNumberService codes, IStockAllocator stocks,
-        IPaymentCompletionService completion, IOrderService orders, IOptions<FiscOptions> fisc)
+        IPaymentCompletionService completion, IOrderService orders,
+        IPaymentAttemptLog attempts, IOptions<FiscOptions> fisc)
     {
         _perms = perms;
         _db = db;
@@ -53,6 +55,7 @@ public sealed class OrderAdminController
         _stocks = stocks;
         _completion = completion;
         _orders = orders;
+        _attempts = attempts;
         _fisc = fisc.Value;
     }
 
@@ -277,6 +280,10 @@ WHERE o2.ordercode = @code;",
 
         var lines = (await multi.ReadAsync<AdminOrderLineRow>()).ToList();
 
+        // 刷卡紀錄：顧客回報「刷卡沒成功」時，客服要能自己看到財金給的失敗原因（errDesc）。
+        // best-effort（表未建/查詢失敗回空陣列），不讓訂單詳情因此打不開。
+        var attempts = await _attempts.GetByLidmAsync(code, 10, ctx.Request.HttpContext.RequestAborted);
+
         return ctx.Ok(new
         {
             code           = header.ordercode,
@@ -325,6 +332,20 @@ WHERE o2.ordercode = @code;",
                 discount    = l.discount,
                 subtotal    = l.subtotal,
                 isGift      = l.isgift == 1,
+            }),
+            paymentAttempts = attempts.Select(a => new
+            {
+                at        = a.CreateDate,
+                source    = a.Source,
+                isSuccess = a.IsSuccess,
+                status    = a.Status,
+                errCode   = a.ErrCode,
+                errDesc   = a.ErrDesc,
+                authCode  = a.AuthCode,
+                lastPan4  = a.LastPan4,
+                cardBrand = a.CardBrand,
+                authAmt   = a.AuthAmt,
+                note      = a.Note,
             })
         });
     }

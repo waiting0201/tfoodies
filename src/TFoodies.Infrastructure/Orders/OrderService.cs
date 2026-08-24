@@ -248,6 +248,16 @@ VALUES (NEWID(), @orderdetailid, @warehousestockid, @qty, @createdate)",
         }
     }
 
+    // ─── IsOrderOwnedByMemberAsync ─────────────────────────────────────────────────
+
+    public async Task<bool> IsOrderOwnedByMemberAsync(string orderCode, Guid memberId, CancellationToken ct = default)
+    {
+        using var conn = await _db.CreateOpenConnectionAsync(ct);
+        return await conn.ExecuteScalarAsync<int>(
+            "SELECT COUNT(1) FROM Orders WHERE ordercode = @orderCode AND memberid = @memberId",
+            new { orderCode, memberId }) > 0;
+    }
+
     // ─── GetOrderAsync ─────────────────────────────────────────────────────────────
 
     public async Task<OrderSummary?> GetOrderAsync(string orderCode, CancellationToken ct = default)

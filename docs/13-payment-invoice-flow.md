@@ -50,12 +50,17 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
     ⚠️ 此時「不」清空購物車——顧客可能從刷卡頁退回；購物車由 /Order/Success 清空
    ▼ 財金 FOCAS_WEBPOS 刷卡頁（顧客輸入卡號授權）
  4a. 導回 AuthResURL = /store/payment/return(?origin=…) → Return
-        ParseFields(status=="0" 且 authCode 非空 = 成功) → MarkPaidAsync
+        ParseForm(status=="0" 且 authCode 非空 = 成功) → MarkPaidAsync
+        → 無論成敗都寫一筆 Paymentattempts（含 errcode/errDesc）＋記 log
         → 決定回跳網域：query 的 origin 再經白名單驗證 → {origin}/Order/Success（同使用者網域）；
           讀不到/不在白名單 → 退回 Fisc__StoreSuccessUrl（fallback，防 open redirect）
-        → 302 導回 <success>?code=&paid=
+        → 302 導回 <success>?code=&paid=[&err=<errcode>]
  4b. 主動通知 /store/payment/notify（背景補償，冪等）→ MarkPaidAsync
 ```
+
+> 🛡️ **`Return` 絕不回 500**：`MarkPaidAsync` 若拋例外（DB 短暫失敗等），例外會被接住、記 `LogError`、
+> 寫一筆帶 `note` 的 Paymentattempts，然後**照常以 `paid=1` 導回結果頁**——卡已授權（`AutoCap=1` 已請款），
+> 讓顧客停在 API 網域看一段 JSON 只會被誤判成「刷卡失敗」；入帳由 `/notify` 冪等補償。
 
 > 🌐 **多網域動態回跳**：store 正式同時服務多網域（www.tfoodies.com 等 4 個），上面 `?origin=` 機制讓刷卡後
 > 導回「使用者結帳的同一個網域」，避免跨域把人甩到主網域、且 `purchase` 追蹤 sessionStorage 跨域漏單。
@@ -97,6 +102,50 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 >
 > 💡 **package 只送一筆**：`request` 的 package/product 各一筆、金額 = 應付總額，不拆運費/折扣
 > （對齊財金只送 `purchAmt`），避開 `Orders.total` 語意為純商品小計的坑。
+
+## 刷卡結果紀錄（Paymentattempts）
+
+> **問題**：顧客常回報「刷卡沒有成功」，但系統原本只讀 `status`/`authCode` 判定成敗，把財金回傳的
+> `errcode`（錯誤代碼）與 `errDesc`（**中文失敗原因說明**）直接丟棄，失敗也不記 log，客服與工程都
+> 無法回答「為什麼」。
+
+四條 FISC 回呼路徑（`/return`、`/return-admin`、`/notify`、`/return-paylink`）現在**一律**把授權結果
+（成功與失敗）寫進 `Paymentattempts` 並記 log：
+
+| 來源 `source` | 端點 | 情境 |
+|---|---|---|
+| `return` | `/store/payment/return` | 顧客前台刷卡 |
+| `return-admin` | `/store/payment/return-admin` | 後台代客刷卡 |
+| `notify` | `/store/payment/notify` | 財金主動通知（導回沒打進來時的補償） |
+| `return-paylink` | `/store/payment/return-paylink` | 收款連結 |
+
+- 純解析在 [FiscWebposParser.cs](../src/TFoodies.Infrastructure/Payments/Fisc/FiscWebposParser.cs)
+  （Infrastructure，純函式、有測試 `FiscWebposParserTests` 以手冊原文樣本鎖行為）；
+  HTTP 讀取在 [FiscFormReader.cs](../src/TFoodies.Api.Functions/Helpers/FiscFormReader.cs)（大小寫不敏感字典）。
+- 寫入在 [PaymentAttemptLog.cs](../src/TFoodies.Infrastructure/Payments/PaymentAttemptLog.cs)，
+  **best-effort**：表未建或 DB 失敗只記 log，絕不影響付款流程。
+- 建表：[scripts/add-paymentattempts.sql](../scripts/add-paymentattempts.sql)（冪等，需手動執行）。
+- ⚠️ **不儲存卡號**：財金回傳遮罩卡號 `pan`，刻意不解析、不落地，只留 `lastPan4` + `cardBrand`。
+- 財金無值欄位會送字面上的 `"null"`（手冊範例 `authCode=null`），解析時一律轉成 SQL NULL。
+
+後台訂單詳情頁右欄顯示「刷卡紀錄」（時間／成敗 Badge／來源／errDesc／代碼／末四碼／授權碼），
+客服可直接據此回覆顧客。營運層面的答案用一句 SQL 取得：
+
+```sql
+SELECT errcode, errdesc, COUNT(*) AS c FROM Paymentattempts
+WHERE issuccess = 0 GROUP BY errcode, errdesc ORDER BY c DESC;
+```
+
+### 顧客端：看得到原因 + 自助重刷
+
+- 失敗回跳網址帶 `&err=<errcode>`，`/Order/Success` 以 [fiscError.ts](../web/store/app/utils/fiscError.ts)
+  翻成白話（額度不足／有效期限或安全碼錯誤／請洽發卡行／請稍後再試…），未知代碼退回通用訊息。
+- **會員中心訂單詳情新增「重新付款」按鈕**（`payStatus=0` 且 `payType=信用卡`）。
+  此前失敗文案叫顧客「至會員中心重新付款」，但那裡只有 ATM 匯款資訊、根本沒有這個入口
+  （舊系統 `MemberMs/OrderDetail.cshtml` 的同名按鈕是被 Razor 註解掉的死碼），顧客只能打客服。
+- 表單組裝共用 [useFiscCheckout.ts](../web/store/app/composables/useFiscCheckout.ts)（結帳頁與重新付款同一份）。
+- 重新付款會帶 JWT，`CreatePayment` 據以驗證**訂單歸屬**（`IOrderService.IsOrderOwnedByMemberAsync`）：
+  訂單編號可被猜出，不驗歸屬等於任何人都能以他人單號發起刷卡、從刷卡頁窺見金額。訪客結帳不帶 token，行為不變。
 
 ## 後台（admin）線上刷卡
 
@@ -256,7 +305,7 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 
 - [IPaymentLinkService.cs](../src/TFoodies.Application/Abstractions/IPaymentLinkService.cs) · [PaymentLinkService.cs](../src/TFoodies.Infrastructure/Payments/PaymentLinkService.cs)
 - [PaymentLinkController.cs](../src/TFoodies.Api.Functions/Controllers/PaymentLinkController.cs)（客人端，`store/` 前綴故免 JWT）· [PaymentLinkAdminController.cs](../src/TFoodies.Api.Functions/Controllers/Admin/PaymentLinkAdminController.cs)
-- 共用元件：[FiscWebposParser.cs](../src/TFoodies.Api.Functions/Helpers/FiscWebposParser.cs)（授權結果解析）· [FiscRedirect.cs](../src/TFoodies.Api.Functions/Helpers/FiscRedirect.cs)（回跳白名單，防 open redirect）· [LinePayClient.cs](../src/TFoodies.Infrastructure/Payments/LinePay/LinePayClient.cs)
+- 共用元件：[FiscWebposParser.cs](../src/TFoodies.Infrastructure/Payments/Fisc/FiscWebposParser.cs)（授權結果解析，純函式）· [FiscFormReader.cs](../src/TFoodies.Api.Functions/Helpers/FiscFormReader.cs)（回呼 HTTP 讀取）· [FiscRedirect.cs](../src/TFoodies.Api.Functions/Helpers/FiscRedirect.cs)（回跳白名單，防 open redirect）· [LinePayClient.cs](../src/TFoodies.Infrastructure/Payments/LinePay/LinePayClient.cs)
 - 建表：[scripts/add-paymentlinks.sql](../scripts/add-paymentlinks.sql)（冪等）· [scripts/add-paymentlink-paymethod.sql](../scripts/add-paymentlink-paymethod.sql)（追加 `paymethod`，DEFAULT 1 故既有連結行為不變）
 - 前端：[web/admin/src/views/paymentlinks/PaymentLinksView.vue](../web/admin/src/views/paymentlinks/PaymentLinksView.vue) · [web/store/app/pages/Pay/[token].vue](../web/store/app/pages/Pay/) · `layouts/pay.vue`
 
@@ -273,3 +322,7 @@ IssueInvoiceAsync(orderCode, incomeId?)（冪等）
 
 `merID, MerchantID, TerminalID, lidm(=orderCode), purchAmt(=total+freight−discount), AuthResURL, enCodeType=UTF-8, PayType=0, AutoCap=1`。
 成功判定：財金回傳 `status=="0"` 且 `authCode` 非空。欄位/錯誤碼細節見 [docs/12](12-payment-invoice-config.md)。
+
+> ⚠️ **store Container App 不可 scale-to-zero**（`infra/main.bicep` `minReplicas: 1`）：顧客在財金刷卡頁
+> 停留數分鐘後導回 `/Order/Success`，若容器已縮到 0，等到的是 Nuxt SSR 冷啟動的長時間空白，
+> 看起來就是「刷卡沒有成功」。

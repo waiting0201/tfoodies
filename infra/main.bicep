@@ -450,7 +450,10 @@ resource storeApp 'Microsoft.App/containerApps@2024-03-01' = {
         }
       ]
       scale: {
-        minReplicas: 0   // scale-to-zero（最省成本；若冷啟動影響 SEO 改 1）
+        // 不可 scale-to-zero：顧客在財金刷卡頁停留數分鐘後，授權完成會 302 導回本站的
+        // /Order/Success；若此時容器已縮到 0，顧客等到的是 Nuxt SSR 冷啟動的長時間空白，
+        // 看起來就是「刷卡沒有成功」。一個常駐 replica 的成本遠低於因此流失的訂單。
+        minReplicas: 1
         maxReplicas: 3
       }
     }

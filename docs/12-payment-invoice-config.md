@@ -68,9 +68,58 @@ WEBPOS 送出欄位（[FiscWebpos.cs](../src/TFoodies.Infrastructure/Payments/Fi
 | `PayType` | AN, 固定 1（0=一般）| 選填 | `0` |
 | `AutoCap` | AN, 固定 1（1=自動請款）| 選填 | `1` |
 
-### 授權成功判定（3.1.2）
+### 授權結果回傳欄位（3.1.2）
 
-`status == "0"` **且** `authCode` 非空 → 授權成功（本系統 [PaymentController.ParseFields](../src/TFoodies.Api.Functions/Controllers/PaymentController.cs) 已照此判定）。主動通知字串 `AuthResp={...}` 內以半形逗號分隔，含 `errcode/authCode/lidm/lastPan4/status/xid`。
+導回 form 與主動通知字串是**同一組欄位**。主動通知字串 `AuthResp={...}` 內以半形逗號分隔：
+
+```
+AuthResp={errcode=30, authCode=null, authRespTime=20200219173137, lastPan4=9104, amtExp=0,
+          xid=O-OBJECT-20200219173058.811-0025, errDesc=授權失敗, lidm=FOCAS-T200219173057,
+          authAmt=200, merID=829, currency=901, cardBrand=VISA, pan=480254******9104, status=8}
+```
+
+| 欄位 | 型態/長度 | 意義 | 本系統 |
+|---|---|---|---|
+| `status` | N,1 | 授權結果狀態（`0`=成功；`8`=發卡行/收單行回覆；`4`=收單系統 reject）| 存 Paymentattempts |
+| `errcode` | N,2 | 錯誤代碼（見下表）| 存 + 回跳帶 `&err=` 給前台翻白話 |
+| `errDesc` | AN,512 | **授權失敗原因說明（中文）** | 存，後台「刷卡紀錄」直接顯示 |
+| `authCode` | N,6 | 交易授權碼（失敗時為 `null`）| 存 |
+| `authAmt` | N,≤10 | 授權金額 | 存 |
+| `lidm` | AN,≤19 | 訂單編號 | 存 |
+| `xid` | ANS,≤40 | 交易追蹤碼 | 存 |
+| `lastPan4` | AN,4 | 卡號末四碼 | 存（寫 `Orders.lastpan4`）|
+| `cardBrand` | AN,3~10 | VISA / MasterCard / JCB | 存 |
+| `pan` | AN,≤19 | 遮罩後卡號 | ⚠️ **刻意不解析、不落地** |
+| `authRespTime` | N,≤19 | 授權回應時間 | 不存（以 createdate 為準）|
+
+⚠️ 財金在無值欄位會送**字面上的 `"null"`**（見範例 `authCode=null`），解析時一律轉成 NULL。
+
+**授權成功判定**：`status == "0"` **且** `authCode` 非空
+（[FiscWebposParser.ParseForm](../src/TFoodies.Infrastructure/Payments/Fisc/FiscWebposParser.cs)，
+四條回呼路徑共用，測試 `FiscWebposParserTests` 以手冊原文樣本鎖行為）。
+
+### 授權失敗代碼（§5.1，`status=8` 發卡行/收單行回覆）
+
+顧客端白話對照在 [web/store/app/utils/fiscError.ts](../web/store/app/utils/fiscError.ts)；
+後台「刷卡紀錄」直接顯示財金原文 `errDesc`。常見者：
+
+| errcode | 手冊定義 | 意義 |
+|---|---|---|
+| `01`/`02` | REFER TO CARD ISSUER | 請持卡人與發卡銀行聯絡 |
+| `04` | PICK UP-Card Closed | 發卡行拒絕交易 |
+| `05` | Do not Honor | 發卡行卡片資料驗證失敗 |
+| `14` | INVALID CARD NUMBER | 卡號錯誤 |
+| `30` | TIMEOUT/FORMAT ERROR | 逾時未回應／資料格式無法判別 |
+| `33` | EXPIRED CARD | 有效期限輸入錯誤 |
+| `41`/`43` | LOST/STOLEN CARD | 掛失卡／失竊卡 |
+| `51` | NO SUFFICIENT FUNDS | **消費額度不足** |
+| `54` | CARD NOT OPEN/EXPIRED | 有效期限已過期 |
+| `57` | TRANS. NOT PERMITTED TO CARDHOLD | 拒絕持卡人此網路交易／超過商店額度 |
+| `63` | CVC ERROR | 安全識別碼錯誤 |
+| `65` | EXCEEDS WITHDRAW | 超過刷卡次數限制 |
+
+`status=4` + `errcode=99` = ERR_RESPONSE_TIMEOUT（交易逾時，通常為 3D 交易）。
+完整一覽表見手冊 `reference/card/網路特店技術說明手冊_v2.7.doc` §5。
 
 ### 入口檢核錯誤碼（debug 對照）
 

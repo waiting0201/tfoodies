@@ -61,6 +61,13 @@ public interface IOrderService
     /// <summary>依 orderCode 取訂單摘要（會員或後台查詢）。</summary>
     Task<OrderSummary?> GetOrderAsync(string orderCode, CancellationToken ct = default);
 
+    /// <summary>
+    /// 該訂單是否屬於此會員。供「顧客自助重新付款」在帶了 JWT 時驗證歸屬——
+    /// 訂單編號（O+日期+3 碼流水）可被猜出，不驗歸屬等於任何人都能以他人單號發起刷卡。
+    /// 刻意不把 memberid 加進 OrderSummary：那會讓每個前台訂單回應都吐出會員 ID。
+    /// </summary>
+    Task<bool> IsOrderOwnedByMemberAsync(string orderCode, Guid memberId, CancellationToken ct = default);
+
     /// <summary>分頁取會員訂單清單。</summary>
     Task<(IReadOnlyList<OrderListItem> Items, int TotalCount)> GetMemberOrdersAsync(
         Guid memberId, int page, int pageSize, CancellationToken ct = default);

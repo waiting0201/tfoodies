@@ -106,6 +106,8 @@ Payments/
   PaymentLinkService.cs        ← IPaymentLinkService（收款連結：不綁會員、不寫 Orders/Incomes、不開發票，只做冪等標記 + 通知信給營運）。故不共用 PaymentCompletionService（詳見 docs/13）
   Fisc/FiscOptions.cs          ← 財金 WEBPOS 設定（ActionUrl/商店代號/ApiBaseUrl/StoreSuccessUrl/AdminSuccessUrl）。回呼網址（AuthResUrl/AdminAuthResUrl/PayLinkAuthResUrl）與 StoreOrigin 皆由既有設定導出，不另設鍵（詳見 docs/12）
   Fisc/FiscWebpos.cs           ← WEBPOS 刷卡 form 隱藏欄位產生器（訂單多載算 total+freight−discount；通用多載由呼叫端給 lidm/金額，收款連結用）
+  Fisc/FiscWebposParser.cs     ← 財金授權結果解析（純函式）：成功判定 + errcode/errDesc 等失敗診斷欄位。訂單刷卡與收款連結共用同一份判定；HTTP 讀取在 Api.Functions/Helpers/FiscFormReader.cs
+  PaymentAttemptLog.cs         ← IPaymentAttemptLog（把每次授權回呼寫進 Paymentattempts，best-effort；顧客回報「刷卡沒成功」時的唯一原因來源，詳見 docs/13）
 Invoicing/EzPay/
   EzPayCodec.cs                ← 藍新 AES-256-CBC + SHA256 codec
   EzPayOptions.cs
@@ -205,7 +207,8 @@ Middleware/                  ← Cors/Correlation/Exception/JwtAuth（全 Single
 Helpers/
   JwtHelper.cs               ← Bearer token 解析
   AdminGuard.cs              ← 後台 RBAC 守衛（RequireAdmin / AuthorizeAsync）
-  FiscWebposParser.cs        ← 財金授權結果解析（訂單刷卡與收款連結共用同一份成功判定）
+  FiscFormReader.cs          ← 財金回呼的 HTTP 讀取（form → 大小寫不敏感字典 / 原始 body）；
+                                 成敗判定與欄位解析在 Infrastructure/Payments/Fisc/FiscWebposParser.cs（純函式，可測）
   FiscRedirect.cs            ← 刷卡回跳網域白名單（防 open redirect，建立端與回呼端共用）
 Controllers/
   StoreController.cs         ← 前台商品/CMS（13 GET 端點，公開；含 GET /store/shopping-guide 購物說明 FAQ

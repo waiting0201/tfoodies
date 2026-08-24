@@ -50,6 +50,23 @@ interface OrderDetail {
   note: string | null
   trackingNumber: string | null
   items: OrderItem[]
+  paymentAttempts?: PaymentAttempt[]
+}
+
+// 每一次財金 WEBPOS 授權回呼的結果（Paymentattempts）。顧客回報「刷卡沒有成功」時，
+// errDesc 是財金給的中文失敗原因，客服可直接據此回覆，不必再找工程查 log。
+interface PaymentAttempt {
+  at: string
+  source: string        // return（前台）/ return-admin（後台代刷）/ notify（主動通知）
+  isSuccess: boolean
+  status: string | null
+  errCode: string | null
+  errDesc: string | null
+  authCode: string | null
+  lastPan4: string | null
+  cardBrand: string | null
+  authAmt: number | null
+  note: string | null
 }
 
 const route = useRoute()
@@ -234,6 +251,17 @@ function formatDateOnly(s?: string | null) {
   return new Date(s).toLocaleDateString('zh-TW')
 }
 
+// 刷卡回呼來源。同一筆訂單可能有多列：顧客自己刷（return）失敗後由客服代刷（return-admin），
+// 或財金導回沒打進來、由主動通知（notify）補上。
+function attemptSourceLabel(source: string): string {
+  return ({
+    'return': '前台刷卡',
+    'return-admin': '後台代客刷卡',
+    'notify': '財金主動通知',
+    'return-paylink': '收款連結',
+  } as Record<string, string>)[source] ?? source
+}
+
 // 折數(1–9) → 「8 折 (80%)」；未折扣顯示 —。
 function itemDiscountLabel(d: number | null): string {
   return (d != null && d > 0 && d < 10) ? `${d} 折 (${d * 10}%)` : '—'
@@ -394,6 +422,39 @@ onMounted(load)
                 <span class="odetail__value odetail__value--mono">{{ order.loveCode || '—' }}</span>
               </div>
             </div>
+          </div>
+
+          <!-- 刷卡紀錄：授權成功與失敗都留存，失敗原因直接取自財金回傳的 errDesc -->
+          <div v-if="order.paymentAttempts?.length" class="odetail__card">
+            <h2 class="odetail__section-title">刷卡紀錄</h2>
+            <ul class="odetail__attempts">
+              <li
+                v-for="(a, i) in order.paymentAttempts"
+                :key="i"
+                class="odetail__attempt"
+                :class="{ 'odetail__attempt--failed': !a.isSuccess }"
+              >
+                <div class="odetail__attempt-head">
+                  <span class="odetail__attempt-badge" :class="a.isSuccess ? 'is-ok' : 'is-fail'">
+                    {{ a.isSuccess ? '授權成功' : '授權失敗' }}
+                  </span>
+                  <span class="odetail__attempt-time">{{ formatDate(a.at) }}</span>
+                  <span class="odetail__attempt-source">{{ attemptSourceLabel(a.source) }}</span>
+                </div>
+                <p v-if="!a.isSuccess" class="odetail__attempt-reason">
+                  {{ a.errDesc || '財金未回傳失敗原因' }}
+                  <span v-if="a.errCode" class="odetail__attempt-code">（代碼 {{ a.errCode }}）</span>
+                </p>
+                <p class="odetail__attempt-meta">
+                  <span v-if="a.cardBrand || a.lastPan4">
+                    {{ a.cardBrand || '卡片' }} ****{{ a.lastPan4 || '????' }}
+                  </span>
+                  <span v-if="a.authCode">授權碼 {{ a.authCode }}</span>
+                  <span v-if="a.authAmt !== null">NT$ {{ a.authAmt.toLocaleString() }}</span>
+                </p>
+                <p v-if="a.note" class="odetail__attempt-note">{{ a.note }}</p>
+              </li>
+            </ul>
           </div>
 
           <!-- Action error / success -->
@@ -771,6 +832,28 @@ onMounted(load)
 .odetail__hint { font-size: 0.8rem; margin: 0.25rem 0 0; grid-column: 1 / -1; }
 .odetail__hint--warn { color: #b8860b; }
 .odetail__muted { color: var(--tf-color-muted); }
+
+/* 刷卡紀錄 */
+.odetail__attempts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+.odetail__attempt {
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--tf-color-border, #dee2e6);
+  border-left: 3px solid #157347;
+  border-radius: 6px;
+  background: var(--tf-color-surface, #fff);
+  font-size: 0.85rem;
+}
+.odetail__attempt--failed { border-left-color: #dc3545; }
+.odetail__attempt-head { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+.odetail__attempt-badge { padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+.odetail__attempt-badge.is-ok { background: #d1e7dd; color: #157347; }
+.odetail__attempt-badge.is-fail { background: #f8d7da; color: #b02a37; }
+.odetail__attempt-time,
+.odetail__attempt-source { color: var(--tf-color-text-muted, #6c757d); font-size: 0.78rem; }
+.odetail__attempt-reason { margin: 0.4rem 0 0; color: #b02a37; line-height: 1.6; }
+.odetail__attempt-code { color: var(--tf-color-text-muted, #6c757d); }
+.odetail__attempt-meta { margin: 0.35rem 0 0; display: flex; flex-wrap: wrap; gap: 0.8rem; color: var(--tf-color-text-muted, #6c757d); font-size: 0.78rem; }
+.odetail__attempt-note { margin: 0.35rem 0 0; color: #b8860b; font-size: 0.78rem; }
 .odetail__btn--ghost { background: transparent; color: var(--tf-color-primary); border: 1px solid var(--tf-color-primary); }
 .odetail__btn--ghost:hover:not(:disabled) { background: rgba(38, 183, 188, 0.06); }
 

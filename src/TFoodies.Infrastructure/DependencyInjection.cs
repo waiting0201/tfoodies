@@ -78,6 +78,11 @@ public static class DependencyInjection
         services.Configure<FiscOptions>(configuration.GetSection(FiscOptions.SectionName));
         services.AddScoped<IPaymentCompletionService, PaymentCompletionService>();
 
+        // 刷卡授權結果紀錄（Paymentattempts）。財金回傳的 errcode/errDesc 原本被丟棄，
+        // 顧客回報「刷卡沒成功」時完全查不到原因；由 /return、/return-admin、/notify、
+        // /return-paylink 四條回呼路徑共用寫入，best-effort（失敗不影響付款）。
+        services.AddScoped<IPaymentAttemptLog, PaymentAttemptLog>();
+
         // LINE Pay Online API v3（直連）。與 WEBPOS 不同，需後端 HttpClient + HMAC 簽章；
         // 回跳網址沿用 Fisc 區段的站台設定（見 FiscOptions 註解），不另立同義設定鍵。
         services.Configure<LinePayOptions>(configuration.GetSection(LinePayOptions.SectionName));
