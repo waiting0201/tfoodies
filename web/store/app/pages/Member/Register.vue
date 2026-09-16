@@ -44,8 +44,9 @@ async function submit() {
     })
     await navigateTo('/Member/Login')
   } catch (e: unknown) {
-    const err = e as { data?: { message?: string } }
-    errorMsg.value = err?.data?.message ?? '註冊失敗，請稍後再試。'
+    // 後端錯誤格式是 { error: { code, message } }；直接讀 e.data.message 會永遠落到
+    // fallback，顧客就看不到「該手機號碼已註冊。」這類真正該處理的原因。
+    errorMsg.value = apiErrorMessage(e, '註冊失敗，請稍後再試。')
   } finally {
     loading.value = false
   }
