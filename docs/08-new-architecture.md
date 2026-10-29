@@ -410,7 +410,8 @@ web/store/app/
 - **meta**：每頁呼叫 `useSeo()`（詳情頁帶 og:image=blob 圖、canonical=`shortener` 或站台 URL）。
 - **JSON-LD（per-page）**：商品=`Product`(offers/price/TWD/availability)、News/Issue/Event/Knowledge=`Article`、**料理=`Recipe`**（recipeIngredient 併食材+調味料、recipeInstructions=HowToStep、totalTime=`PT{duration}M`、recipeYield、video）、詳情頁附 `BreadcrumbList`。
 - **JSON-LD（全站，GEO）**：`app.vue` 注入一次 `Organization`（`@id=#organization`，含 legalName/logo/contactPoint/PostalAddress，對齊聯絡頁）+ `WebSite`（`@id=#website`，publisher 參照 Organization），供搜尋/AI 引擎建立發布者實體。注入用 `useJsonLd(..., 'ld-global')` 的 keyPrefix 與頁面節點分隔避免覆蓋。
-- **sitemap.xml**：`@nuxtjs/sitemap`，靜態路由自動收錄，動態內容由 `server/api/__sitemap-urls.ts` 於 runtime 查 API（含商品/型錄/消息/料理/綠誌/小知識/活動，以及 `GET /store/brands` 列出的上線品牌頁）。
+- **sitemap.xml**：`@nuxtjs/sitemap`，靜態路由自動收錄，動態內容由 `server/api/__sitemap-urls.ts` 於 runtime 查 API（含商品/型錄/消息/料理/綠誌/小知識/活動，以及 `GET /store/brands` 列出的上線品牌頁）。⚠️ `loc` 一律傳**未編碼**路徑（模組會自行 percent-encode）；先 `encodeURIComponent` 會雙重編碼成 `%25E5…`，型錄頁解析不到分類。
+- **富文本 base64 圖**：舊系統由伺服器端 HtmlAgilityPack 把 base64 抽到 Blob（見 docs/04）；新系統改由後台 `HtmlEditor.vue` 偵測 `data:` 圖片後自動上傳 Blob 並換成網址（貼上 HTML、載入舊內容皆觸發，舊資料打開按儲存即轉換）。base64 會同時出現在 SSR HTML 與 Nuxt payload，曾讓商品頁膨脹到 17MB，超過 Googlebot 15MB 抓取上限。
 - **robots.txt**：`@nuxtjs/robots` 產生（不再有靜態檔），`Disallow: /Member/ /Cart /Checkout /Order/` 並自動附 `Sitemap:`；被 disallow 的頁面自動補 `noindex` meta。
 
 **部署**：Docker 化（`web/store/Dockerfile`，多階段 → `node .output/server/index.mjs`，port 3000）→ **Azure Container Apps**（scale-to-zero 省成本，冷啟動如影響 SEO 改 minReplicas=1）。CI `.github/workflows/store.yml`：`az acr build` → `az containerapp update`。API base 由 Container App env `NUXT_PUBLIC_API_BASE` 注入。

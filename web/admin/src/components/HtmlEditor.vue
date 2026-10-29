@@ -34,6 +34,57 @@ async function uploadFileToBlob(file: File): Promise<string> {
 // 讓 PasteUpload extension 能回呼 editor（閉包取 ref）
 const editorRef = { value: null as any }
 
+// base64 內嵌圖（貼上 Word/網頁 HTML 時夾帶，或舊資料）會讓前台 HTML 暴增到數十 MB，
+// 超過 Googlebot 15MB 抓取上限。發現就上傳到 Blob 並換成網址；舊商品打開後按儲存即完成轉換。
+// 上傳端點只收 jpg/png/gif/webp，其他格式（如 svg）保留原狀。
+const MIME_EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/webp': 'webp' }
+const inFlight = new Set<string>()
+
+function dataUrlToFile(dataUrl: string): File | null {
+  const m = /^data:([^;,]+);base64,(.*)$/s.exec(dataUrl)
+  const ext = m && MIME_EXT[m[1]!.toLowerCase()]
+  if (!m || !ext) return null
+  const bin = atob(m[2]!)
+  const bytes = Uint8Array.from(bin, c => c.charCodeAt(0))
+  return new File([bytes], `inline.${ext}`, { type: m[1] })
+}
+
+function replaceImageSrc(from: string, to: string) {
+  const ed = editorRef.value
+  if (!ed) return
+  const tr = ed.state.tr
+  ed.state.doc.descendants((node: any, pos: number) => {
+    if (node.type.name === 'image' && node.attrs.src === from) {
+      tr.setNodeMarkup(pos, undefined, { ...node.attrs, src: to })
+    }
+  })
+  if (tr.docChanged) ed.view.dispatch(tr)
+}
+
+async function uploadInlineImages() {
+  const ed = editorRef.value
+  if (!ed) return
+  const pending = new Set<string>()
+  ed.state.doc.descendants((node: any) => {
+    const src = node.type.name === 'image' ? node.attrs.src : null
+    if (typeof src === 'string' && src.startsWith('data:') && !inFlight.has(src)) pending.add(src)
+  })
+  for (const dataUrl of pending) {
+    const file = dataUrlToFile(dataUrl)
+    if (!file) continue
+    inFlight.add(dataUrl)
+    uploading.value = true
+    try {
+      replaceImageSrc(dataUrl, await uploadFileToBlob(file))
+    } catch {
+      // 上傳失敗保留 base64，下次內容變動再重試
+    } finally {
+      inFlight.delete(dataUrl)
+      uploading.value = inFlight.size > 0
+    }
+  }
+}
+
 // 攔截貼上圖片，自動上傳到 Blob 取代 base64
 const PasteImageUpload = Extension.create({
   name: 'pasteImageUpload',
@@ -70,8 +121,12 @@ const editor = useEditor({
     Link.configure({ openOnClick: false }),
     PasteImageUpload,
   ],
+  onCreate() {
+    uploadInlineImages()
+  },
   onUpdate({ editor }) {
     emit('update:modelValue', editor.getHTML())
+    uploadInlineImages()
   },
 })
 
@@ -81,6 +136,7 @@ watch(() => props.modelValue, (val) => {
   if (!editor.value) return
   if (editor.value.getHTML() === val) return
   editor.value.commands.setContent(val, { emitUpdate: false })
+  uploadInlineImages()
 })
 
 function toggleBold()        { editor.value?.chain().focus().toggleBold().run() }

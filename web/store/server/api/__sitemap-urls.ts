@@ -56,7 +56,9 @@ export default defineSitemapEventHandler(async () => {
     ),
     { products: [], productTypes: [] },
   )
-  for (const t of products.productTypes) urls.push({ loc: `/Products/${encodeURIComponent(t.title)}` })
+  // Raw title, no encodeURIComponent: @nuxtjs/sitemap percent-encodes <loc> itself, so
+  // pre-encoding here double-encodes (%25E5...) and the page can't resolve the type.
+  for (const t of products.productTypes) urls.push({ loc: `/Products/${t.title}` })
   for (const p of products.products) urls.push({ loc: `/Product/${toSlug(p.title)}` })
 
   // Brand micro-sites (on-sale only; same source as the 品牌系列 nav menu).
