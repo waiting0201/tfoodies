@@ -16,7 +16,7 @@ function logout() {
 <template>
   <div class="sb-slidebar sb-left sb-style-push">
     <div class="slide-logo">
-      <a href="/"><img src="/content/images/common/logo-main.png"></a>
+      <a href="/"><img src="/content/images/common/logo-main.png" alt="食在呼 TFoodies"></a>
     </div>
     <div id="slide-search">
       <ul>
@@ -51,9 +51,9 @@ function logout() {
           </a>
         </div>
         <div class="social-link">
-          <a href="https://www.facebook.com/trulyfoodies/" class="social-icon" rel="nofollow"><img src="/content/images/common/facebook.png"></a>
-          <a href="https://www.instagram.com/tfoodies/" class="social-icon" rel="nofollow"><img src="/content/images/common/instagram.png"></a>
-          <a href="https://www.youtube.com/channel/UCACS-XffRxWsTb-a8uCWA4Q" class="social-icon" rel="nofollow"><img src="/content/images/common/youtube.png"></a>
+          <a href="https://www.facebook.com/trulyfoodies/" class="social-icon" rel="nofollow"><img src="/content/images/common/facebook.png" alt="Facebook"></a>
+          <a href="https://www.instagram.com/tfoodies/" class="social-icon" rel="nofollow"><img src="/content/images/common/instagram.png" alt="Instagram"></a>
+          <a href="https://www.youtube.com/channel/UCACS-XffRxWsTb-a8uCWA4Q" class="social-icon" rel="nofollow"><img src="/content/images/common/youtube.png" alt="YouTube"></a>
         </div>
       </div>
     </div>

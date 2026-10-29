@@ -19,7 +19,7 @@ useSeo(() => ({
     <section class="tallsection clr">
       <div class="restrict-wide">
         <div class="centered">
-          <h1>所有商品</h1>
+          <h1>{{ data.currentType?.title ?? '所有商品' }}</h1>
           <div id="tabber">
             <div class="tabber-selectors">
               <ul>

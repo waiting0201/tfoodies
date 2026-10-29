@@ -41,11 +41,11 @@ watch(() => cart.addPulse, (now, prev) => {
     <div id="topnav">
       <div class="restrict-wide">
         <div class="social-link">
-          <a href="https://www.facebook.com/trulyfoodies/" class="social-icon" target="_blank" rel="nofollow"><img src="/content/images/common/facebook.png"></a>
-          <a href="https://www.instagram.com/tfoodies/" class="social-icon" target="_blank" rel="nofollow"><img src="/content/images/common/instagram.png"></a>
-          <a href="https://www.youtube.com/channel/UCACS-XffRxWsTb-a8uCWA4Q" class="social-icon" target="_blank" rel="nofollow"><img src="/content/images/common/youtube.png"></a>
+          <a href="https://www.facebook.com/trulyfoodies/" class="social-icon" target="_blank" rel="nofollow"><img src="/content/images/common/facebook.png" alt="Facebook"></a>
+          <a href="https://www.instagram.com/tfoodies/" class="social-icon" target="_blank" rel="nofollow"><img src="/content/images/common/instagram.png" alt="Instagram"></a>
+          <a href="https://www.youtube.com/channel/UCACS-XffRxWsTb-a8uCWA4Q" class="social-icon" target="_blank" rel="nofollow"><img src="/content/images/common/youtube.png" alt="YouTube"></a>
           <div class="inline must freeship">消費滿2,000免運！</div>
-          <div class="inline"> <img src="/content/images/common/freeshipping.gif"></div>
+          <div class="inline"> <img src="/content/images/common/freeshipping.gif" alt="滿 2000 免運"></div>
         </div>
         <div class="login-wrap">
           <div class="member">
@@ -72,7 +72,7 @@ watch(() => cart.addPulse, (now, prev) => {
               <div class="buy-item-wrap">
                 <p v-if="cart.items.length === 0" class="descript centered">購物車是空的</p>
                 <div v-for="item in cart.items" :key="item.productId" class="buy-item">
-                  <div class="buy-pic"><img :src="blobUrl + (item.photo ?? '')"></div>
+                  <div class="buy-pic"><img :src="blobUrl + (item.photo ?? '')" :alt="item.title"></div>
                   <div class="buy-info">
                     <p>{{ item.title + (item.capacity ?? '') }}</p>
                     <div class="amount descript">
@@ -127,7 +127,7 @@ watch(() => cart.addPulse, (now, prev) => {
       </div>
     </nav>
     <div class="logo">
-      <a href="/" title="首頁"><img src="/content/images/common/logo-main.png"></a>
+      <a href="/" title="首頁"><img src="/content/images/common/logo-main.png" alt="食在呼 TFoodies"></a>
     </div>
     <a id="btn_menu" href="javascript:;" class="sb-toggle-left"><img src="/content/images/common/mobile-menu.png" alt=""></a>
   </header>

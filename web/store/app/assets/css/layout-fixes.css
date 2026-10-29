@@ -8,3 +8,9 @@
    保留 <html> 的橫向裁切（仍可抑制水平捲軸），只讓 <body> 不再是 scroll container，sticky 即恢復。
    選擇器 `html body`（特異度 0,0,2）勝過 legacy 的 `body`（0,0,1），免用 !important。 */
 html body { overflow-x: visible; }
+
+/* 視覺隱藏但保留給搜尋引擎／螢幕閱讀器（首頁 h1：legacy 版面以輪播圖為首屏，沒有可見標題）。 */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}

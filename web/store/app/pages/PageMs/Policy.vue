@@ -15,7 +15,7 @@ useSeo(() => ({
         <div class="menu-wrapper">
           <div class="menu-container">
             <div class="center">
-              <div class="pattern"><img src="/content/images/section/paypattern.png"></div>
+              <div class="pattern"><img src="/content/images/section/paypattern.png" alt=""></div>
               <h1 class="main">隱私權政策</h1>
               <ul>
                 <li><a>隱私權政策</a></li>

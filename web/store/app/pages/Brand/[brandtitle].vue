@@ -55,7 +55,7 @@ useSeo(() => ({
       class="brandbanner allpadding"
     >
       <div class="restrict-wide">
-        <div class="brand-logo"><img :src="data.blobUrl + (b.logo ?? '')"></div>
+        <div class="brand-logo"><img :src="data.blobUrl + (b.logo ?? '')" :alt="b.title"></div>
         <h1 class="ci-title white max-title">{{ b.title }}</h1>
         <h1 class="white">{{ b.subtitle }}</h1>
       </div>
@@ -79,7 +79,7 @@ useSeo(() => ({
         <div class="pattern-slider">
           <ul class="allslider">
             <li v-for="photo in b.photos" :key="photo.sort">
-              <img :src="data.blobUrl + photo.photo">
+              <img :src="data.blobUrl + photo.photo" :alt="b.title">
             </li>
           </ul>
         </div>
@@ -93,7 +93,7 @@ useSeo(() => ({
     >
       <div class="restrict">
         <div class="slogan">
-          <img v-if="b.ilogo" :src="data.blobUrl + b.ilogo">
+          <img v-if="b.ilogo" :src="data.blobUrl + b.ilogo" :alt="b.title">
           <div class="italic">" {{ b.slogan }} "</div>
         </div>
         <div class="brandcontent">
@@ -116,7 +116,7 @@ useSeo(() => ({
     <section v-if="b">
       <div class="people-wrap">
         <div :style="{ backgroundImage: `url(${data.blobUrl}${b.peoplephoto ?? ''})` }" class="people">
-          <img src="/content/images/section/people.png">
+          <img src="/content/images/section/people.png" alt="">
         </div>
         <div class="people-content">
           <h3 class="ci-title centered">{{ b.peopletitle }}</h3>

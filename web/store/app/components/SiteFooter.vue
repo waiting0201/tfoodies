@@ -6,35 +6,35 @@
 <template>
   <footer id="footer">
     <div class="restrict-wide">
-      <div class="footertitle"><img src="/content/images/section/tfoodies-footer.png"></div>
+      <div class="footertitle"><img src="/content/images/section/tfoodies-footer.png" alt="食在呼 TFoodies"></div>
       <ul class="foodiesword">
         <li>
-          <a href="https://www.youtube.com/channel/UCACS-XffRxWsTb-a8uCWA4Q" class="circle" target="_blank" rel="nofollow"><img src="/content/images/section/youtube-footer.png"></a>
-          <a href="https://www.youtube.com/channel/UCACS-XffRxWsTb-a8uCWA4Q" class="social-icon" target="_blank" rel="nofollow"><img src="/content/images/common/youtube.png"></a>
+          <a href="https://www.youtube.com/channel/UCACS-XffRxWsTb-a8uCWA4Q" class="circle" target="_blank" rel="nofollow"><img src="/content/images/section/youtube-footer.png" alt="YouTube"></a>
+          <a href="https://www.youtube.com/channel/UCACS-XffRxWsTb-a8uCWA4Q" class="social-icon" target="_blank" rel="nofollow"><img src="/content/images/common/youtube.png" alt="YouTube"></a>
           <a href="https://www.youtube.com/channel/UCACS-XffRxWsTb-a8uCWA4Q" class="inline main" target="_blank" rel="nofollow">Youtube</a>
           <div class="small-content">更多好吃的健康料理教學！</div>
         </li>
         <li>
-          <a href="https://cookpad.com/tw/%E4%BD%BF%E7%94%A8%E8%80%85/13374389" class="circle" target="_blank" rel="nofollow"><img src="/content/images/section/cookpad-footer.png"></a>
-          <a href="https://cookpad.com/tw/%E4%BD%BF%E7%94%A8%E8%80%85/13374389" class="social-icon" target="_blank" rel="nofollow"><img src="/content/images/common/green.png"></a>
+          <a href="https://cookpad.com/tw/%E4%BD%BF%E7%94%A8%E8%80%85/13374389" class="circle" target="_blank" rel="nofollow"><img src="/content/images/section/cookpad-footer.png" alt="Cookpad"></a>
+          <a href="https://cookpad.com/tw/%E4%BD%BF%E7%94%A8%E8%80%85/13374389" class="social-icon" target="_blank" rel="nofollow"><img src="/content/images/common/green.png" alt="Cookpad"></a>
           <a href="https://cookpad.com/tw/%E4%BD%BF%E7%94%A8%E8%80%85/13374389" class="inline main" target="_blank" rel="nofollow">Cookpad</a>
           <div class="small-content">鎖定我們的健康食譜！</div>
         </li>
         <li>
-          <a href="https://www.instagram.com/tfoodies/" class="circle" target="_blank" rel="nofollow"><img src="/content/images/section/722c0ea5891471ea726978e34046b1ed.png"></a>
-          <a href="https://www.instagram.com/tfoodies/" class="social-icon" target="_blank" rel="nofollow"><img src="/content/images/common/instagram.png"></a>
+          <a href="https://www.instagram.com/tfoodies/" class="circle" target="_blank" rel="nofollow"><img src="/content/images/section/722c0ea5891471ea726978e34046b1ed.png" alt="Instagram"></a>
+          <a href="https://www.instagram.com/tfoodies/" class="social-icon" target="_blank" rel="nofollow"><img src="/content/images/common/instagram.png" alt="Instagram"></a>
           <a href="https://www.instagram.com/tfoodies/" class="inline main" target="_blank" rel="nofollow">Instagram</a>
           <div class="small-content">跟著我們的 IG 快速煮出美味！</div>
         </li>
         <li>
-          <a href="https://www.facebook.com/trulyfoodies/" class="circle" target="_blank" rel="nofollow"><img src="/content/images/section/fb-footer.png"></a>
-          <a href="https://www.facebook.com/trulyfoodies/" class="social-icon" target="_blank" rel="nofollow"><img src="/content/images/common/facebook.png"></a>
+          <a href="https://www.facebook.com/trulyfoodies/" class="circle" target="_blank" rel="nofollow"><img src="/content/images/section/fb-footer.png" alt="Facebook"></a>
+          <a href="https://www.facebook.com/trulyfoodies/" class="social-icon" target="_blank" rel="nofollow"><img src="/content/images/common/facebook.png" alt="Facebook"></a>
           <a href="https://www.facebook.com/trulyfoodies/" class="inline main" target="_blank" rel="nofollow">Facebook</a>
           <div class="small-content">Follow 食在呼尋找最真實的真食！</div>
         </li>
         <li>
-          <a href="https://line.me/R/ti/p/%40kqc0569s" class="circle"><img src="/content/images/section/footer-line.png"></a>
-          <a href="https://line.me/R/ti/p/%40kqc0569s" class="social-icon"><img src="/content/images/common/chat.png"></a>
+          <a href="https://line.me/R/ti/p/%40kqc0569s" class="circle"><img src="/content/images/section/footer-line.png" alt="LINE"></a>
+          <a href="https://line.me/R/ti/p/%40kqc0569s" class="social-icon"><img src="/content/images/common/chat.png" alt="LINE"></a>
           <a href="https://line.me/R/ti/p/%40kqc0569s" class="inline main">Line@</a>
           <div class="small-content">加入Line@:kqc0569s鎖定更多優惠與活動！</div>
         </li>

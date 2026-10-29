@@ -8,6 +8,10 @@
 
 interface Paged<T> { items: T[]; totalPages: number }
 
+// lastmod: the DB has no modified-date column, so articles use their publish/create date
+// (they're rarely edited after publishing). Recipes/products have no date → omitted.
+interface SitemapEntry { loc: string; lastmod?: string }
+
 /** DB title (slashes) → URL segment (hyphens). Mirrors app/utils/slug.titleToUrlSlug. */
 function toSlug(title: string): string {
   return title.replaceAll('/', '-')
@@ -15,7 +19,7 @@ function toSlug(title: string): string {
 
 export default defineSitemapEventHandler(async () => {
   const apiBase = String(useRuntimeConfig().public.apiBase).replace(/\/+$/, '')
-  const urls: { loc: string }[] = []
+  const urls: SitemapEntry[] = []
 
   const safe = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
     try { return await fn() }
@@ -25,7 +29,7 @@ export default defineSitemapEventHandler(async () => {
   // Walk a paginated list endpoint (?p=) and map each item to a URL.
   async function collect<T>(
     path: string,
-    map: (item: T) => string | null,
+    map: (item: T) => SitemapEntry | null,
     maxPages = 200,
   ): Promise<void> {
     const first = await safe(
@@ -34,8 +38,8 @@ export default defineSitemapEventHandler(async () => {
     )
     const pushAll = (items: T[]) => {
       for (const it of items) {
-        const loc = map(it)
-        if (loc) urls.push({ loc })
+        const entry = map(it)
+        if (entry) urls.push(entry)
       }
     }
     pushAll(first.items)
@@ -69,11 +73,15 @@ export default defineSitemapEventHandler(async () => {
   for (const b of brands) urls.push({ loc: `/Brand/${toSlug(b.title)}` })
 
   await Promise.all([
-    collect<{ newId: string }>('/store/news', (n) => `/NewsDetail/${n.newId}/1`),
-    collect<{ recipeId: string }>('/store/recipes', (r) => `/Recipe/${r.recipeId}/1`),
-    collect<{ title: string }>('/store/issues', (i) => `/Issue/${toSlug(i.title)}/1`),
-    collect<{ knowledgeId: string }>('/store/knowledges', (k) => `/Knowledge/${k.knowledgeId}/1`),
-    collect<{ eventId: string }>('/store/events', (e) => `/Events/${e.eventId}`),
+    collect<{ newId: string; publishDate?: string }>('/store/news',
+      (n) => ({ loc: `/NewsDetail/${n.newId}/1`, lastmod: n.publishDate })),
+    collect<{ recipeId: string }>('/store/recipes', (r) => ({ loc: `/Recipe/${r.recipeId}/1` })),
+    collect<{ title: string; createDate?: string }>('/store/issues',
+      (i) => ({ loc: `/Issue/${toSlug(i.title)}/1`, lastmod: i.createDate })),
+    collect<{ knowledgeId: string; createDate?: string }>('/store/knowledges',
+      (k) => ({ loc: `/Knowledge/${k.knowledgeId}/1`, lastmod: k.createDate })),
+    collect<{ eventId: string; createDate?: string }>('/store/events',
+      (e) => ({ loc: `/Events/${e.eventId}`, lastmod: e.createDate })),
   ])
 
   return urls

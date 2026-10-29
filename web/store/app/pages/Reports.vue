@@ -21,13 +21,13 @@ useSeo(() => ({
         <div class="three-column clr page">
           <div class="blog-wrap news-blog-wrap">
             <div class="article-single centered">
-              <div class="article-pic report-pic"><img src="/content/images/section/evoo.jpg"></div>
+              <div class="article-pic report-pic"><img src="/content/images/section/evoo.jpg" alt="EVOO品質測驗報告"></div>
             </div>
             <div class="article-title centered">EVOO品質測驗報告</div>
           </div>
           <div class="blog-wrap news-blog-wrap">
             <div class="article-single centered">
-              <div class="article-pic report-pic"><img src="/content/images/section/no-pesticides.jpg"></div>
+              <div class="article-pic report-pic"><img src="/content/images/section/no-pesticides.jpg" alt="無農藥殘留報告"></div>
             </div>
             <div class="article-title centered">無農藥殘留報告</div>
           </div>
@@ -39,37 +39,37 @@ useSeo(() => ({
         <div class="three-column clr page">
           <div class="blog-wrap news-blog-wrap">
             <div class="article-single centered">
-              <div class="article-pic report-pic"><img src="/content/images/section/sgs.jpg"></div>
+              <div class="article-pic report-pic"><img src="/content/images/section/sgs.jpg" alt="不飽和脂肪酸檢驗報告"></div>
             </div>
             <div class="article-title centered">不飽和脂肪酸檢驗報告</div>
           </div>
           <div class="blog-wrap news-blog-wrap">
             <div class="article-single centered">
-              <div class="article-pic report-pic"><img src="/content/images/section/acid.jpg"></div>
+              <div class="article-pic report-pic"><img src="/content/images/section/acid.jpg" alt="酸度檢測"></div>
             </div>
             <div class="article-title centered">酸度檢測</div>
           </div>
           <div class="blog-wrap news-blog-wrap">
             <div class="article-single centered">
-              <div class="article-pic report-pic"><img src="/content/images/section/non-toxic.jpg"></div>
+              <div class="article-pic report-pic"><img src="/content/images/section/non-toxic.jpg" alt="La Barre 澳洲樂霸特級初榨橄欖油 不含重金屬檢測"></div>
             </div>
             <div class="article-title centered">La Barre 澳洲樂霸特級初榨橄欖油<br>不含重金屬檢測</div>
           </div>
           <div class="blog-wrap news-blog-wrap">
             <div class="article-single centered">
-              <div class="article-pic report-pic"><img src="/content/images/section/Cottonseed.jpg"></div>
+              <div class="article-pic report-pic"><img src="/content/images/section/Cottonseed.jpg" alt="不含棉籽酚"></div>
             </div>
             <div class="article-title centered">不含棉籽酚</div>
           </div>
           <div class="blog-wrap news-blog-wrap">
             <div class="article-single centered">
-              <div class="article-pic report-pic"><img src="/content/images/section/cooper.jpg"></div>
+              <div class="article-pic report-pic"><img src="/content/images/section/cooper.jpg" alt="不含銅葉綠素"></div>
             </div>
             <div class="article-title centered">不含銅葉綠素</div>
           </div>
           <div class="blog-wrap news-blog-wrap">
             <div class="article-single centered">
-              <div class="article-pic report-pic"><img src="/content/images/section/mountzero-sgs.jpg"></div>
+              <div class="article-pic report-pic"><img src="/content/images/section/mountzero-sgs.jpg" alt="Mount Zero 澳洲粉紅湖天然鹽 不含重金屬檢測"></div>
             </div>
             <div class="article-title centered">Mount Zero 澳洲粉紅湖天然鹽<br>不含重金屬檢測</div>
           </div>
@@ -81,7 +81,7 @@ useSeo(() => ({
         <div class="three-column clr page">
           <div class="blog-wrap news-blog-wrap">
             <div class="article-single centered">
-              <div class="article-pic report-pic"><img src="/content/images/section/insurance.jpg"></div>
+              <div class="article-pic report-pic"><img src="/content/images/section/insurance.jpg" alt="五千萬產品責任險"></div>
             </div>
             <div class="article-title centered">五千萬產品責任險</div>
           </div>

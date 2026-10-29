@@ -2,7 +2,7 @@
 // Home "/" — verbatim port of reference/old/tfoodies/Views/MainMs/Index.cshtml.
 // Same DOM/classes for legacy main.css; ViewBag foreach → v-for over useHomeData().
 useSeo(() => ({
-  title: '首頁',
+  title: '嚴選頂級橄欖油與天然食材',
   description: '食在呼 TFoodies — 嚴選天然安心食材、頂級橄欖油與健康好油，產地直送餐桌。提供美味料理食譜、品牌故事與最新活動消息。',
   type: 'website',
 }))
@@ -11,13 +11,14 @@ const { data } = useHomeData()
 
 <template>
   <main id="main">
+    <h1 class="sr-only">食在呼 TFoodies｜嚴選頂級橄欖油與天然食材</h1>
     <div class="owl-carousel owl-theme">
       <template v-for="(banner, i) in data.banners" :key="i">
         <div v-if="banner.style === 1" :style="{ backgroundImage: `url(${data.blobUrl}${banner.photo})` }" class="item-video">
           <a :href="banner.url" target="_blank"></a>
         </div>
         <div v-else-if="banner.style === 2" :style="{ backgroundImage: `url(${data.blobUrl}${banner.photo})` }" class="item-video">
-          <img src="/content/images/banner/blank.png">
+          <img src="/content/images/banner/blank.png" alt="">
           <div class="banner centered">
             <div class="banner-inner">
               <div class="index-title white">{{ banner.title }}</div>
@@ -26,7 +27,7 @@ const { data } = useHomeData()
           </div>
         </div>
         <div v-else-if="banner.style === 3" :style="{ backgroundImage: `url(${data.blobUrl}${banner.photo})` }" class="item-video">
-          <img src="/content/images/banner/blank.png">
+          <img src="/content/images/banner/blank.png" alt="">
           <div class="banner-text-wrapper">
             <div class="banner-text">{{ banner.title }}</div>
             <h3>{{ banner.subtitle }}</h3>
@@ -140,7 +141,7 @@ const { data } = useHomeData()
         <p class="white">GET FOOD INSPIRATION, NEWS AND GOOD OFFERS</p>
         <div class="title ci-title white">TFOODIES<br>PUT PASSION INTO FOOD</div><a href="/TFoodies" class="outline-btn white-btn-line">關於我們</a>
       </div>
-      <div class="member-pic"><img src="/content/images/section/memer.png"></div>
+      <div class="member-pic"><img src="/content/images/section/memer.png" alt=""></div>
     </section>
 
     <section class="section allpadding clr section">
