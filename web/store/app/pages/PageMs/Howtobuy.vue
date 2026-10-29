@@ -15,11 +15,24 @@ const activeTypeId = computed(() => {
 const activeType = computed(() =>
   data.value.find(t => t.questiontypeId === activeTypeId.value) ?? null)
 
+// 每個分類各自一個 canonical（第一個分類＝無參數的 /PageMs/Howtobuy），否則運費/退貨等分類的
+// 問答全被 canonical 到預設分類而不會被收錄。sitemap 亦逐分類列出（server/api/__sitemap-urls）。
+const siteUrl = String(useRuntimeConfig().public.siteUrl).replace(/\/+$/, '')
 useSeo(() => ({
-  title: '購物說明',
+  title: activeType.value && activeTypeId.value !== data.value[0]?.questiontypeId
+    ? `${activeType.value.title}｜購物說明`
+    : '購物說明',
+  url: activeTypeId.value && activeTypeId.value !== data.value[0]?.questiontypeId
+    ? `${siteUrl}/PageMs/Howtobuy?questiontypeid=${activeTypeId.value}`
+    : `${siteUrl}/PageMs/Howtobuy`,
   description: '食在呼 TFoodies 購物說明與會員常見問題：訂購、付款、運送、退換貨等常見問答。',
   type: 'website',
 }))
+
+useJsonLd(() => {
+  const qs = activeType.value?.questions ?? []
+  return qs.length ? faqPageJsonLd(qs.map(q => ({ question: q.title, answer: q.answer }))) : null
+})
 </script>
 
 <template>

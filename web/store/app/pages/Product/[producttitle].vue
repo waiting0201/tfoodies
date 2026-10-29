@@ -227,6 +227,7 @@ useJsonLd(() => {
       description: p.value.intro,
       image: heroImage.value,
       url: p.value.shortener || `${siteUrl}/Product/${titleToUrlSlug(p.value.title)}`,
+      sku: p.value.productid,
       price: p.value.price,
       inStock: p.value.added > 0,
       brand: p.value.brand?.title,

@@ -72,6 +72,13 @@ export default defineSitemapEventHandler(async () => {
   )
   for (const b of brands) urls.push({ loc: `/Brand/${toSlug(b.title)}` })
 
+  // 購物說明：第一個分類即無參數頁（已由 pages 自動收錄），其餘分類各有自己的 canonical。
+  const guide = await safe(
+    () => $fetch<{ questiontypeId: string }[]>(`${apiBase}/store/shopping-guide`),
+    [],
+  )
+  for (const t of guide.slice(1)) urls.push({ loc: `/PageMs/Howtobuy?questiontypeid=${t.questiontypeId}` })
+
   await Promise.all([
     collect<{ newId: string; publishDate?: string }>('/store/news',
       (n) => ({ loc: `/NewsDetail/${n.newId}/1`, lastmod: n.publishDate })),

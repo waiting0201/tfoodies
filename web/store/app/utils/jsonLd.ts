@@ -10,6 +10,7 @@ export function productJsonLd(opts: {
   description?: string | null
   image?: string | string[]
   url?: string
+  sku?: string
   price: number
   inStock: boolean
   brand?: string | null
@@ -20,6 +21,7 @@ export function productJsonLd(opts: {
     name: opts.name,
     ...(opts.description ? { description: metaDescription(opts.description, 300) } : {}),
     ...(opts.image ? { image: opts.image } : {}),
+    ...(opts.sku ? { sku: opts.sku } : {}),
     ...(opts.brand ? { brand: { '@type': 'Brand', name: opts.brand } } : {}),
     offers: {
       '@type': 'Offer',
@@ -29,8 +31,42 @@ export function productJsonLd(opts: {
       availability: opts.inStock
         ? 'https://schema.org/InStock'
         : 'https://schema.org/OutOfStock',
+      shippingDetails: shippingDetailsJsonLd(opts.price),
+      hasMerchantReturnPolicy: RETURN_POLICY,
     },
   }
+}
+
+/**
+ * Shipping for a single-item order: free at/over FREIGHT_THRESHOLD, else FREIGHT_FEE (utils/shipping).
+ * Times mirror 購物說明「配送」: ships in 3~7 business days, arrives ~3 days after dispatch.
+ */
+function shippingDetailsJsonLd(price: number): Json {
+  const days = (minValue: number, maxValue: number) =>
+    ({ '@type': 'QuantitativeValue', minValue, maxValue, unitCode: 'DAY' })
+  return {
+    '@type': 'OfferShippingDetails',
+    shippingRate: {
+      '@type': 'MonetaryAmount',
+      value: price >= FREIGHT_THRESHOLD ? 0 : FREIGHT_FEE,
+      currency: 'TWD',
+    },
+    shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'TW' },
+    deliveryTime: {
+      '@type': 'ShippingDeliveryTime',
+      handlingTime: days(3, 7),
+      transitTime: days(1, 3),
+    },
+  }
+}
+
+/** 購物說明「退貨」: report damage within 7 days of receipt; opened items not returnable. */
+const RETURN_POLICY: Json = {
+  '@type': 'MerchantReturnPolicy',
+  applicableCountry: 'TW',
+  returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+  merchantReturnDays: 7,
+  returnMethod: 'https://schema.org/ReturnByMail',
 }
 
 /** schema.org/Article for news / recipes / issues. */
@@ -40,7 +76,10 @@ export function articleJsonLd(opts: {
   image?: string | null
   url?: string
   datePublished?: string | null
+  /** No modified-date column in the DB; defaults to datePublished. */
+  dateModified?: string | null
 }): Json {
+  const dateModified = opts.dateModified ?? opts.datePublished
   return {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -49,6 +88,7 @@ export function articleJsonLd(opts: {
     ...(opts.image ? { image: opts.image } : {}),
     ...(opts.url ? { mainEntityOfPage: opts.url } : {}),
     ...(opts.datePublished ? { datePublished: opts.datePublished } : {}),
+    ...(dateModified ? { dateModified } : {}),
     author: { '@type': 'Organization', name: '食在呼 TFoodies' },
     publisher: { '@type': 'Organization', name: '食在呼 TFoodies' },
   }
@@ -146,6 +186,22 @@ export function websiteJsonLd(siteUrl: string): Json {
     url: `${siteUrl}/`,
     inLanguage: 'zh-Hant-TW',
     publisher: { '@id': `${siteUrl}/#organization` },
+  }
+}
+
+/**
+ * schema.org/FAQPage — Q&A pairs for 購物說明. Answers are rich-text HTML, stripped to plain
+ * text. Only pass the questions actually rendered on the page (Google requires visibility).
+ */
+export function faqPageJsonLd(items: { question: string; answer: string }[]): Json {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map((it) => ({
+      '@type': 'Question',
+      name: it.question,
+      acceptedAnswer: { '@type': 'Answer', text: stripHtml(it.answer) },
+    })),
   }
 }
 

@@ -154,6 +154,13 @@ function setLink() {
 function unsetLink() {
   editor.value?.chain().focus().unsetLink().run()
 }
+// 圖片替代文字：前台 SEO 與螢幕閱讀器使用（Google 圖片搜尋靠它理解圖片內容）
+function setImageAlt() {
+  const current = editor.value?.getAttributes('image').alt ?? ''
+  const alt = window.prompt('請輸入圖片替代文字（描述圖片內容）', current)
+  if (alt === null) return
+  editor.value?.chain().focus().updateAttributes('image', { alt: alt.trim() }).run()
+}
 
 async function uploadImage(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
@@ -220,6 +227,7 @@ function isActive(name: string, attrs?: Record<string, unknown>) {
 
       <!-- 圖片 URL -->
       <button type="button" class="tb-btn" @click="showImageUrl = !showImageUrl" title="圖片 URL">URL</button>
+      <button v-if="isActive('image')" type="button" class="tb-btn" @click="setImageAlt" title="圖片替代文字">Alt</button>
 
       <!-- YouTube -->
       <button type="button" class="tb-btn" @click="showYoutube = !showYoutube" title="插入 YouTube">▶ YT</button>

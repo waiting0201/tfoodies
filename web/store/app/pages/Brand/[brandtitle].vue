@@ -57,7 +57,7 @@ useSeo(() => ({
       <div class="restrict-wide">
         <div class="brand-logo"><img :src="data.blobUrl + (b.logo ?? '')" :alt="b.title"></div>
         <h1 class="ci-title white max-title">{{ b.title }}</h1>
-        <h1 class="white">{{ b.subtitle }}</h1>
+        <div class="white brand-subtitle">{{ b.subtitle }}</div>
       </div>
     </section>
 
@@ -149,3 +149,8 @@ useSeo(() => ({
     </section>
   </main>
 </template>
+
+<style scoped>
+/* 副標題原為第二個 <h1>（一頁兩個 h1 不利 SEO），改 div 後沿用 legacy main.css 的 h1 字級。 */
+.brand-subtitle { font-size: 2.2em; font-weight: 400; margin: 0; }
+</style>
