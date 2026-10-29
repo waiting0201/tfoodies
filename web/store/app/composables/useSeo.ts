@@ -2,14 +2,14 @@ import type { MaybeRefOrGetter } from 'vue'
 
 // Centralised SEO meta for the storefront. Wraps useSeoMeta() + a canonical <link>, fills
 // the full OpenGraph/Twitter set (so FB/LINE/Twitter scrapers get a title/description/image),
-// and falls back to a site logo when a page has no image. Pass a getter so it stays reactive
+// and falls back to a brand banner when a page has no image. Pass a getter so it stays reactive
 // while the page's `await useXxxData()` resolves.
 
 export interface SeoInput {
   title?: string | null
   /** Raw text or HTML; stripped + truncated to a meta description. */
   description?: string | null
-  /** Absolute (blob) URL or site-relative path; absolutised + defaulted to the site logo. */
+  /** Absolute (blob) URL or site-relative path; absolutised + defaulted to the brand banner. */
   image?: string | null
   /** Canonical absolute URL; defaults to siteUrl + current path. */
   url?: string | null
@@ -22,7 +22,8 @@ export function useSeo(source: MaybeRefOrGetter<SeoInput>) {
   const config = useRuntimeConfig()
   const siteUrl = String(config.public.siteUrl).replace(/\/+$/, '')
   const reqUrl = useRequestURL()
-  const defaultImage = `${siteUrl}/content/images/logo.png`
+  // 1920×770 brand banner on blob — the 274×50 logo.png is below FB/LINE's 200×200 minimum.
+  const defaultImage = `${String(config.public.blobUrl).replace(/\/*$/, '/')}2017051205225731.jpg`
 
   const resolved = computed(() => {
     const s = toValue(source)
