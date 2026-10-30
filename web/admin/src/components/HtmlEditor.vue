@@ -6,7 +6,6 @@ import { Plugin, PluginKey } from '@tiptap/pm/state'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import Youtube from '@tiptap/extension-youtube'
-import Link from '@tiptap/extension-link'
 import { apiFetch } from '../lib/apiClient'
 
 const props = defineProps<{ modelValue: string }>()
@@ -38,7 +37,9 @@ const editorRef = { value: null as any }
 // 超過 Googlebot 15MB 抓取上限。發現就上傳到 Blob 並換成網址；舊商品打開後按儲存即完成轉換。
 // 上傳端點只收 jpg/png/gif/webp，其他格式（如 svg）保留原狀。
 const MIME_EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/webp': 'webp' }
-const inFlight = new Set<string>()
+// 同時只跑一輪；期間內容又變動就標記 rerun，跑完再掃一次（避免同一張圖被並行的兩輪重複上傳）
+let running = false
+let rerun = false
 
 function dataUrlToFile(dataUrl: string): File | null {
   const m = /^data:([^;,]+);base64,(.*)$/s.exec(dataUrl)
@@ -61,27 +62,39 @@ function replaceImageSrc(from: string, to: string) {
   if (tr.docChanged) ed.view.dispatch(tr)
 }
 
-async function uploadInlineImages() {
-  const ed = editorRef.value
-  if (!ed) return
-  const pending = new Set<string>()
-  ed.state.doc.descendants((node: any) => {
+function collectInlineImages(): string[] {
+  const found = new Set<string>()
+  editorRef.value?.state.doc.descendants((node: any) => {
     const src = node.type.name === 'image' ? node.attrs.src : null
-    if (typeof src === 'string' && src.startsWith('data:') && !inFlight.has(src)) pending.add(src)
+    if (typeof src === 'string' && src.startsWith('data:')) found.add(src)
   })
-  for (const dataUrl of pending) {
-    const file = dataUrlToFile(dataUrl)
-    if (!file) continue
-    inFlight.add(dataUrl)
-    uploading.value = true
-    try {
-      replaceImageSrc(dataUrl, await uploadFileToBlob(file))
-    } catch {
-      // 上傳失敗保留 base64，下次內容變動再重試
-    } finally {
-      inFlight.delete(dataUrl)
-      uploading.value = inFlight.size > 0
-    }
+  return [...found]
+}
+
+async function uploadInlineImages() {
+  if (!editorRef.value) return
+  if (running) { rerun = true; return }
+  running = true
+  const failed = new Set<string>()
+  try {
+    do {
+      rerun = false
+      for (const dataUrl of collectInlineImages()) {
+        // 上傳期間圖可能已被刪除；本輪失敗過的不再重試，下次內容變動再試
+        if (failed.has(dataUrl) || !collectInlineImages().includes(dataUrl)) continue
+        const file = dataUrlToFile(dataUrl)
+        if (!file) continue
+        uploading.value = true
+        try {
+          replaceImageSrc(dataUrl, await uploadFileToBlob(file))
+        } catch {
+          failed.add(dataUrl)
+        }
+      }
+    } while (rerun)
+  } finally {
+    running = false
+    uploading.value = false
   }
 }
 
@@ -112,13 +125,29 @@ const PasteImageUpload = Extension.create({
   },
 })
 
+// 舊系統（Summernote）的圖片是行內元素，常與文字同在 <p>/<li> 內，並以 style 控制寬度/浮動
+// （如 style="width: 620px;"、"width: 50%; float: left;"）。預設 Image 是區塊節點且會丟棄 style，
+// 打開舊商品就會把圖拆出段落、儲存後寬度全失 → 改為行內並保留 style。
+const LegacyImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      style: {
+        default: null,
+        parseHTML: el => el.getAttribute('style') || null,
+        renderHTML: attrs => (attrs.style ? { style: attrs.style } : {}),
+      },
+    }
+  },
+})
+
 const editor = useEditor({
   content: props.modelValue,
   extensions: [
-    StarterKit,
-    Image.configure({ inline: false, allowBase64: true }),
+    // Tiptap v3 StarterKit 已內建 Link，另外註冊會出現 Duplicate extension 警告
+    StarterKit.configure({ link: { openOnClick: false } }),
+    LegacyImage.configure({ inline: true, allowBase64: true }),
     Youtube.configure({ width: 640, height: 360 }),
-    Link.configure({ openOnClick: false }),
     PasteImageUpload,
   ],
   onCreate() {

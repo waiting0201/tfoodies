@@ -413,6 +413,7 @@ web/store/app/
 - **sitemap.xml**：`@nuxtjs/sitemap`，靜態路由自動收錄，動態內容由 `server/api/__sitemap-urls.ts` 於 runtime 查 API（含商品/型錄/消息/料理/綠誌/小知識/活動，以及 `GET /store/brands` 列出的上線品牌頁）。⚠️ `loc` 一律傳**未編碼**路徑（模組會自行 percent-encode）；先 `encodeURIComponent` 會雙重編碼成 `%25E5…`，型錄頁解析不到分類。`lastmod`：DB 無修改時間欄位，消息用 `publishDate`、綠誌/小知識/活動用 `createDate`；料理/商品無日期故省略。
 - **標題/alt**：首頁 legacy 版面無可見標題，以 `.sr-only` h1（`layout-fixes.css`）補上；型錄頁 h1 顯示分類名稱。所有 `<img>` 須帶 alt（社群圖示用平台名、裝飾圖 `alt=""`）。
 - **富文本 base64 圖**：舊系統由伺服器端 HtmlAgilityPack 把 base64 抽到 Blob（見 docs/04）；新系統改由後台 `HtmlEditor.vue` 偵測 `data:` 圖片後自動上傳 Blob 並換成網址（貼上 HTML、載入舊內容皆觸發，舊資料打開按儲存即轉換）。base64 會同時出現在 SSR HTML 與 Nuxt payload，曾讓商品頁膨脹到 17MB，超過 Googlebot 15MB 抓取上限。
+- **富文本舊圖相容**：舊系統 Summernote 的 `<img>` 是行內元素（常在 `<p>`/`<li>` 內與文字並排），以 `style` 控制寬度/浮動（`width: 620px;`、`width: 50%; float: left;`）。`HtmlEditor.vue` 以 `LegacyImage`（`inline: true` + 保留 `style` 屬性）載入；若用 Tiptap 預設區塊圖，打開舊商品會把圖拆出段落、儲存後寬度與浮動全部遺失。
 - **llms.txt（GEO）**：`server/routes/llms.txt.ts` 動態產生（品牌摘要、運費/出貨/退貨/付款/客服、主要頁面、即時商品分類與商品清單）。運費常數與結帳頁共用 `app/utils/shipping.ts`，**須與後端 `Order__FreightLimit/FreightAmount` 一致**。
 - **robots.txt**：`@nuxtjs/robots` 產生（不再有靜態檔），`Disallow: /Member/ /Cart /Checkout /Order/` 並自動附 `Sitemap:`；被 disallow 的頁面自動補 `noindex` meta。
 
